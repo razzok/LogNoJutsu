@@ -1,0 +1,49 @@
+id: ueba-exabeam-validation
+name: Exabeam UEBA Validation Suite
+description: Dedicated validation playbook for Exabeam UEBA use cases. Covers the most important UEBA behavioral detections in sequence. Run this after SIEM onboarding to validate all UEBA use cases fire correctly.
+industry: UEBA Validation
+threat_actor: Generic (UEBA use case coverage)
+tags:
+  - ueba
+  - exabeam
+  - validation
+  - siem-test
+steps:
+  # Step 1: Establish baseline noise first (normal-looking discovery)
+  - technique_id: T1082
+    delay_after: 5
+    optional: false
+  - technique_id: T1016
+    delay_after: 5
+    optional: false
+  # Step 2: UEBA — Off-hours activity
+  - technique_id: UEBA-OFFHOURS
+    delay_after: 10
+    optional: false
+  # Step 3: UEBA — Rapid discovery chain (recon behavior)
+  - technique_id: UEBA-LATERAL-CHAIN
+    delay_after: 10
+    optional: false
+  # Step 4: UEBA — Credential spray pattern
+  - technique_id: UEBA-SPRAY-CHAIN
+    delay_after: 10
+    optional: false
+  # Step 5: Persistence (new scheduled task — anomaly for service accounts)
+  - technique_id: T1053.005
+    delay_after: 5
+    optional: false
+  # Step 6: Registry persistence (new run key — behavioral anomaly)
+  - technique_id: T1547.001
+    delay_after: 5
+    optional: false
+  # Step 7: LSASS access (credential dumping precursor)
+  - technique_id: T1003.001
+    delay_after: 5
+    optional: true
+  # Step 8: Defense evasion (attacker tries to go dark)
+  - technique_id: T1562.002
+    delay_after: 5
+    optional: true
+  - technique_id: T1070.001
+    delay_after: 0
+    optional: true

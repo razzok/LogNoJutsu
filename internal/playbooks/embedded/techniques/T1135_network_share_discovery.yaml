@@ -1,0 +1,50 @@
+id: T1135
+name: Network Share Discovery
+description: Enumerates network shares on local and remote systems, a common lateral movement and data collection reconnaissance technique. Generates Events 4688 (net.exe), Sysmon Event 3 (network connections to SMB), and 5140 (network share access).
+tactic: discovery
+technique_id: T1135
+platform: windows
+phase: discovery
+elevation_required: false
+expected_events:
+  - "4688 (net.exe with view argument)"
+  - "5140 (network share access)"
+  - "Sysmon 3 (NetworkConnect to port 445)"
+  - "Sysmon 1 (net.exe / net1.exe process creation)"
+tags:
+  - discovery
+  - no-prereqs
+  - network
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1135] Network Share Discovery - enumerating accessible shares"
+
+    # Technique 1: Enumerate local shares
+    Write-Host "--- Technique 1: Local share enumeration (net share) ---"
+    net share 2>&1
+
+    # Technique 2: Enumerate shares on localhost and common targets
+    Write-Host "--- Technique 2: Remote share enumeration (net view) ---"
+    net view \\$env:COMPUTERNAME 2>&1
+    net view \\localhost 2>&1
+
+    # Technique 3: PowerShell SMB share enumeration
+    Write-Host "--- Technique 3: PowerShell Get-SmbShare / WMI share query ---"
+    try {
+        Get-SmbShare -ErrorAction Stop | Select-Object Name, Path, Description
+    } catch {
+        Get-WmiObject -Class Win32_Share | Select-Object Name, Path, Description, Type
+    }
+
+    # Technique 4: Access well-known admin shares (generates 5140)
+    Write-Host "--- Technique 4: Accessing admin shares (generates Event 5140) ---"
+    $adminShares = @("C$", "IPC$", "ADMIN$")
+    foreach ($share in $adminShares) {
+        $path = "\\$env:COMPUTERNAME\$share"
+        Write-Host "  Testing access to $path"
+        Test-Path $path -ErrorAction SilentlyContinue | Out-Null
+    }
+
+    Write-Host "[T1135] Complete. Network share discovery events generated."
+cleanup: ""

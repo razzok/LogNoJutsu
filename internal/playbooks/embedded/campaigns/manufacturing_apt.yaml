@@ -1,0 +1,44 @@
+id: manufacturing-apt
+name: Manufacturing Sector — APT / OT Pivot
+description: Simulates an APT targeting manufacturing/OT environments. Covers initial access simulation, IT network reconnaissance, credential harvesting, and lateral movement toward operational systems.
+industry: Manufacturing
+threat_actor: Sandworm / TEMP.Veles
+tags:
+  - manufacturing
+  - ot
+  - apt
+  - sandworm
+steps:
+  - technique_id: T1082
+    delay_after: 5
+    optional: false
+  - technique_id: T1016
+    delay_after: 3
+    optional: false
+  - technique_id: T1049
+    delay_after: 3
+    optional: false
+  - technique_id: T1083
+    delay_after: 5
+    optional: false
+  - technique_id: T1069
+    delay_after: 5
+    optional: false
+  - technique_id: T1057
+    delay_after: 5
+    optional: false
+  - technique_id: T1059.001
+    delay_after: 10
+    optional: false
+  - technique_id: T1547.001
+    delay_after: 5
+    optional: false
+  - technique_id: T1021.001
+    delay_after: 10
+    optional: false
+  - technique_id: T1003.001
+    delay_after: 5
+    optional: true
+  - technique_id: T1562.002
+    delay_after: 5
+    optional: true

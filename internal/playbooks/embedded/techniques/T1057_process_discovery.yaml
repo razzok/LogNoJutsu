@@ -1,0 +1,23 @@
+id: T1057
+name: Process Discovery
+description: Lists running processes to identify security tools, AV, and interesting applications.
+tactic: discovery
+technique_id: T1057
+platform: windows
+phase: discovery
+elevation_required: false
+expected_events:
+  - "4688 (tasklist process creation)"
+tags:
+  - discovery
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1057] Process Discovery"
+    Write-Host "--- Running Processes ---"
+    tasklist /v | Select-Object -First 40
+    Write-Host "--- Security-Relevant Processes ---"
+    $secProcs = @("MsMpEng","sysmon","splunkd","beats","nxlog","ossec","cb","carbonblack","cylance","crowdstrike","sentinel","defender")
+    Get-Process | Where-Object { $name = $_.Name.ToLower(); $secProcs | Where-Object { $name -like "*$_*" } } | Select-Object Name,Id,CPU | Format-Table -AutoSize
+cleanup: ""

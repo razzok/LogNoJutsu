@@ -1,0 +1,29 @@
+id: T1082
+name: System Information Discovery
+description: Collects detailed OS, hardware, and domain information using built-in Windows utilities.
+tactic: discovery
+technique_id: T1082
+platform: windows
+phase: discovery
+elevation_required: false
+expected_events:
+  - "4688 (systeminfo process creation)"
+  - "4688 (wmic process creation)"
+tags:
+  - discovery
+  - no-prereqs
+  - ueba-baseline
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1082] System Information Discovery"
+    $info = @{}
+    $info["hostname"] = $env:COMPUTERNAME
+    $info["username"] = $env:USERNAME
+    $info["domain"] = $env:USERDOMAIN
+    $info["os"] = (Get-CimInstance Win32_OperatingSystem).Caption
+    $info["arch"] = $env:PROCESSOR_ARCHITECTURE
+    $info["uptime"] = (Get-Date) - (gcim Win32_OperatingSystem).LastBootUpTime
+    $info | ConvertTo-Json
+    systeminfo | Select-String -Pattern "OS Name|OS Version|System Type|Domain|Logon Server"
+cleanup: ""

@@ -1,0 +1,41 @@
+id: ransomware-full-chain
+name: Ransomware Full Attack Chain
+description: Simulates a complete ransomware attack chain as documented in Exabeam's ransomware use case — from initial discovery and credential access through defense evasion, inhibiting recovery, and finally file encryption simulation. Validates the documented Exabeam ransomware correlation rules including bcdedit, vssadmin, and mass file modification patterns.
+industry: Cross-Industry
+threat_actor: Ransomware Group (LockBit / Conti TTPs)
+tags:
+  - ransomware
+  - impact
+  - exabeam-validation
+  - high-severity
+steps:
+  - technique_id: T1082
+    delay_after: 5
+    optional: false
+  - technique_id: T1083
+    delay_after: 5
+    optional: false
+  - technique_id: T1057
+    delay_after: 5
+    optional: false
+  - technique_id: T1552.001
+    delay_after: 5
+    optional: false
+  - technique_id: T1059.001
+    delay_after: 5
+    optional: false
+  - technique_id: T1027
+    delay_after: 5
+    optional: false
+  - technique_id: T1562.002
+    delay_after: 5
+    optional: false
+  - technique_id: T1490
+    delay_after: 5
+    optional: false
+  - technique_id: T1486
+    delay_after: 5
+    optional: false
+  - technique_id: T1070.001
+    delay_after: 5
+    optional: false

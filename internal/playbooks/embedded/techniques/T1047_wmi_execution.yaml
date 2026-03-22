@@ -1,0 +1,41 @@
+id: T1047
+name: WMI Remote Execution
+description: Uses Windows Management Instrumentation (WMI) to execute commands, simulating a common lateral movement and execution technique. Generates Sysmon Events 1/20 and 4688 with WmiPrvSE.exe as parent process.
+tactic: execution
+technique_id: T1047
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4688 (wmic.exe process creation with command line)"
+  - "Sysmon 1 (process created by WmiPrvSE.exe parent)"
+  - "Sysmon 20 (WMI activity)"
+  - "4104 (if WMI spawns PowerShell)"
+tags:
+  - execution
+  - lateral-movement
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1047] WMI Execution - simulating attacker WMI usage"
+
+    # Technique 1: WMIC process list (reconnaissance)
+    Write-Host "--- Technique 1: WMIC process enumeration (T1057 via WMI) ---"
+    wmic process list brief 2>&1 | Select-Object -First 10
+
+    # Technique 2: WMIC local process creation (generates WmiPrvSE parent events)
+    Write-Host "--- Technique 2: WMIC local process creation ---"
+    wmic process call create "cmd.exe /C whoami" 2>&1
+
+    # Technique 3: PowerShell WMI method (common attacker pattern; generates Sysmon 20)
+    Write-Host "--- Technique 3: PowerShell Invoke-WMIMethod ---"
+    Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList "cmd.exe /C hostname" 2>&1
+
+    # Technique 4: WMI query for system info (reconnaissance)
+    Write-Host "--- Technique 4: WMI system information query ---"
+    Get-WmiObject -Class Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber
+    Get-WmiObject -Class Win32_ComputerSystem | Select-Object Name, Domain, UserName
+
+    Write-Host "[T1047] Complete. WMI execution events generated."
+cleanup: ""

@@ -1,0 +1,36 @@
+id: T1490
+name: Inhibit System Recovery — Shadow Copy Deletion Simulation
+description: Simulates ransomware pre-encryption behavior by listing (not deleting) shadow copies. Generates process creation events for vssadmin/wmic that SIEM rules detect as ransomware precursors.
+tactic: impact
+technique_id: T1490
+platform: windows
+phase: attack
+elevation_required: true
+expected_events:
+  - "4688 (vssadmin.exe list shadows)"
+  - "4688 (wmic shadowcopy list)"
+  - "Sysmon 1 (process creation with command line)"
+tags:
+  - impact
+  - ransomware
+  - requires-elevation
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1490] Inhibit System Recovery — Shadow Copy Simulation"
+    Write-Host "NOTE: This simulation LISTS shadow copies but does NOT delete them."
+    Write-Host "The process creation events (4688/Sysmon 1) for vssadmin/wmic are the detection signal."
+    Write-Host ""
+    Write-Host "--- Listing Shadow Copies (vssadmin) ---"
+    vssadmin list shadows 2>&1
+    Write-Host ""
+    Write-Host "--- Listing Shadow Copies (wmic) ---"
+    wmic shadowcopy list brief 2>&1
+    Write-Host ""
+    Write-Host "--- What a real ransomware attack would execute ---"
+    Write-Host "vssadmin delete shadows /all /quiet"
+    Write-Host "wmic shadowcopy delete"
+    Write-Host "bcdedit /set {default} bootstatuspolicy ignoreallfailures"
+    Write-Host "bcdedit /set {default} recoveryenabled no"
+    Write-Host "(SIMULATION ONLY — above commands were NOT executed)"
+cleanup: ""

@@ -1,0 +1,32 @@
+id: T1083
+name: File and Directory Discovery
+description: Enumerates file system for interesting files — documents, credentials, configs, scripts. Classic attacker recon behavior.
+tactic: discovery
+technique_id: T1083
+platform: windows
+phase: discovery
+elevation_required: false
+expected_events:
+  - "4688 (dir/Get-ChildItem process/command)"
+  - "Sysmon 1 (process creation)"
+tags:
+  - discovery
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1083] File and Directory Discovery"
+    Write-Host "--- User Profile Directories ---"
+    Get-ChildItem -Path $env:USERPROFILE -Depth 1 -ErrorAction SilentlyContinue | Select-Object Name,LastWriteTime,Length | Format-Table -AutoSize
+    Write-Host "--- Interesting File Types (Desktop, Documents) ---"
+    $interesting = @("*.txt","*.docx","*.xlsx","*.pdf","*.ps1","*.bat","*.config","*.xml","*.json","*.key","*.pem","*.pfx")
+    foreach ($ext in $interesting) {
+        $found = Get-ChildItem -Path $env:USERPROFILE -Filter $ext -Recurse -ErrorAction SilentlyContinue | Select-Object -First 5
+        if ($found) {
+            Write-Host "  Found $ext files:"
+            $found | Select-Object FullName | Format-Table -AutoSize -HideTableHeaders
+        }
+    }
+    Write-Host "--- Root Drive Contents ---"
+    Get-ChildItem -Path "C:\" -ErrorAction SilentlyContinue | Select-Object Name | Format-Table -AutoSize -HideTableHeaders
+cleanup: ""

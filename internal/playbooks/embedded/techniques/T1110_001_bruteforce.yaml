@@ -1,0 +1,37 @@
+id: T1110.001
+name: Password Brute Force / Spray
+description: Simulates a password spray attack generating multiple failed login events (4625) followed by a successful login pattern for UEBA detection.
+tactic: credential-access
+technique_id: T1110.001
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4625 (Account failed logon - multiple)"
+  - "4740 (Account lockout - if threshold reached)"
+tags:
+  - credential-access
+  - no-prereqs
+  - ueba-brute-force
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1110.001] Password Spray Simulation"
+    Write-Host "Generating failed authentication attempts to simulate password spray..."
+    # Use .NET to generate failed NTLM auth attempts (does NOT lock out real accounts)
+    $targetUser = $env:USERNAME + "_spray_test"
+    Add-Type -AssemblyName System.DirectoryServices.AccountManagement
+    $attempts = 10
+    $failed = 0
+    for ($i = 1; $i -le $attempts; $i++) {
+        try {
+            $ctx = New-Object System.DirectoryServices.AccountManagement.PrincipalContext([System.DirectoryServices.AccountManagement.ContextType]::Machine)
+            $result = $ctx.ValidateCredentials("lognojutsu_nonexistent_$i", "WrongPassword$i!")
+            if (-not $result) { $failed++ }
+        } catch { $failed++ }
+        Start-Sleep -Milliseconds 200
+        Write-Host "  Attempt $i/$attempts - failed (simulated)"
+    }
+    Write-Host "Spray simulation complete. Generated $failed failed authentication events."
+    Write-Host "Expected Event ID 4625 entries in Security log."
+cleanup: ""

@@ -1,0 +1,49 @@
+id: T1046
+name: Network Service Discovery (Port Scan)
+description: Scans local network for open services and ports, simulating attacker network reconnaissance. Generates Sysmon Event 3 (network connections) for each connection attempt.
+tactic: discovery
+technique_id: T1046
+platform: windows
+phase: discovery
+elevation_required: false
+expected_events:
+  - "Sysmon 3 (NetworkConnect - multiple outbound connections)"
+  - "4688 (powershell.exe process creation)"
+  - "4104 (PowerShell ScriptBlock - port scan code)"
+tags:
+  - discovery
+  - no-prereqs
+  - network
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1046] Network Service Discovery - simulating port scan"
+
+    # Scan common attacker-targeted ports on localhost and gateway
+    $target = "127.0.0.1"
+    $commonPorts = @(21, 22, 23, 25, 53, 80, 135, 139, 443, 445, 1433, 3306, 3389, 5985, 8080)
+
+    Write-Host "Scanning $target for common service ports (Sysmon 3 events generated per connection):"
+    foreach ($port in $commonPorts) {
+        $result = Test-NetConnection -ComputerName $target -Port $port -WarningAction SilentlyContinue -InformationLevel Quiet 2>$null
+        $status = if ($result) { "OPEN" } else { "closed" }
+        Write-Host "  Port $port/tcp : $status"
+    }
+
+    # Also scan the default gateway (if available)
+    try {
+        $gw = (Get-NetRoute -DestinationPrefix "0.0.0.0/0" -ErrorAction Stop | Select-Object -First 1).NextHop
+        if ($gw) {
+            Write-Host "Scanning gateway $gw for key ports:"
+            foreach ($port in @(22, 80, 443, 3389)) {
+                $result = Test-NetConnection -ComputerName $gw -Port $port -WarningAction SilentlyContinue -InformationLevel Quiet 2>$null
+                $status = if ($result) { "OPEN" } else { "closed" }
+                Write-Host "  ${gw}:${port}/tcp : $status"
+            }
+        }
+    } catch {
+        Write-Host "Gateway scan skipped: $_"
+    }
+
+    Write-Host "[T1046] Complete. Sysmon Event 3 entries generated for connection attempts."
+cleanup: ""

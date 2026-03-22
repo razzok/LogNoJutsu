@@ -1,0 +1,32 @@
+id: account-manipulation-persistence
+name: Account Manipulation & Persistence Chain
+description: Simulates attacker account manipulation and multi-vector persistence — creating accounts, adding to privileged groups, and establishing multiple persistence mechanisms. Directly validates Exabeam's Account Manipulation use case (57 rules for T1098, 35 for T1136).
+industry: Cross-Industry
+threat_actor: Insider Threat / APT Post-Exploitation
+tags:
+  - persistence
+  - account-manipulation
+  - privilege-escalation
+  - exabeam-validation
+steps:
+  - technique_id: T1136.001
+    delay_after: 5
+    optional: false
+  - technique_id: T1098
+    delay_after: 5
+    optional: false
+  - technique_id: T1547.001
+    delay_after: 5
+    optional: false
+  - technique_id: T1053.005
+    delay_after: 5
+    optional: false
+  - technique_id: T1543.003
+    delay_after: 5
+    optional: false
+  - technique_id: T1197
+    delay_after: 5
+    optional: false
+  - technique_id: T1546.003
+    delay_after: 5
+    optional: true

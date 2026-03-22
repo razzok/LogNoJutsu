@@ -1,0 +1,58 @@
+id: T1482
+name: Domain Trust Discovery
+description: Enumerates Active Directory domain trusts using nltest and .NET LDAP queries. Attackers use this to map inter-domain trust relationships for lateral movement planning. Generates Event 4688 (nltest.exe) and 4104 (PowerShell LDAP query).
+tactic: discovery
+technique_id: T1482
+platform: windows
+phase: discovery
+elevation_required: false
+expected_events:
+  - "4688 (nltest.exe with /domain_trusts argument)"
+  - "Sysmon 1 (nltest.exe process creation)"
+  - "4104 (PowerShell ScriptBlock - LDAP trust enumeration)"
+tags:
+  - discovery
+  - no-prereqs
+  - active-directory
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1482] Domain Trust Discovery - enumerating AD trust relationships"
+
+    # Technique 1: nltest /domain_trusts (most common attacker method)
+    Write-Host "--- Technique 1: nltest /domain_trusts (generates Event 4688) ---"
+    nltest /domain_trusts 2>&1
+
+    # Technique 2: nltest /dclist (enumerate domain controllers)
+    Write-Host "--- Technique 2: nltest /dclist ---"
+    nltest /dclist:$env:USERDOMAIN 2>&1
+
+    # Technique 3: PowerShell LDAP trust enumeration
+    Write-Host "--- Technique 3: PowerShell .NET trust enumeration ---"
+    try {
+        $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+        Write-Host "Current domain: $($domain.Name)"
+        $trusts = $domain.GetAllTrustRelationships()
+        if ($trusts.Count -gt 0) {
+            Write-Host "Trust relationships found:"
+            foreach ($trust in $trusts) {
+                Write-Host "  $($trust.SourceName) → $($trust.TargetName) ($($trust.TrustType))"
+            }
+        } else {
+            Write-Host "No trust relationships found (standalone or single-domain environment)."
+        }
+    } catch {
+        Write-Host "Domain trust enumeration (not domain-joined): $_"
+    }
+
+    # Technique 4: Get-ADDomain / forest (if RSAT available)
+    Write-Host "--- Technique 4: Forest/domain info via ADSI ---"
+    try {
+        $forest = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()
+        Write-Host "Forest: $($forest.Name) | Domains: $($forest.Domains.Name -join ', ')"
+    } catch {
+        Write-Host "Forest enumeration: $_"
+    }
+
+    Write-Host "[T1482] Complete. Domain trust events generated."
+cleanup: ""

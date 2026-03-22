@@ -1,0 +1,35 @@
+id: T1218.011
+name: Rundll32 Proxy Execution
+description: Uses rundll32.exe to execute code indirectly, a common LOLBin technique to bypass application whitelisting. Generates Sysmon Event 1 and Event 4688 with rundll32.exe as the executing process.
+tactic: defense-evasion
+technique_id: T1218.011
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4688 (rundll32.exe process creation)"
+  - "Sysmon 1 (rundll32.exe with suspicious arguments)"
+  - "Sysmon 7 (ImageLoaded - DLL loaded by rundll32)"
+tags:
+  - defense-evasion
+  - lolbin
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1218.011] Rundll32 Proxy Execution - simulating LOLBin abuse"
+
+    # Technique 1: Rundll32 invoking a legitimate Windows DLL function (generates events)
+    Write-Host "--- Technique 1: Rundll32 shell32 test ---"
+    Start-Process -FilePath "rundll32.exe" -ArgumentList "shell32.dll,Control_RunDLL" -Wait -WindowStyle Hidden
+
+    # Technique 2: Rundll32 used to run JavaScript (common malware technique pattern)
+    Write-Host "--- Technique 2: Rundll32 advpack.dll pattern (event generation) ---"
+    Start-Process -FilePath "rundll32.exe" -ArgumentList "advpack.dll,DelNodeRunDLL32 C:\WINDOWS\Temp\LogNoJutsu_rundll32_test.inf" -Wait -WindowStyle Hidden
+
+    # Technique 3: Rundll32 URL.dll OpenURL (common for phishing simulation)
+    Write-Host "--- Technique 3: Rundll32 url.dll pattern (generates Sysmon 1) ---"
+    Start-Process -FilePath "rundll32.exe" -ArgumentList "url.dll,FileProtocolHandler" -Wait -WindowStyle Hidden
+
+    Write-Host "[T1218.011] Complete. Sysmon Event 1 should be generated for each rundll32 invocation."
+cleanup: ""

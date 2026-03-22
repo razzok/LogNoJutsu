@@ -1,0 +1,33 @@
+id: T1547.001
+name: Registry Run Key Persistence
+description: Creates a registry run key to simulate attacker persistence. Generates Sysmon Event 13 (registry value set).
+tactic: persistence
+technique_id: T1547.001
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "Sysmon 13 (RegistryEvent - value set)"
+  - "4688 (reg.exe process creation)"
+tags:
+  - persistence
+  - no-prereqs
+  - registry
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1547.001] Registry Run Key Persistence"
+    $keyPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+    $valueName = "LogNoJutsu_Persistence_Test"
+    $fakePayload = "C:\Windows\System32\notepad.exe"
+    Write-Host "Creating registry run key: $keyPath\$valueName"
+    Set-ItemProperty -Path $keyPath -Name $valueName -Value $fakePayload -Force
+    Write-Host "Run key created successfully. Sysmon Event 13 should be generated."
+    Write-Host "Registry entry: $valueName = $fakePayload"
+cleanup: |
+  $keyPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+  $valueName = "LogNoJutsu_Persistence_Test"
+  if (Get-ItemProperty -Path $keyPath -Name $valueName -ErrorAction SilentlyContinue) {
+      Remove-ItemProperty -Path $keyPath -Name $valueName -Force
+      Write-Host "Cleanup: Registry run key removed."
+  }

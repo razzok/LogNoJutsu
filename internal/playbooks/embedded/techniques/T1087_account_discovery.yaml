@@ -1,0 +1,27 @@
+id: T1087
+name: Account Discovery
+description: Enumerates local and domain user accounts and group memberships.
+tactic: discovery
+technique_id: T1087.001
+platform: windows
+phase: discovery
+elevation_required: false
+expected_events:
+  - "4688 (net.exe process creation)"
+tags:
+  - discovery
+  - no-prereqs
+  - ueba-baseline
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1087] Account Discovery"
+    Write-Host "--- Local Users ---"
+    net user
+    Write-Host "--- Local Admins ---"
+    net localgroup administrators
+    Write-Host "--- Local Groups ---"
+    net localgroup
+    Write-Host "--- Current User Details ---"
+    whoami /all
+cleanup: ""

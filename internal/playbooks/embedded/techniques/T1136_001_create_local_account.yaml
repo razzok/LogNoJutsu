@@ -1,0 +1,38 @@
+id: T1136.001
+name: Create Local Account
+description: Creates a local user account simulating attacker persistence via account creation. Generates Event 4720 (account created) — key Exabeam Account Manipulation use case trigger.
+tactic: persistence
+technique_id: T1136.001
+platform: windows
+phase: attack
+elevation_required: true
+expected_events:
+  - "4720 (user account created)"
+  - "4722 (user account enabled)"
+  - "4688 (net.exe process creation)"
+  - "Sysmon 1 (net user command)"
+tags:
+  - persistence
+  - account-manipulation
+  - requires-elevation
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1136.001] Create Local Account - simulating attacker account creation"
+    $username = "lnj_test_acct"
+    $password = "LogNoJutsu!Temp2024"
+
+    Write-Host "Creating local account: $username"
+    net user $username $password /add /comment:"LogNoJutsu SIEM validation test account"
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Account created successfully. Event 4720 should be generated."
+        net user $username 2>&1
+    } else {
+        Write-Host "Note: Account may already exist or insufficient privileges."
+    }
+cleanup: |
+  $username = "lnj_test_acct"
+  if (Get-LocalUser -Name $username -ErrorAction SilentlyContinue) {
+      net user $username /delete
+      Write-Host "Cleanup: Test account '$username' removed. Event 4726 generated."
+  }

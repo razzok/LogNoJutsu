@@ -1,0 +1,52 @@
+id: T1036.005
+name: Match Legitimate Name or Location (Process Masquerading)
+description: Creates processes or files with names matching legitimate Windows system utilities to evade detection. Generates Sysmon Event 1 with suspicious parent/child relationships and Event 4688 with process hashes that don't match known-good values.
+tactic: defense-evasion
+technique_id: T1036.005
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "Sysmon 1 (process with suspicious parent or non-standard path for that name)"
+  - "4688 (process creation — name matches system binary but path differs)"
+  - "Sysmon 11 (FileCreate - binary copied to non-standard location)"
+tags:
+  - defense-evasion
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1036.005] Process Masquerading - simulating process name/location spoofing"
+
+    $tempDir = "$env:TEMP\LogNoJutsu_Masq"
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+
+    # Technique 1: Copy legitimate binary to temp path with same name (Sysmon 11 + 1)
+    Write-Host "--- Technique 1: Legitimate binary run from non-standard path ---"
+    $fakeHostPath = "$tempDir\svchost.exe"
+    Copy-Item "C:\Windows\System32\cmd.exe" -Destination $fakeHostPath
+    Write-Host "Copied cmd.exe as svchost.exe to: $fakeHostPath"
+    Start-Process -FilePath $fakeHostPath -ArgumentList "/C echo LogNoJutsu-masquerade-svchost" -Wait -WindowStyle Hidden
+    Write-Host "Sysmon Event 1: svchost.exe running from $tempDir (anomalous path)"
+
+    # Technique 2: Renamed powershell masquerading as explorer
+    Write-Host "--- Technique 2: PowerShell masquerading as explorer.exe ---"
+    $fakePath = "$tempDir\explorer.exe"
+    Copy-Item "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -Destination $fakePath
+    Start-Process -FilePath $fakePath -ArgumentList "-NonInteractive -Command `"Write-Host 'LogNoJutsu-masquerade-explorer'`"" -Wait -WindowStyle Hidden
+    Write-Host "Sysmon Event 1: explorer.exe (really powershell) from $tempDir"
+
+    # Technique 3: Binary with double extension (filename.txt.exe pattern)
+    Write-Host "--- Technique 3: Double extension masquerade (filename.txt.exe) ---"
+    $doubleExt = "$tempDir\invoice_Q4_2024.pdf.exe"
+    Copy-Item "C:\Windows\System32\cmd.exe" -Destination $doubleExt
+    Start-Process -FilePath $doubleExt -ArgumentList "/C echo LogNoJutsu-double-extension" -Wait -WindowStyle Hidden
+    Write-Host "Process with double-extension name executed (social engineering pattern)"
+
+    Write-Host "[T1036.005] Complete. Check Sysmon Event 1 for process path anomalies."
+cleanup: |
+  $tempDir = "$env:TEMP\LogNoJutsu_Masq"
+  if (Test-Path $tempDir) {
+      Remove-Item -Path $tempDir -Recurse -Force
+      Write-Host "Cleanup: Masquerading simulation files removed."
+  }

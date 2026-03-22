@@ -1,0 +1,45 @@
+id: UEBA-OFFHOURS
+name: UEBA — Off-Hours Activity Simulation
+description: "Exabeam UEBA scenario: simulates user activity at unusual hours. Generates process creation and network events during off-business-hours to trigger Exabeam's abnormal logon time use case."
+tactic: ueba-scenario
+technique_id: T1078
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4688 (process creation at off-hours timestamp)"
+  - "4624 (logon event at unusual hour)"
+  - "Exabeam: Abnormal activity time use case"
+tags:
+  - ueba
+  - off-hours
+  - exabeam
+executor:
+  type: powershell
+  command: |
+    Write-Host "[UEBA] Off-Hours Activity Simulation"
+    $now = Get-Date
+    $hour = $now.Hour
+    Write-Host "Current time: $($now.ToString('yyyy-MM-dd HH:mm:ss'))"
+    Write-Host "Hour: $hour (Business hours typically: 08-18)"
+    if ($hour -ge 8 -and $hour -le 18) {
+        Write-Host "NOTE: Currently within business hours. UEBA baseline may not flag this."
+        Write-Host "For maximum UEBA impact, run this simulation outside 08:00-18:00."
+    } else {
+        Write-Host "OUTSIDE business hours — this activity WILL trigger Exabeam off-hours detection!"
+    }
+    Write-Host ""
+    Write-Host "Simulating off-hours activities (recon + enumeration at unusual time)..."
+    # Perform enumeration actions — the timestamp on these events is key for UEBA
+    whoami /all | Out-Null
+    net user | Out-Null
+    ipconfig /all | Out-Null
+    Get-Process | Select-Object -First 10 | Out-Null
+    Get-ChildItem $env:USERPROFILE -ErrorAction SilentlyContinue | Out-Null
+    Write-Host "Activities executed at: $($now.ToString('HH:mm:ss'))"
+    Write-Host ""
+    Write-Host "UEBA DETECTION EXPECTED:"
+    Write-Host "  - Exabeam: Activity outside normal working hours for this user"
+    Write-Host "  - Exabeam: First time this account active at this hour"
+    Write-Host "  - Baseline deviation score increase"
+cleanup: ""

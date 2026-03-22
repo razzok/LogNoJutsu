@@ -1,0 +1,41 @@
+id: finance-fin7
+name: Financial Sector - FIN7 Attack Chain
+description: Simulates a FIN7-style attack targeting financial organizations. Covers discovery, execution, persistence, credential access, and defense evasion.
+industry: Finance
+threat_actor: FIN7 / Carbanak
+tags:
+  - finance
+  - fin7
+  - carbanak
+  - apt
+steps:
+  - technique_id: T1082
+    delay_after: 5
+    optional: false
+  - technique_id: T1087
+    delay_after: 5
+    optional: false
+  - technique_id: T1049
+    delay_after: 3
+    optional: false
+  - technique_id: T1057
+    delay_after: 5
+    optional: false
+  - technique_id: T1059.001
+    delay_after: 10
+    optional: false
+  - technique_id: T1547.001
+    delay_after: 5
+    optional: false
+  - technique_id: T1053.005
+    delay_after: 5
+    optional: false
+  - technique_id: T1110.001
+    delay_after: 10
+    optional: false
+  - technique_id: T1562.002
+    delay_after: 5
+    optional: true
+  - technique_id: T1070.001
+    delay_after: 0
+    optional: true

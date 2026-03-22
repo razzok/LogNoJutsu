@@ -1,0 +1,29 @@
+id: T1562.002
+name: Disable Windows Event Logging
+description: Simulates attacker disabling audit policy to stop security event generation. Generates Event 4719.
+tactic: defense-evasion
+technique_id: T1562.002
+platform: windows
+phase: attack
+elevation_required: true
+expected_events:
+  - "4719 (System audit policy changed)"
+  - "4688 (auditpol process creation)"
+tags:
+  - defense-evasion
+  - requires-elevation
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1562.002] Disable Windows Event Logging (Simulation)"
+    Write-Host "Current audit policy:"
+    auditpol /get /subcategory:"Logon" /r
+    Write-Host ""
+    Write-Host "Simulating audit policy disable (Logon auditing - will restore in cleanup)..."
+    auditpol /set /subcategory:"Logon" /success:disable /failure:disable
+    Write-Host "Logon auditing disabled. Event 4719 should appear in Security log."
+    Write-Host "WARNING: Cleanup will re-enable logon auditing."
+cleanup: |
+  Write-Host "Cleanup: Re-enabling Logon auditing..."
+  auditpol /set /subcategory:"Logon" /success:enable /failure:enable
+  Write-Host "Logon auditing restored."

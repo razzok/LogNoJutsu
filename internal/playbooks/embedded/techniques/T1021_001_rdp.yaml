@@ -1,0 +1,47 @@
+id: T1021.001
+name: Remote Desktop Protocol — Lateral Movement Simulation
+description: Simulates RDP lateral movement behavior by generating logon-type-10 events and querying RDP session state. Does NOT establish a real RDP session to avoid disrupting the target system.
+tactic: lateral-movement
+technique_id: T1021.001
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4624 (Logon Type 10 - Remote Interactive)"
+  - "4625 (Failed RDP logon attempts)"
+  - "4778 (Session reconnected)"
+  - "Sysmon 3 (network connection to port 3389)"
+tags:
+  - lateral-movement
+  - rdp
+  - ueba-lateral-movement
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1021.001] RDP Lateral Movement Simulation"
+    Write-Host "--- Checking RDP status on this system ---"
+    $rdpStatus = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -ErrorAction SilentlyContinue
+    if ($rdpStatus.fDenyTSConnections -eq 0) {
+        Write-Host "RDP is ENABLED on this system (port 3389)"
+    } else {
+        Write-Host "RDP is DISABLED on this system"
+    }
+    Write-Host "--- Active RDP Sessions ---"
+    query session 2>$null
+    Write-Host "--- Simulating failed RDP authentication (generates Event 4625) ---"
+    # Generate failed NTLM auth via .NET to simulate RDP pre-auth failures
+    Add-Type -AssemblyName System.DirectoryServices.AccountManagement
+    1..5 | ForEach-Object {
+        try {
+            $ctx = New-Object System.DirectoryServices.AccountManagement.PrincipalContext([System.DirectoryServices.AccountManagement.ContextType]::Machine)
+            $ctx.ValidateCredentials("rdp_target_user_$_", "WrongRDPPass$_!") | Out-Null
+        } catch {}
+        Write-Host "  Simulated RDP auth attempt $_ (failed — expected)"
+        Start-Sleep -Milliseconds 500
+    }
+    Write-Host "--- Network scan for RDP-enabled hosts (local subnet) ---"
+    $localIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" } | Select-Object -First 1).IPAddress
+    Write-Host "Local IP: $localIP"
+    Write-Host "Note: In a real attack, attacker would scan subnet for open port 3389"
+    Write-Host "Sysmon Event 3 (network connection to :3389) should appear if scan is performed"
+cleanup: ""

@@ -1,0 +1,25 @@
+id: T1049
+name: System Network Connections Discovery
+description: Enumerates active network connections, listening ports, and routing tables.
+tactic: discovery
+technique_id: T1049
+platform: windows
+phase: discovery
+elevation_required: false
+expected_events:
+  - "4688 (netstat process creation)"
+tags:
+  - discovery
+  - no-prereqs
+  - ueba-baseline
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1049] Network Connections Discovery"
+    Write-Host "--- Active Connections ---"
+    netstat -ano | Select-Object -First 30
+    Write-Host "--- Established Connections ---"
+    Get-NetTCPConnection -State Established | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,OwningProcess | Format-Table -AutoSize
+    Write-Host "--- Listening Ports ---"
+    Get-NetTCPConnection -State Listen | Select-Object LocalAddress,LocalPort | Sort-Object LocalPort | Format-Table -AutoSize
+cleanup: ""

@@ -1,0 +1,65 @@
+id: T1003.006
+name: DCSync — Domain Credential Replication Simulation
+description: Simulates DCSync attack reconnaissance — enumerates domain replication permissions and DCs that are targeted in DCSync attacks. On a DC, DCSync uses MS-DRSR to replicate password hashes. Generates Event 4662 (directory service object access) and 4688 (nltest, dsquery). Exabeam has 4 dedicated rules.
+tactic: credential-access
+technique_id: T1003.006
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4662 (directory service object access - replication rights enumeration)"
+  - "4688 (nltest.exe / dsquery.exe / powershell.exe)"
+  - "4769 (Kerberos service ticket for DRSUAPI)"
+  - "4104 (PowerShell ScriptBlock - DS replication enumeration)"
+tags:
+  - credential-access
+  - active-directory
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1003.006] DCSync Simulation - enumerating replication rights (no actual sync)"
+
+    # Step 1: Enumerate domain controllers (attacker recon for DCSync target selection)
+    Write-Host "--- Step 1: Domain Controller enumeration (nltest) ---"
+    nltest /dclist:$env:USERDOMAIN 2>&1
+    nltest /dsgetdc:$env:USERDOMAIN 2>&1
+
+    # Step 2: Check for DS-Replication rights (what DCSync exploits)
+    Write-Host "--- Step 2: Enumerating accounts with DS-Replication-Get-Changes rights ---"
+    try {
+        $domain = [ADSI]"LDAP://RootDSE"
+        $domainDN = $domain.defaultNamingContext
+        Write-Host "Domain DN: $domainDN"
+
+        # Query accounts with dangerous AD replication privileges
+        $searcher = [ADSISearcher]"(&(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=512))"
+        $results = $searcher.FindAll()
+        Write-Host "Found $($results.Count) enabled domain user accounts"
+
+        # Specifically look for accounts in key groups that could perform DCSync
+        foreach ($group in @("Domain Admins", "Enterprise Admins", "Administrators")) {
+            try {
+                $groupObj = [ADSI]"LDAP://CN=$group,CN=Users,$domainDN"
+                $members = $groupObj.member
+                if ($members) {
+                    Write-Host "  Members of '$group': $($members.Count) account(s)"
+                }
+            } catch {}
+        }
+    } catch {
+        Write-Host "AD replication rights enumeration (not domain-joined): $_"
+    }
+
+    # Step 3: ACL check on domain object (the permission DCSync requires)
+    Write-Host "--- Step 3: Checking domain object ACL for replication permissions ---"
+    try {
+        $acl = (Get-Acl "AD:\$((Get-ADDomain).DistinguishedName)" -ErrorAction Stop).Access |
+               Where-Object { $_.ActiveDirectoryRights -match "ExtendedRight" }
+        Write-Host "Extended rights on domain object: $($acl.Count) ACE(s) found"
+    } catch {
+        Write-Host "ACL check (RSAT not available or not domain-joined): $_"
+    }
+
+    Write-Host "[T1003.006] Complete. DCSync recon events generated."
+cleanup: ""

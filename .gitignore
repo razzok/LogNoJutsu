@@ -1,0 +1,18 @@
+# Claude Code IDE settings
+.claude/
+
+# Compiled binary
+lognojutsu.exe
+
+# Simulation output files (generated at runtime on target system)
+lognojutsu_*.log
+lognojutsu_*.json
+lognojutsu_users.json
+
+# Go build cache
+*.test
+*.out
+
+# Windows
+Thumbs.db
+desktop.ini

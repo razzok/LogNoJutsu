@@ -1,0 +1,54 @@
+id: T1550.002
+name: Pass the Hash — Credential Reuse Simulation
+description: Simulates Pass-the-Hash behavior patterns by generating the characteristic Windows events — explicit credential use (4648) followed by network logon (4624 type 3) using NTLM. Uses the multi-user RunAs mechanism to generate authentic 4648 events, which is the primary Exabeam detection trigger for PtH with 23 dedicated rules.
+tactic: lateral-movement
+technique_id: T1550.002
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4648 (logon with explicit credentials — primary PtH indicator)"
+  - "4624 type 3 (network logon with NTLM)"
+  - "4776 (NTLM credential validation)"
+  - "4688 (net.exe or powershell.exe with UNC path)"
+tags:
+  - lateral-movement
+  - credential-access
+  - no-prereqs
+  - ueba-anomaly
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1550.002] Pass-the-Hash Pattern Simulation"
+    Write-Host "Note: Generates the event pattern that Exabeam's 23 PtH rules detect."
+    Write-Host "      Actual PtH requires Mimikatz; this simulates the observable event sequence."
+
+    # Step 1: NTLM authentication enumeration (attacker recon before PtH)
+    Write-Host "--- Step 1: NTLM-based network share access (generates Event 4776/4624 type 3) ---"
+    $localHost = $env:COMPUTERNAME
+    net use \\$localHost\IPC$ /user:$env:USERNAME "" 2>&1
+    net use \\$localHost\IPC$ /delete 2>$null
+
+    # Step 2: Simulate multiple lateral host attempts (PtH spray pattern — Exabeam UEBA signal)
+    Write-Host "--- Step 2: Simulating lateral movement attempts to multiple hosts ---"
+    $targets = @($env:COMPUTERNAME, "127.0.0.1", "localhost")
+    foreach ($target in $targets) {
+        Write-Host "  Attempting NTLM access to: $target"
+        net use \\$target\IPC$ 2>&1 | Out-Null
+        net use \\$target\IPC$ /delete 2>$null
+    }
+
+    # Step 3: Explicit credential use (generates Event 4648 — core PtH detection signal)
+    Write-Host "--- Step 3: Explicit credential use via runas pattern (Event 4648) ---"
+    $username = $env:USERNAME
+    $domain = $env:USERDOMAIN
+    Write-Host "  Simulating explicit credential usage as $domain\$username (Event 4648)"
+    cmdkey /add:$env:COMPUTERNAME /user:"$domain\$username" /pass:"SimulatedPtH-NoRealHash" 2>&1
+    Start-Process -FilePath "net.exe" -ArgumentList "use \\$env:COMPUTERNAME\IPC$ /user:$domain\$username SimulatedPtH" -Wait -WindowStyle Hidden 2>&1
+    cmdkey /delete:$env:COMPUTERNAME 2>$null
+    net use * /delete /yes 2>$null
+
+    Write-Host "[T1550.002] Complete. PtH event pattern generated. Exabeam rules monitor 4648+4624(type3)+4776."
+cleanup: |
+  net use * /delete /yes 2>$null
+  Write-Host "Cleanup: Network connections cleared."

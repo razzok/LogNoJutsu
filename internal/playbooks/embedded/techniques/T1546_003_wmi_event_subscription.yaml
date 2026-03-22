@@ -1,0 +1,67 @@
+id: T1546.003
+name: WMI Event Subscription Persistence
+description: Creates a WMI Event Subscription for fileless persistence, a technique used by advanced threat actors (APT). Generates Sysmon Events 19/20/21 (WMIEvent) — Exabeam has 6 dedicated rules for this technique.
+tactic: persistence
+technique_id: T1546.003
+platform: windows
+phase: attack
+elevation_required: true
+expected_events:
+  - "Sysmon 19 (WmiEvent - filter created)"
+  - "Sysmon 20 (WmiEvent - consumer created)"
+  - "Sysmon 21 (WmiEvent - filter-to-consumer binding)"
+  - "4688 (powershell.exe creating WMI subscription)"
+  - "4104 (PowerShell ScriptBlock - WMI subscription code)"
+tags:
+  - persistence
+  - defense-evasion
+  - requires-elevation
+  - wmi
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1546.003] WMI Event Subscription Persistence"
+
+    $filterName   = "LogNoJutsu_WMI_Filter"
+    $consumerName = "LogNoJutsu_WMI_Consumer"
+
+    # Create WMI Event Filter (triggers on system uptime > 200s — Sysmon Event 19)
+    Write-Host "Creating WMI Event Filter (Sysmon Event 19)..."
+    $filterQuery = "SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_PerfFormattedData_PerfOS_System' AND TargetInstance.SystemUpTime >= 200"
+    $wmiFilter = Set-WmiInstance -Namespace root\subscription -Class __EventFilter `
+        -Arguments @{
+            Name           = $filterName
+            EventNameSpace = "root\cimv2"
+            QueryLanguage  = "WQL"
+            Query          = $filterQuery
+        }
+    Write-Host "WMI Filter created: $($wmiFilter.Name)"
+
+    # Create WMI Command-Line Consumer (Sysmon Event 20)
+    Write-Host "Creating WMI CommandLineEventConsumer (Sysmon Event 20)..."
+    $wmiConsumer = Set-WmiInstance -Namespace root\subscription -Class CommandLineEventConsumer `
+        -Arguments @{
+            Name            = $consumerName
+            CommandLineTemplate = "cmd.exe /C echo LogNoJutsu-WMI-Persistence-Test >> %TEMP%\lnj_wmi.txt"
+        }
+    Write-Host "WMI Consumer created: $($wmiConsumer.Name)"
+
+    # Bind filter to consumer (Sysmon Event 21)
+    Write-Host "Binding filter to consumer (Sysmon Event 21)..."
+    $binding = Set-WmiInstance -Namespace root\subscription -Class __FilterToConsumerBinding `
+        -Arguments @{
+            Filter   = $wmiFilter
+            Consumer = $wmiConsumer
+        }
+    Write-Host "[T1546.003] WMI subscription created. Sysmon Events 19/20/21 should be generated."
+cleanup: |
+  $filterName   = "LogNoJutsu_WMI_Filter"
+  $consumerName = "LogNoJutsu_WMI_Consumer"
+  Get-WmiObject -Namespace root\subscription -Class __FilterToConsumerBinding |
+    Where-Object { $_.Filter -like "*$filterName*" } | Remove-WmiObject -ErrorAction SilentlyContinue
+  Get-WmiObject -Namespace root\subscription -Class CommandLineEventConsumer -Filter "Name='$consumerName'" |
+    Remove-WmiObject -ErrorAction SilentlyContinue
+  Get-WmiObject -Namespace root\subscription -Class __EventFilter -Filter "Name='$filterName'" |
+    Remove-WmiObject -ErrorAction SilentlyContinue
+  Remove-Item "$env:TEMP\lnj_wmi.txt" -ErrorAction SilentlyContinue
+  Write-Host "Cleanup: WMI Event Subscription removed (filter, consumer, binding)."

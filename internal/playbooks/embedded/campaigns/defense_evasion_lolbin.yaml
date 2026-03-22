@@ -1,0 +1,35 @@
+id: defense-evasion-lolbin
+name: Defense Evasion & LOLBin Abuse
+description: Simulates defense evasion techniques using Living-Off-the-Land binaries (LOLBins) and obfuscation. Targets Exabeam's T1218 (116 rules), T1027 (47 rules), and T1036 (27 rules) coverage. Also validates UAC bypass detection and WMI execution rules.
+industry: Cross-Industry
+threat_actor: Sophisticated APT / Red Team
+tags:
+  - defense-evasion
+  - lolbin
+  - obfuscation
+  - exabeam-validation
+steps:
+  - technique_id: T1027
+    delay_after: 5
+    optional: false
+  - technique_id: T1218.011
+    delay_after: 5
+    optional: false
+  - technique_id: T1059.003
+    delay_after: 5
+    optional: false
+  - technique_id: T1047
+    delay_after: 5
+    optional: false
+  - technique_id: T1036.005
+    delay_after: 5
+    optional: false
+  - technique_id: T1548.002
+    delay_after: 5
+    optional: false
+  - technique_id: T1562.002
+    delay_after: 5
+    optional: false
+  - technique_id: T1070.001
+    delay_after: 5
+    optional: false

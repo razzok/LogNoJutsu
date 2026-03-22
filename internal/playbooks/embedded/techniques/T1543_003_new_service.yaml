@@ -1,0 +1,32 @@
+id: T1543.003
+name: Create Windows Service
+description: Creates a Windows service simulating malware persistence. Generates Event 7045 (new service installed).
+tactic: persistence
+technique_id: T1543.003
+platform: windows
+phase: attack
+elevation_required: true
+expected_events:
+  - "7045 (A new service was installed)"
+  - "4697 (Service installed in the system)"
+  - "4688 (sc.exe process creation)"
+tags:
+  - persistence
+  - requires-elevation
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1543.003] Windows Service Creation"
+    $serviceName = "LogNoJutsuTestSvc"
+    $displayName = "LogNoJutsu Test Service"
+    $binaryPath = "C:\Windows\System32\notepad.exe"
+    Write-Host "Creating service: $serviceName"
+    sc.exe create $serviceName binPath= $binaryPath DisplayName= $displayName start= demand | Out-Host
+    Write-Host "Service created. Event 7045 should appear in System log."
+    Get-Service -Name $serviceName -ErrorAction SilentlyContinue | Select-Object Name,Status,StartType | Format-Table -AutoSize
+cleanup: |
+  $serviceName = "LogNoJutsuTestSvc"
+  if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
+      sc.exe delete $serviceName | Out-Null
+      Write-Host "Cleanup: Service removed."
+  }

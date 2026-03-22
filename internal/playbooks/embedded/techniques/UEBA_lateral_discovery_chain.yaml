@@ -1,0 +1,51 @@
+id: UEBA-LATERAL-CHAIN
+name: UEBA — Lateral Movement Discovery Chain
+description: "Exabeam UEBA scenario: chains Discovery techniques in rapid succession simulating an attacker mapping the network before lateral movement. Triggers Exabeam's reconnaissance and first-time-seen-on-host use cases."
+tactic: ueba-scenario
+technique_id: T1087
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4688 (multiple enumeration commands in sequence)"
+  - "Sysmon 1 (process chain: net.exe, ipconfig, netstat, arp)"
+  - "Exabeam: Abnormal enumeration activity"
+  - "Exabeam: First-time network scanning behavior"
+tags:
+  - ueba
+  - lateral-movement
+  - discovery-chain
+  - exabeam
+executor:
+  type: powershell
+  command: |
+    Write-Host "[UEBA] Lateral Movement Discovery Chain"
+    Write-Host "Simulating rapid post-compromise enumeration (attacker mapping network)..."
+    Write-Host ""
+    $steps = @(
+        @{ name="Whoami + groups"; cmd={ whoami /groups } },
+        @{ name="Local user enum"; cmd={ net user } },
+        @{ name="Admin group"; cmd={ net localgroup administrators } },
+        @{ name="Domain info"; cmd={ net config workstation } },
+        @{ name="Network config"; cmd={ ipconfig /all } },
+        @{ name="Active connections"; cmd={ netstat -ano } },
+        @{ name="ARP cache (neighbor hosts)"; cmd={ arp -a } },
+        @{ name="Routing table"; cmd={ route print } },
+        @{ name="DNS cache"; cmd={ ipconfig /displaydns } },
+        @{ name="Shares"; cmd={ net share } },
+        @{ name="Sessions"; cmd={ net session 2>$null } },
+        @{ name="Running processes"; cmd={ tasklist /v } }
+    )
+    foreach ($step in $steps) {
+        Write-Host "  [+] $($step.name)"
+        & $step.cmd 2>$null | Out-Null
+        Start-Sleep -Milliseconds 300
+    }
+    Write-Host ""
+    Write-Host "Rapid enumeration complete ($($steps.Count) actions in sequence)"
+    Write-Host ""
+    Write-Host "UEBA DETECTION EXPECTED:"
+    Write-Host "  - Exabeam: Abnormally high command execution rate for this user"
+    Write-Host "  - Exabeam: First-time use of net.exe / netstat by this account"
+    Write-Host "  - Exabeam: Reconnaissance behavior pattern"
+cleanup: ""

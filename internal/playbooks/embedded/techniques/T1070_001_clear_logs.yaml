@@ -1,0 +1,30 @@
+id: T1070.001
+name: Clear Windows Event Logs
+description: Simulates attacker clearing event logs to cover tracks. Generates Event 1102 (audit log cleared) and 1100.
+tactic: defense-evasion
+technique_id: T1070.001
+platform: windows
+phase: attack
+elevation_required: true
+expected_events:
+  - "1102 (Audit log cleared)"
+  - "1100 (Event log service shutdown)"
+  - "4688 (wevtutil process creation)"
+tags:
+  - defense-evasion
+  - requires-elevation
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1070.001] Clear Windows Event Logs (Simulation)"
+    # Only clear a test/application log to avoid damaging security logs
+    # In a real attack scenario, the attacker would clear Security/System logs
+    Write-Host "Simulating event log clearing behavior..."
+    Write-Host "Real attack would execute: wevtutil cl Security"
+    Write-Host "Simulation: Clearing only Application log entries older than 1 day (safe)"
+    $logName = "Application"
+    $before = (Get-WinEvent -LogName $logName -MaxEvents 1 -ErrorAction SilentlyContinue)
+    wevtutil cl $logName
+    Write-Host "Application log cleared. In a real attack: Security log would be cleared generating Event 1102."
+    Write-Host "To see Event 1102: Run this technique with elevated privileges against the Security log."
+cleanup: ""

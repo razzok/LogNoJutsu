@@ -1,0 +1,24 @@
+id: T1016
+name: System Network Configuration Discovery
+description: Queries network adapter configuration, routing table, and DNS settings.
+tactic: discovery
+technique_id: T1016
+platform: windows
+phase: discovery
+elevation_required: false
+expected_events:
+  - "4688 (ipconfig process creation)"
+tags:
+  - discovery
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1016] Network Configuration Discovery"
+    Write-Host "--- Network Adapters ---"
+    ipconfig /all
+    Write-Host "--- Routing Table ---"
+    route print
+    Write-Host "--- DNS Cache ---"
+    ipconfig /displaydns | Select-Object -First 20
+cleanup: ""

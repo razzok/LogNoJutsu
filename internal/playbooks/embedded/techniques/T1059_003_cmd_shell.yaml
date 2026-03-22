@@ -1,0 +1,28 @@
+id: T1059.003
+name: Windows Command Shell (cmd.exe)
+description: Executes suspicious cmd.exe commands simulating attacker use of built-in Windows command shell. Generates Event 4688 (process creation with command line) and Sysmon Event 1.
+tactic: execution
+technique_id: T1059.003
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4688 (cmd.exe process creation with command line)"
+  - "Sysmon 1 (process creation, cmd.exe parent)"
+  - "4104 (if cmd spawns powershell)"
+tags:
+  - execution
+  - no-prereqs
+  - lolbin
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1059.003] Windows Command Shell - simulating attacker cmd.exe usage"
+    # Simulate attacker cmd usage patterns: reconnaissance via cmd, chained commands
+    cmd.exe /C "whoami /all"
+    cmd.exe /C "net user"
+    cmd.exe /C "net localgroup administrators"
+    cmd.exe /C "systeminfo | findstr /B /C:`"OS Name`" /C:`"OS Version`" /C:`"Domain`""
+    cmd.exe /C "dir C:\Users /AD"
+    Write-Host "[T1059.003] Complete. Events 4688 generated for each cmd.exe invocation."
+cleanup: ""

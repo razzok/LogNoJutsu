@@ -1,0 +1,32 @@
+id: T1069
+name: Permission Groups Discovery
+description: Enumerates local and domain groups to identify privilege escalation paths and high-value targets.
+tactic: discovery
+technique_id: T1069.001
+platform: windows
+phase: discovery
+elevation_required: false
+expected_events:
+  - "4688 (net.exe process creation)"
+tags:
+  - discovery
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1069] Permission Groups Discovery"
+    Write-Host "--- Local Groups ---"
+    net localgroup
+    Write-Host "--- Local Administrators ---"
+    net localgroup "Administrators"
+    Write-Host "--- Remote Desktop Users ---"
+    net localgroup "Remote Desktop Users" 2>$null
+    Write-Host "--- Checking domain membership ---"
+    $domain = (Get-WmiObject Win32_ComputerSystem).PartOfDomain
+    if ($domain) {
+        Write-Host "System is domain-joined. Querying domain groups..."
+        net group /domain 2>$null | Select-Object -First 20
+    } else {
+        Write-Host "System is NOT domain-joined (workgroup)."
+    }
+cleanup: ""

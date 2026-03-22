@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LogNoJutsu — SIEM Validation Tool</title>
+  <style>
+    :root {
+      --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+      --border: #30363d; --text: #e6edf3; --muted: #8b949e;
+      --accent: #58a6ff; --green: #3fb950; --red: #f85149;
+      --orange: #d29922; --purple: #bc8cff; --cyan: #39d353;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+
+    header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+    header h1 { font-size: 18px; color: var(--accent); letter-spacing: 1px; }
+    header .subtitle { color: var(--muted); font-size: 12px; }
+    .version-badge { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 2px 10px; font-size: 11px; color: var(--muted); }
+
+    nav { background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; padding: 0 24px; overflow-x: auto; }
+    nav button { background: none; border: none; color: var(--muted); padding: 12px 16px; cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; transition: all .15s; white-space: nowrap; }
+    nav button:hover { color: var(--text); }
+    nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+    .card h2 { font-size: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+    .phase-badge { padding: 4px 14px; border-radius: 20px; font-size: 13px; }
+    .phase-idle { background: var(--bg3); color: var(--muted); }
+    .phase-discovery { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid var(--accent); }
+    .phase-attack { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid var(--red); }
+    .phase-done { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid var(--green); }
+    .phase-aborted { background: rgba(210,153,34,0.15); color: var(--orange); border: 1px solid var(--orange); }
+
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity .15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-success { background: var(--green); color: #000; }
+    .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+    .btn:hover:not(:disabled) { opacity: .85; }
+
+    .form-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; align-items: flex-end; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 12px; color: var(--muted); }
+    input[type="number"], select { background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 8px 12px; font-size: 13px; width: 180px; }
+    input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+    .toggle-row { display: flex; align-items: center; gap: 8px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 500; font-size: 12px; }
+    td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg3); }
+
+    .tag { display: inline-block; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px; font-size: 11px; color: var(--muted); margin-right: 4px; }
+    .tag-discovery { border-color: var(--accent); color: var(--accent); }
+    .tag-attack { border-color: var(--red); color: var(--red); }
+    .tag-ueba { border-color: var(--purple); color: var(--purple); }
+    .tag-elevation { border-color: var(--orange); color: var(--orange); }
+
+    .result-item { border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
+    .result-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg3); cursor: pointer; }
+    .result-body { padding: 12px 14px; background: var(--bg2); display: none; }
+    .result-body.open { display: block; }
+    .result-success { border-left: 3px solid var(--green); }
+    .result-failure { border-left: 3px solid var(--red); }
+    .result-output { font-family: 'Consolas', monospace; font-size: 12px; white-space: pre-wrap; color: var(--muted); max-height: 300px; overflow-y: auto; background: var(--bg); padding: 8px; border-radius: 4px; margin-top: 8px; }
+
+    .prep-step { display: flex; align-items: center; justify-content: space-between; padding: 14px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; }
+    .prep-step-info h3 { font-size: 14px; margin-bottom: 4px; }
+    .prep-step-info p { font-size: 12px; color: var(--muted); }
+    .prep-status { font-size: 12px; color: var(--muted); margin-right: 10px; }
+    .status-ok { color: var(--green); }
+    .status-fail { color: var(--red); }
+    .status-running { color: var(--accent); }
+
+    .timeline { list-style: none; }
+    .timeline li { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .timeline li:last-child { border-bottom: none; }
+    .tl-time { color: var(--muted); white-space: nowrap; min-width: 150px; }
+    .tl-id { color: var(--accent); font-family: monospace; min-width: 120px; }
+    .tl-name { flex: 1; }
+    .tl-ok { color: var(--green); }
+    .tl-fail { color: var(--red); }
+
+    .running-indicator { display: flex; align-items: center; gap: 8px; color: var(--accent); }
+    .spinner { width: 14px; height: 14px; border: 2px solid var(--bg3); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .campaign-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; }
+    .campaign-card { background: var(--bg3); border: 2px solid var(--border); border-radius: 8px; padding: 16px; cursor: pointer; transition: border-color .15s; }
+    .campaign-card:hover { border-color: var(--accent); }
+    .campaign-card.selected { border-color: var(--accent); background: rgba(88,166,255,0.06); }
+    .campaign-card h3 { font-size: 14px; margin-bottom: 4px; }
+    .campaign-card .industry-label { font-size: 11px; color: var(--purple); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .campaign-card p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .campaign-card .threat-actor { margin-top: 8px; font-size: 11px; color: var(--orange); }
+    .campaign-card .step-count { margin-top: 6px; font-size: 11px; color: var(--muted); }
+
+    /* Log viewer */
+    .log-container { background: #0a0e13; border: 1px solid var(--border); border-radius: 6px; font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; padding: 12px; height: 500px; overflow-y: auto; }
+    .log-line { padding: 1px 0; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+    .log-SIM_START, .log-SIM_END { color: var(--cyan); font-weight: bold; }
+    .log-PHASE { color: var(--purple); font-weight: bold; }
+    .log-TECH_START { color: var(--accent); }
+    .log-TECH_END { color: var(--green); }
+    .log-COMMAND { color: #e3b341; }
+    .log-OUTPUT { color: var(--muted); }
+    .log-CLEANUP { color: var(--orange); }
+    .log-ERROR { color: var(--red); }
+    .log-INFO { color: #7c8993; }
+    .log-PREP { color: var(--cyan); }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .stat-box { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px; text-align: center; }
+    .stat-box .val { font-size: 28px; font-weight: bold; }
+    .stat-box .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .stat-ok .val { color: var(--green); }
+    .stat-fail .val { color: var(--red); }
+    .stat-total .val { color: var(--accent); }
+    .stat-phase .val { font-size: 18px; }
+
+    .separator { height: 1px; background: var(--border); margin: 20px 0; }
+    .empty-state { text-align: center; color: var(--muted); padding: 40px; font-size: 13px; }
+    .alert { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
+    .alert-info { background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); color: var(--accent); }
+    .alert-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.3); color: var(--orange); }
+    .alert-success { background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); color: var(--green); }
+
+    .logfile-pill { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font-family: monospace; font-size: 12px; color: var(--cyan); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚔️ LogNoJutsu</h1>
+    <div class="subtitle">SIEM Validation &amp; ATT&amp;CK Simulation</div>
+  </div>
+  <span class="version-badge">v0.1.0</span>
+  <div id="headerStatus" style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+    <span id="headerCurrentStep" style="font-size:12px; color:var(--muted);"></span>
+    <span class="phase-badge phase-idle" id="headerPhaseBadge">IDLE</span>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="showPage('dashboard', this)">📊 Dashboard</button>
+  <button onclick="showPage('preparation', this)">🛡️ Preparation</button>
+  <button onclick="showPage('playbooks', this)">📋 Playbooks</button>
+  <button onclick="showPage('scheduler', this)">⚙️ Configure &amp; Run</button>
+  <button onclick="showPage('results', this)">📁 Results</button>
+  <button onclick="showPage('logviewer', this)">📜 Simulation Log</button>
+  <button onclick="showPage('users', this)">👥 Users</button>
+</nav>
+
+<main>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="card">
+      <h2>📊 Simulation Status</h2>
+      <div class="stat-grid">
+        <div class="stat-box stat-phase">
+          <div class="val" id="dashPhase">IDLE</div>
+          <div class="lbl">Current Phase</div>
+        </div>
+        <div class="stat-box stat-total">
+          <div class="val" id="dashTotal">0</div>
+          <div class="lbl">Techniques Run</div>
+        </div>
+        <div class="stat-box stat-ok">
+          <div class="val" id="dashOk">0</div>
+          <div class="lbl">Succeeded</div>
+        </div>
+        <div class="stat-box stat-fail">
+          <div class="val" id="dashFail">0</div>
+          <div class="lbl">Failed</div>
+        </div>
+      </div>
+
+      <div id="currentStepDiv" style="display:none; margin-bottom:12px;">
+        <div class="running-indicator" style="flex-wrap:wrap; gap:8px;">
+          <div class="spinner"></div>
+          <span id="currentStep" style="font-size:13px;"></span>
+          <span id="currentUserBadge" style="background:rgba(188,140,255,0.15); border:1px solid var(--purple); border-radius:12px; padding:1px 10px; font-size:11px; color:var(--purple); display:none;"></span>
+        </div>
+      </div>
+
+      <div id="cleanupBanner" style="display:none;" class="alert alert-success">
+        ✓ Simulation complete — all cleanup operations executed. Artifacts removed.
+      </div>
+
+      <div id="logFileBanner" style="display:none; margin-bottom:12px;">
+        Log file: <span id="logFilePath" class="logfile-pill"></span>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btnQuickStart" onclick="quickStart()">▶ Quick Start (All Techniques)</button>
+        <button class="btn btn-danger" id="btnStop" onclick="stopSimulation()" disabled>⏹ Stop &amp; Cleanup</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📈 Execution Timeline</h2>
+      <div id="timeline"><div class="empty-state">No techniques executed yet.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>📡 Expected SIEM Events</h2>
+      <div class="alert alert-info">Windows Event IDs your SIEM should detect during simulation.</div>
+      <table>
+        <thead><tr><th>Event ID</th><th>Source</th><th>Description</th><th>Triggered by</th></tr></thead>
+        <tbody>
+          <tr><td>4688</td><td>Security</td><td>Process creation (with command line)</td><td><span class="tag tag-discovery">Discovery</span></td></tr>
+          <tr><td>4104</td><td>PowerShell/Ops</td><td>ScriptBlock execution logging</td><td><span class="tag tag-attack">T1059.001</span></td></tr>
+          <tr><td>4625</td><td>Security</td><td>Failed logon (password spray)</td><td><span class="tag tag-attack">T1110.001</span><span class="tag tag-ueba">UEBA</span></td></tr>
+          <tr><td>4698</td><td>Security</td><td>Scheduled task created</td><td><span class="tag tag-attack">T1053.005</span></td></tr>
+          <tr><td>7045</td><td>System</td><td>New service installed</td><td><span class="tag tag-attack">T1543.003</span></td></tr>
+          <tr><td>4719</td><td>Security</td><td>Audit policy changed</td><td><span class="tag tag-attack">T1562.002</span></td></tr>
+          <tr><td>1102</td><td>Security</td><td>Audit log cleared</td><td><span class="tag tag-attack">T1070.001</span></td></tr>
+          <tr><td>Sysmon 1</td><td>Sysmon</td><td>Process creation with hash</td><td><span class="tag tag-discovery">All phases</span></td></tr>
+          <tr><td>Sysmon 10</td><td>Sysmon</td><td>Process access (LSASS target)</td><td><span class="tag tag-attack">T1003.001</span></td></tr>
+          <tr><td>Sysmon 13</td><td>Sysmon</td><td>Registry value set (run key)</td><td><span class="tag tag-attack">T1547.001</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PREPARATION -->
+  <div id="page-preparation" class="page">
+    <div class="alert alert-warn">
+      ⚠️ Preparation steps require <strong>Administrator privileges</strong>. Run LogNoJutsu.exe as Administrator before using these functions.
+    </div>
+    <div class="card">
+      <h2>🛡️ System Preparation</h2>
+      <p style="color:var(--muted); margin-bottom:16px;">Configure the system to generate comprehensive Windows logs before simulation. Run all steps once after initial setup.</p>
+      <button class="btn btn-primary" onclick="runAllPrep()">🚀 Configure All (Recommended)</button>
+    </div>
+
+    <div class="prep-step">
+      <div class="prep-step-info">
+        <h3>PowerShell ScriptBlock Logging</h3>
+        <p>Enables Event 4104 (ScriptBlock), 4103 (Module), and Transcription logging.</p>
+        <p style="margin-top:4px; font-family:monospace; font-size:11px;">HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="prep-status" id="status-powershell">—</span>
+        <button class="btn btn-secondary" onclick="runPrepStep('powershell')">Configure</button>
+      </div>
+    </div>
+
+    <div class="prep-step">
+      <div class="prep-step-info">
+        <h3>Windows Audit Policy (Best Practice)</h3>
+        <p>Enables 12 audit subcategories: Logon (4624/4625), Process Creation (4688 + cmdline), Account Management (4720/4728), Privilege Use (4672), Scheduled Tasks (4698), Audit Policy Changes (4719).</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="prep-status" id="status-auditpol">—</span>
+        <button class="btn btn-secondary" onclick="runPrepStep('auditpol')">Configure</button>
+      </div>
+    </div>
+
+    <div class="prep-step">
+      <div class="prep-step-info">
+        <h3>Sysmon Installation</h3>
+        <p>Downloads and installs Sysmon with LogNoJutsu recommended config. Generates: Process (1), Network (3), Registry (12/13), LSASS Access (10), DNS (22).</p>
+        <p style="color:var(--orange); margin-top:4px;">Requires internet access for automatic download.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="prep-status" id="status-sysmon">—</span>
+        <button class="btn btn-secondary" onclick="runPrepStep('sysmon')">Install Sysmon</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYBOOKS -->
+  <div id="page-playbooks" class="page">
+    <div class="card">
+      <h2>📋 Attack Campaigns</h2>
+      <p style="color:var(--muted); margin-bottom:16px;">Select an industry-specific campaign. Click a card to select it, then go to <strong>Configure &amp; Run</strong> to start.</p>
+      <div id="campaignGrid" class="campaign-grid"><div class="empty-state">Loading...</div></div>
+    </div>
+    <div class="separator"></div>
+    <div class="card">
+      <h2>🔧 All Techniques</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Tactic</th><th>Phase</th><th>Elevation</th><th>Tags</th></tr></thead>
+        <tbody id="techniqueTable"><tr><td colspan="6" class="empty-state">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SCHEDULER / RUN -->
+  <div id="page-scheduler" class="page">
+    <div class="card">
+      <h2>⚙️ Configure &amp; Run Simulation</h2>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Campaign / Playbook</label>
+          <select id="cfgCampaign" style="width:320px;">
+            <option value="">All Techniques (discovery + all attacks)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Delay before Discovery Phase (seconds)</label>
+          <input type="number" id="cfgDelayDiscovery" value="5" min="0" max="3600" />
+        </div>
+        <div class="form-group">
+          <label>Delay before Attack Phase (seconds)</label>
+          <input type="number" id="cfgDelayAttack" value="30" min="0" max="3600" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <div class="toggle-row">
+            <input type="checkbox" id="cfgCleanup" checked />
+            <label for="cfgCleanup">Run cleanup after each technique (removes created artifacts)</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="separator"></div>
+      <h3 style="font-size:14px; margin-bottom:12px;">👥 Multi-User Execution</h3>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>User Rotation Mode</label>
+          <select id="cfgRotation" onchange="toggleUserSelection()" style="width:240px;">
+            <option value="none">None — run as current user</option>
+            <option value="sequential">Sequential — cycle through profiles</option>
+            <option value="random">Random — random profile per technique</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="userSelectionDiv" style="display:none;">
+        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Select User Profiles (hold Ctrl/Cmd for multiple)</label>
+        <select id="cfgUserProfiles" multiple style="width:100%; height:120px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:6px; font-size:13px;">
+        </select>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">
+          Each technique will be executed via <code>Start-Process -Credential</code> as the selected user — generates Event 4648.
+        </div>
+      </div>
+
+      <div class="separator"></div>
+
+      <div class="alert alert-info" style="margin-top:0; margin-bottom:16px;">
+        ℹ️ The simulation starts <strong>only after clicking Start</strong>. Nothing runs automatically on launch.
+        Phase 1 (Discovery) begins after the first delay. Phase 2 (Attack) begins after Phase 1 + second delay.
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btnStart" onclick="startSimulation()">▶ Start Simulation</button>
+        <button class="btn btn-danger" id="btnStopSched" onclick="stopSimulation()" disabled>⏹ Stop &amp; Cleanup</button>
+      </div>
+    </div>
+
+    <div class="card" id="liveCard" style="display:none;">
+      <h2>⚡ Live Status</h2>
+      <div id="liveStatus"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="page-results" class="page">
+    <div class="card">
+      <h2>📁 Execution Results</h2>
+      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+        <button class="btn btn-secondary" onclick="loadResults()">🔄 Refresh</button>
+        <button class="btn btn-secondary" onclick="exportResults()">📤 Export JSON</button>
+        <span id="resultsLogFile" style="font-size:12px; color:var(--muted);"></span>
+      </div>
+      <div id="resultsList"><div class="empty-state">No results yet.</div></div>
+    </div>
+  </div>
+
+  <!-- USERS -->
+  <div id="page-users" class="page">
+    <div class="alert alert-warn">
+      ⚠️ Passwords are encrypted with Windows DPAPI and stored in <strong>lognojutsu_users.json</strong> next to the executable. This file is readable only by the current Windows user account. Do not use this tool with production credentials.
+    </div>
+
+    <div class="card">
+      <h2>👥 Simulation User Profiles</h2>
+      <p style="color:var(--muted); margin-bottom:16px;">
+        Add local or Active Directory users whose credentials LogNoJutsu will use to execute simulation techniques.
+        Techniques run via <code>Start-Process -Credential</code>, generating Windows Event <strong>4648</strong> (explicit credential use) — a key Exabeam UEBA signal.
+      </p>
+      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="showAddUserForm()">➕ Add User</button>
+        <button class="btn btn-secondary" onclick="discoverUsers()">🔍 Discover Users</button>
+        <button class="btn btn-secondary" onclick="loadUsers()">🔄 Refresh</button>
+      </div>
+
+      <!-- Add User Form -->
+      <div id="addUserForm" style="display:none; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:16px;">
+        <h3 style="margin-bottom:12px; font-size:14px;">Add User Profile</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>User Type</label>
+            <select id="newUserType" onchange="toggleDomainField()" style="width:160px;">
+              <option value="local">Local User</option>
+              <option value="domain">Domain / AD User</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="newUsername" placeholder="e.g. jdoe" style="width:180px;" />
+          </div>
+          <div class="form-group" id="domainGroup" style="display:none;">
+            <label>Domain / Computer Name</label>
+            <input type="text" id="newDomain" placeholder="e.g. CORP or ." style="width:180px;" />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="newPassword" placeholder="Leave empty for no password" style="width:200px;" />
+          </div>
+          <div class="form-group">
+            <label>Display Name (optional)</label>
+            <input type="text" id="newDisplayName" placeholder="e.g. Finance User" style="width:200px;" />
+          </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" onclick="addUser()">Save Profile</button>
+          <button class="btn btn-secondary" onclick="hideAddUserForm()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- User List -->
+      <div id="userList"><div class="empty-state">No user profiles configured. Click "Add User" or "Discover Users".</div></div>
+    </div>
+
+    <!-- Discovery Results -->
+    <div class="card" id="discoveryCard" style="display:none;">
+      <h2>🔍 Discovered Users</h2>
+      <p style="color:var(--muted); margin-bottom:12px;">Click "Add to Profiles" to add a discovered user. You will need to supply their password afterwards via "Edit".</p>
+      <div id="discoveryResults"></div>
+    </div>
+  </div>
+
+  <!-- LOG VIEWER -->
+  <div id="page-logviewer" class="page">
+    <div class="card">
+      <h2>📜 Simulation Log</h2>
+      <div style="display:flex; gap:10px; margin-bottom:12px; align-items:center; flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="loadLogs()">🔄 Refresh</button>
+        <button class="btn btn-secondary" onclick="toggleAutoScroll()">📌 <span id="autoScrollLabel">Auto-scroll: ON</span></button>
+        <button class="btn btn-secondary" onclick="clearLogView()">🗑 Clear View</button>
+        <span id="logViewFilePath" style="font-size:12px; color:var(--muted);"></span>
+      </div>
+      <div class="alert alert-info" style="margin-bottom:12px;">
+        Every command executed during simulation is logged here with full output. The log file is also written to disk next to lognojutsu.exe.
+      </div>
+      <div class="log-container" id="logContainer">
+        <div class="log-line log-INFO">Waiting for simulation to start...</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const API = '';
+let selectedCampaign = '';
+let pollInterval = null;
+let logAutoScroll = true;
+let lastLogCount = 0;
+
+// Navigation
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'playbooks') loadPlaybooks();
+  if (name === 'results') loadResults();
+  if (name === 'logviewer') loadLogs();
+  if (name === 'scheduler') loadCampaignSelect();
+}
+
+// API
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch(API + path, opts);
+    return r.json();
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+// ── Status polling ──────────────────────────────────────────────
+async function pollStatus() {
+  const s = await api('/api/status');
+  if (s.error) return;
+  updateDashboard(s);
+  // Auto-refresh log if on log viewer tab
+  if (document.getElementById('page-logviewer').classList.contains('active')) {
+    loadLogs();
+  }
+}
+
+function updateDashboard(s) {
+  const phase = s.phase || 'idle';
+  const results = s.results || [];
+  const succeeded = results.filter(r => r.success).length;
+  const failed = results.length - succeeded;
+
+  // Header
+  document.getElementById('headerPhaseBadge').className = 'phase-badge phase-' + phase;
+  document.getElementById('headerPhaseBadge').textContent = phase.toUpperCase();
+  document.getElementById('headerCurrentStep').textContent =
+    (phase === 'discovery' || phase === 'attack') && s.current_step ? s.current_step : '';
+
+  // Stats
+  document.getElementById('dashPhase').textContent = phase.toUpperCase();
+  document.getElementById('dashTotal').textContent = results.length;
+  document.getElementById('dashOk').textContent = succeeded;
+  document.getElementById('dashFail').textContent = failed;
+
+  const running = phase === 'discovery' || phase === 'attack';
+
+  // Current step
+  const stepDiv = document.getElementById('currentStepDiv');
+  if (s.current_step && running) {
+    stepDiv.style.display = 'block';
+    document.getElementById('currentStep').textContent = s.current_step;
+  } else {
+    stepDiv.style.display = 'none';
+  }
+
+  // Cleanup banner
+  document.getElementById('cleanupBanner').style.display =
+    (phase === 'done' || phase === 'aborted') && s.cleanup_done ? 'block' : 'none';
+
+  // Log file banner
+  if (s.log_file) {
+    document.getElementById('logFileBanner').style.display = 'block';
+    document.getElementById('logFilePath').textContent = s.log_file;
+    document.getElementById('logViewFilePath').textContent = 'File: ' + s.log_file;
+    document.getElementById('resultsLogFile').textContent = 'Log: ' + s.log_file;
+  }
+
+  // Buttons
+  document.getElementById('btnStop').disabled = !running;
+  document.getElementById('btnStart') && (document.getElementById('btnStart').disabled = running);
+  document.getElementById('btnStopSched').disabled = !running;
+  document.getElementById('btnQuickStart').disabled = running;
+
+  // Timeline
+  if (results.length > 0) renderTimeline(results);
+
+  // Live card
+  const liveCard = document.getElementById('liveCard');
+  if (running) {
+    liveCard.style.display = 'block';
+    document.getElementById('liveStatus').innerHTML = `
+      <div class="running-indicator"><div class="spinner"></div>
+        <span><strong>${phase.toUpperCase()}</strong> phase — ${results.length} completed</span>
+      </div>
+      <div style="margin-top:8px; color:var(--muted);">Current: ${s.current_step || '—'}</div>`;
+  } else if (phase === 'done' || phase === 'aborted') {
+    liveCard.style.display = 'block';
+    document.getElementById('liveStatus').innerHTML = `
+      <div style="color:${phase === 'done' ? 'var(--green)' : 'var(--orange)'};">
+        ${phase === 'done' ? '✓ Simulation complete' : '⚠ Simulation aborted'} —
+        ${succeeded}/${results.length} techniques succeeded
+      </div>`;
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    loadResults();
+  }
+}
+
+function renderTimeline(results) {
+  const items = results.slice().reverse().map(r => `
+    <li>
+      <span class="tl-time">${(r.start_time||'').replace('T',' ').substring(0,19)}</span>
+      <span class="tl-id">${r.technique_id}</span>
+      <span class="tl-name">${r.technique_name}</span>
+      <span class="${r.success ? 'tl-ok' : 'tl-fail'}">${r.success ? '✓' : '✗'}</span>
+    </li>`).join('');
+  document.getElementById('timeline').innerHTML = `<ul class="timeline">${items}</ul>`;
+}
+
+// ── Simulation controls ─────────────────────────────────────────
+async function quickStart() {
+  const r = await api('/api/start', 'POST', {
+    delay_before_discovery: 0, delay_before_attack: 10,
+    run_cleanup: true, campaign_id: ''
+  });
+  if (r.error) { alert('Error: ' + r.error); return; }
+  startPolling();
+}
+
+async function startSimulation() {
+  const rotation = document.getElementById('cfgRotation').value;
+  const profilesSel = document.getElementById('cfgUserProfiles');
+  const profileIDs = rotation !== 'none'
+    ? Array.from(profilesSel.selectedOptions).map(o => o.value)
+    : [];
+  const cfg = {
+    delay_before_discovery: parseInt(document.getElementById('cfgDelayDiscovery').value) || 0,
+    delay_before_attack: parseInt(document.getElementById('cfgDelayAttack').value) || 30,
+    run_cleanup: document.getElementById('cfgCleanup').checked,
+    campaign_id: document.getElementById('cfgCampaign').value,
+    user_rotation: rotation,
+    user_profile_ids: profileIDs
+  };
+  const r = await api('/api/start', 'POST', cfg);
+  if (r.error) { alert('Error: ' + r.error); return; }
+  startPolling();
+}
+
+async function stopSimulation() {
+  await api('/api/stop', 'POST');
+  setTimeout(pollStatus, 1000);
+}
+
+function startPolling() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(pollStatus, 2000);
+  pollStatus();
+}
+
+// ── Playbooks ──────────────────────────────────────────────────
+async function loadPlaybooks() {
+  const [techniques, campaigns] = await Promise.all([api('/api/techniques'), api('/api/campaigns')]);
+
+  // Campaign grid
+  const grid = document.getElementById('campaignGrid');
+  grid.innerHTML = (campaigns||[]).length === 0
+    ? '<div class="empty-state">No campaigns loaded.</div>'
+    : (campaigns||[]).sort((a,b) => a.industry.localeCompare(b.industry)).map(c => `
+        <div class="campaign-card ${selectedCampaign === c.id ? 'selected' : ''}"
+             onclick="selectCampaign('${c.id}', this)" title="${c.description}">
+          <div class="industry-label">${c.industry}</div>
+          <h3>${c.name}</h3>
+          <p>${c.description.substring(0,100)}${c.description.length>100?'…':''}</p>
+          <div class="threat-actor">🎭 ${c.threat_actor}</div>
+          <div class="step-count">📋 ${(c.steps||[]).length} techniques</div>
+        </div>`).join('');
+
+  // Technique table
+  const tbody = document.getElementById('techniqueTable');
+  const sorted = (techniques||[]).sort((a,b) => a.id.localeCompare(b.id));
+  tbody.innerHTML = sorted.map(t => `
+    <tr>
+      <td style="font-family:monospace;color:var(--accent)">${t.id}</td>
+      <td>${t.name}</td>
+      <td style="color:var(--muted)">${t.tactic}</td>
+      <td><span class="tag ${t.phase === 'discovery' ? 'tag-discovery' : t.phase === 'ueba-scenario' ? 'tag-ueba' : 'tag-attack'}">${t.phase}</span></td>
+      <td>${t.elevation_required ? '<span class="tag tag-elevation">admin</span>' : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${(t.tags||[]).filter(x=>!['no-prereqs','requires-elevation'].includes(x)).map(x=>`<span class="tag">${x}</span>`).join('')}</td>
+    </tr>`).join('');
+}
+
+function selectCampaign(id, el) {
+  selectedCampaign = selectedCampaign === id ? '' : id;
+  document.querySelectorAll('.campaign-card').forEach(c => c.classList.remove('selected'));
+  if (selectedCampaign) el.classList.add('selected');
+  const sel = document.getElementById('cfgCampaign');
+  if (sel) sel.value = selectedCampaign;
+}
+
+async function loadCampaignSelect() {
+  const campaigns = await api('/api/campaigns');
+  const sel = document.getElementById('cfgCampaign');
+  if (!sel || !campaigns) return;
+  const opts = ['<option value="">All Techniques (discovery + all attacks)</option>'];
+  (campaigns||[]).sort((a,b)=>a.industry.localeCompare(b.industry)).forEach(c => {
+    opts.push(`<option value="${c.id}" ${selectedCampaign===c.id?'selected':''}>${c.name} [${c.industry}]</option>`);
+  });
+  sel.innerHTML = opts.join('');
+}
+
+// ── Preparation ────────────────────────────────────────────────
+async function runAllPrep() {
+  ['powershell','auditpol','sysmon'].forEach(s => setPrepStatus(s, 'running', '⏳ Running...'));
+  const results = await api('/api/prepare', 'POST');
+  (results||[]).forEach(r => {
+    const id = r.step.toLowerCase().includes('powershell') ? 'powershell'
+             : r.step.toLowerCase().includes('audit') ? 'auditpol' : 'sysmon';
+    setPrepStatus(id, r.success ? 'ok' : 'fail', r.success ? '✓ OK' : '✗ Failed');
+    if (r.message) document.getElementById('status-' + id).title = r.message;
+  });
+}
+
+async function runPrepStep(step) {
+  setPrepStatus(step, 'running', '⏳...');
+  const r = await api('/api/prepare/step', 'POST', { step });
+  setPrepStatus(step, r.success ? 'ok' : 'fail', r.success ? '✓ OK' : '✗ Failed');
+  document.getElementById('status-' + step).title = r.message || '';
+  if (!r.success) alert('Step failed:\n' + r.message);
+}
+
+function setPrepStatus(id, state, text) {
+  const el = document.getElementById('status-' + id);
+  el.textContent = text;
+  el.className = 'prep-status ' + (state === 'ok' ? 'status-ok' : state === 'fail' ? 'status-fail' : 'status-running');
+}
+
+// ── Results ────────────────────────────────────────────────────
+async function loadResults() {
+  const s = await api('/api/status');
+  const list = document.getElementById('resultsList');
+  const results = s.results || [];
+  if (results.length === 0) {
+    list.innerHTML = '<div class="empty-state">No results yet. Start a simulation first.</div>';
+    return;
+  }
+  list.innerHTML = results.map((r, i) => `
+    <div class="result-item ${r.success ? 'result-success' : 'result-failure'}">
+      <div class="result-header" onclick="toggleResult(${i})">
+        <span style="font-family:monospace;color:var(--accent);min-width:130px">${r.technique_id}</span>
+        <span style="flex:1">${r.technique_name}</span>
+        <span style="color:var(--muted);font-size:12px">${(r.start_time||'').replace('T',' ').substring(0,19)}</span>
+        <span style="margin-left:8px">${r.cleanup_run ? '<span title="Cleanup executed" style="color:var(--orange)">🧹</span>' : ''}</span>
+        <span style="margin-left:6px">${r.success ? '✅' : '❌'}</span>
+        <span style="margin-left:6px;color:var(--muted)">▼</span>
+      </div>
+      <div class="result-body" id="rb-${i}">
+        <div style="margin-bottom:8px;font-size:12px;color:var(--muted)">
+          Tactic: <strong style="color:var(--text)">${r.tactic_id}</strong> |
+          Cleanup: <strong style="color:var(--text)">${r.cleanup_run ? 'Executed ✓' : 'Not run'}</strong>
+        </div>
+        ${r.output ? `<div class="result-output">${escapeHtml(r.output.substring(0,3000))}${r.output.length>3000?'\n... (truncated)':''}</div>` : '<div style="color:var(--muted);font-size:12px">(no output)</div>'}
+        ${r.error_output ? `<div style="color:var(--red);font-size:12px;margin-top:6px;font-family:monospace">${escapeHtml(r.error_output)}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function toggleResult(i) {
+  document.getElementById('rb-' + i).classList.toggle('open');
+}
+
+async function exportResults() {
+  const s = await api('/api/status');
+  const blob = new Blob([JSON.stringify({ log_file: s.log_file, results: s.results }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lognojutsu_results_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.json';
+  a.click();
+}
+
+// ── Log Viewer ─────────────────────────────────────────────────
+async function loadLogs() {
+  const entries = await api('/api/logs');
+  if (!entries || entries.error || entries.length === 0) return;
+  if (entries.length === lastLogCount) return;
+  lastLogCount = entries.length;
+
+  const container = document.getElementById('logContainer');
+  container.innerHTML = entries.map(e => {
+    const cls = 'log-line log-' + (e.type || 'INFO');
+    return `<div class="${cls}">${escapeHtml(`[${e.timestamp}] [${e.type.padEnd(12)}] ${e.message}`)}</div>`;
+  }).join('');
+
+  if (logAutoScroll) container.scrollTop = container.scrollHeight;
+}
+
+function toggleAutoScroll() {
+  logAutoScroll = !logAutoScroll;
+  document.getElementById('autoScrollLabel').textContent = 'Auto-scroll: ' + (logAutoScroll ? 'ON' : 'OFF');
+}
+
+function clearLogView() {
+  document.getElementById('logContainer').innerHTML = '<div class="log-line log-INFO">Log view cleared.</div>';
+  lastLogCount = 0;
+}
+
+// ── Users ──────────────────────────────────────────────────────
+let userProfiles = [];
+
+async function loadUsers() {
+  userProfiles = await api('/api/users') || [];
+  renderUserList();
+  syncUserProfileSelect();
+}
+
+function renderUserList() {
+  const el = document.getElementById('userList');
+  if (!userProfiles.length) {
+    el.innerHTML = '<div class="empty-state">No user profiles configured.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Display Name</th><th>Type</th><th>Account</th>
+        <th>Last Test</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${userProfiles.map(u => `
+          <tr>
+            <td>${escapeHtml(u.display_name)}</td>
+            <td><span class="tag ${u.user_type === 'domain' ? 'tag-ueba' : 'tag-discovery'}">${u.user_type}</span></td>
+            <td style="font-family:monospace; color:var(--accent)">
+              ${u.user_type === 'domain' && u.domain ? escapeHtml(u.domain + '\\' + u.username) : escapeHtml('.\\'  + u.username)}
+            </td>
+            <td>
+              ${u.last_test_ok === true
+                ? '<span style="color:var(--green)">✓ Valid</span>'
+                : u.last_test_ok === false
+                  ? '<span style="color:var(--red)" title="' + escapeHtml(u.last_test_msg||'') + '">✗ Invalid</span>'
+                  : '<span style="color:var(--muted)">—</span>'}
+            </td>
+            <td>
+              <button class="btn btn-secondary" style="padding:4px 10px; font-size:11px;"
+                onclick="testUser('${u.id}')">Test Credentials</button>
+              <button class="btn btn-danger" style="padding:4px 10px; font-size:11px; margin-left:4px;"
+                onclick="deleteUser('${u.id}', '${escapeHtml(u.display_name)}')">Delete</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function syncUserProfileSelect() {
+  const sel = document.getElementById('cfgUserProfiles');
+  if (!sel) return;
+  const prev = Array.from(sel.selectedOptions).map(o => o.value);
+  sel.innerHTML = userProfiles.map(u =>
+    `<option value="${u.id}" ${prev.includes(u.id) ? 'selected' : ''}>
+      ${escapeHtml(u.display_name)} [${u.user_type}]
+    </option>`).join('');
+}
+
+function showAddUserForm() {
+  document.getElementById('addUserForm').style.display = 'block';
+}
+function hideAddUserForm() {
+  document.getElementById('addUserForm').style.display = 'none';
+  ['newUsername','newDomain','newPassword','newDisplayName'].forEach(id => document.getElementById(id).value = '');
+}
+
+function toggleDomainField() {
+  const isDomain = document.getElementById('newUserType').value === 'domain';
+  document.getElementById('domainGroup').style.display = isDomain ? 'block' : 'none';
+}
+
+function toggleUserSelection() {
+  const mode = document.getElementById('cfgRotation').value;
+  document.getElementById('userSelectionDiv').style.display = mode === 'none' ? 'none' : 'block';
+  syncUserProfileSelect();
+}
+
+async function addUser() {
+  const username = document.getElementById('newUsername').value.trim();
+  if (!username) { alert('Username is required.'); return; }
+  const req = {
+    username,
+    domain: document.getElementById('newDomain').value.trim(),
+    password: document.getElementById('newPassword').value,
+    user_type: document.getElementById('newUserType').value,
+    display_name: document.getElementById('newDisplayName').value.trim()
+  };
+  const r = await api('/api/users', 'POST', req);
+  if (r.error) { alert('Error: ' + r.error); return; }
+  hideAddUserForm();
+  await loadUsers();
+}
+
+async function deleteUser(id, name) {
+  if (!confirm(`Delete user profile "${name}"?`)) return;
+  const r = await api('/api/users/delete', 'POST', { id });
+  if (r.error) { alert('Error: ' + r.error); return; }
+  await loadUsers();
+}
+
+async function testUser(id) {
+  const r = await api('/api/users/test', 'POST', { id });
+  if (r.error) { alert('Error: ' + r.error); return; }
+  alert(r.success ? `✓ ${r.message}` : `✗ ${r.message}`);
+  await loadUsers();
+}
+
+async function discoverUsers() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Scanning...';
+  const r = await api('/api/users/discover', 'POST');
+  btn.disabled = false;
+  btn.textContent = '🔍 Discover Users';
+
+  const card = document.getElementById('discoveryCard');
+  const el = document.getElementById('discoveryResults');
+  card.style.display = 'block';
+
+  const allUsers = [
+    ...(r.local_users||[]).map(u => ({...u, source_type: 'local'})),
+    ...(r.domain_users||[]).map(u => ({...u, source_type: 'domain'}))
+  ];
+
+  if (!allUsers.length) {
+    el.innerHTML = '<div class="empty-state">No users discovered.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Username</th><th>Domain</th><th>Source</th><th>Enabled</th><th>Note</th><th></th></tr></thead>
+      <tbody>
+        ${allUsers.map(u => `
+          <tr>
+            <td style="font-family:monospace">${escapeHtml(u.username)}</td>
+            <td style="color:var(--muted)">${escapeHtml(u.domain||'local')}</td>
+            <td><span class="tag">${escapeHtml(u.source)}</span></td>
+            <td>${u.enabled ? '<span style="color:var(--green)">Yes</span>' : '<span style="color:var(--muted)">No</span>'}</td>
+            <td style="color:var(--muted); font-size:12px">${escapeHtml(u.note||'')}</td>
+            <td>
+              <button class="btn btn-secondary" style="padding:4px 10px; font-size:11px;"
+                onclick="addDiscoveredUser('${escapeHtml(u.username)}','${escapeHtml(u.domain||'')}','${u.source_type}')">
+                Add to Profiles
+              </button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  if (r.error) {
+    el.innerHTML += `<div class="alert alert-warn" style="margin-top:8px;">${escapeHtml(r.error)}</div>`;
+  }
+}
+
+function addDiscoveredUser(username, domain, userType) {
+  document.getElementById('newUserType').value = userType;
+  document.getElementById('newUsername').value = username;
+  document.getElementById('newDomain').value = domain;
+  toggleDomainField();
+  showAddUserForm();
+  // Navigate to users tab and scroll to form
+  document.getElementById('addUserForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Dashboard user badge update ─────────────────────────────────
+function updateUserBadge(currentUser) {
+  const badge = document.getElementById('currentUserBadge');
+  if (currentUser && currentUser !== 'current user') {
+    badge.textContent = '👤 ' + currentUser;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Init
+pollStatus();
+setInterval(pollStatus, 3000);
+loadUsers();
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+id: T1197
+name: BITS Jobs Persistence
+description: Creates a Background Intelligent Transfer Service (BITS) job for persistence or tool download, simulating a stealthy attacker persistence mechanism. Generates Sysmon Event 22 (DNS query) and custom BITS events in the Microsoft-Windows-Bits-Client/Operational log.
+tactic: persistence
+technique_id: T1197
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "Microsoft-Windows-Bits-Client EventID 3 (BITS job created)"
+  - "Microsoft-Windows-Bits-Client EventID 59 (BITS transfer started)"
+  - "4688 (bitsadmin.exe process creation)"
+  - "Sysmon 1 (bitsadmin.exe with /create or /transfer arguments)"
+tags:
+  - persistence
+  - defense-evasion
+  - no-prereqs
+executor:
+  type: cmd
+  command: |
+    echo [T1197] BITS Jobs Persistence - simulating BITS-based persistence
+    echo --- Creating BITS job (generates BITS-Client Event 3) ---
+    bitsadmin /create LogNoJutsu_BITS_Test
+    bitsadmin /list /allusers 2>nul
+    echo --- Setting BITS job notify command (persistence mechanism) ---
+    bitsadmin /setnotifycmdline LogNoJutsu_BITS_Test "cmd.exe" "/C echo LogNoJutsu-BITS-Persistence-Simulation"
+    echo --- Listing BITS job details ---
+    bitsadmin /info LogNoJutsu_BITS_Test 2>nul
+    echo [T1197] Complete. BITS job created. Check Microsoft-Windows-Bits-Client/Operational log.
+cleanup: |
+  bitsadmin /cancel LogNoJutsu_BITS_Test 2>$null
+  Write-Host "Cleanup: BITS job 'LogNoJutsu_BITS_Test' cancelled."

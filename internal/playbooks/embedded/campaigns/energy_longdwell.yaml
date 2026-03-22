@@ -1,0 +1,42 @@
+id: energy-longdwell
+name: Energy Sector — Long Dwell / Living off the Land
+description: Simulates Volt Typhoon / Dragonfly-style operations targeting energy infrastructure. Emphasizes low-and-slow enumeration, using only built-in tools (LOLBins), minimal footprint.
+industry: Energy
+threat_actor: Volt Typhoon / Dragonfly (Energetic Bear)
+tags:
+  - energy
+  - apt
+  - volt-typhoon
+  - lolbins
+  - low-and-slow
+steps:
+  - technique_id: T1082
+    delay_after: 8
+    optional: false
+  - technique_id: T1016
+    delay_after: 8
+    optional: false
+  - technique_id: T1049
+    delay_after: 8
+    optional: false
+  - technique_id: T1087
+    delay_after: 10
+    optional: false
+  - technique_id: T1069
+    delay_after: 10
+    optional: false
+  - technique_id: T1057
+    delay_after: 8
+    optional: false
+  - technique_id: T1083
+    delay_after: 10
+    optional: false
+  - technique_id: T1547.001
+    delay_after: 10
+    optional: false
+  - technique_id: T1053.005
+    delay_after: 10
+    optional: false
+  - technique_id: T1070.001
+    delay_after: 0
+    optional: true

