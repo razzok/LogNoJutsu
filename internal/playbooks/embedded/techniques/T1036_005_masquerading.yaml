@@ -8,7 +8,7 @@ phase: attack
 elevation_required: false
 expected_events:
   - "Sysmon 11 (FileCreate — binary copied to non-standard location)"
-  - "Sysmon 1 (Image path = TEMP\svchost.exe — path mismatch = tier-1 alert)"
+  - "Sysmon 1 (Image path = TEMP\\svchost.exe — path mismatch = tier-1 alert)"
   - "4688 (process creation with image path not matching expected system location)"
   - "Sysmon 13 (RegistryValueSet — masqueraded binary in Run key)"
 tags:
