@@ -1,32 +1,46 @@
 id: T1053.005
 name: Scheduled Task Persistence
-description: Creates a scheduled task simulating attacker persistence mechanism. Generates Windows Event 4698.
+description: Creates scheduled tasks using both schtasks.exe (generates distinct EID 4688 for schtasks.exe itself — the attacker pattern) and Register-ScheduledTask. Task names masquerade as Microsoft services. The task XML in EID 4698 contains an encoded PowerShell payload — matching real malware naming/encoding patterns that all SIEM rules alert on.
 tactic: persistence
 technique_id: T1053.005
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4698 (Scheduled task created)"
-  - "4688 (schtasks.exe process creation)"
+  - "4698 (Scheduled task created — task XML with action/trigger/principal in event data)"
+  - "4688 / Sysmon 1 (schtasks.exe with /create and full arguments visible in CommandLine)"
+  - "4702 (Scheduled task updated — when task is modified)"
 tags:
   - persistence
   - no-prereqs
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1053.005] Scheduled Task Persistence"
-    $taskName = "LogNoJutsu_Task_Test"
-    $action = New-ScheduledTaskAction -Execute "notepad.exe"
+  command: |-
+    Write-Host "[T1053.005] Scheduled Task Persistence — schtasks.exe + Register-ScheduledTask"
+
+    # Method 1: schtasks.exe directly — generates EID 4688 for schtasks.exe itself
+    # Attacker pattern: schtasks.exe as creator + encoded PS payload in /tr argument
+    Write-Host "--- Method 1: schtasks.exe with encoded payload (EID 4688 for schtasks.exe) ---"
+    $payload = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('Write-Host "LogNoJutsu T1053 schtasks persistence"'))
+    schtasks /create /tn "MicrosoftEdgeUpdate" /tr "powershell.exe -ep bypass -W hidden -enc $payload" /sc MINUTE /mo 60 /f 2>&1 | Write-Host
+    Write-Host "EID 4698 task XML contains: encoded PS payload in action, MINUTE trigger"
+
+    # Method 2: Masquerade as system task path (attacker hides in Microsoft task namespace)
+    Write-Host "--- Method 2: Task masquerading as Microsoft task path ---"
+    $payload2 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('Write-Host "LogNoJutsu T1053 system task"'))
+    schtasks /create /tn "\Microsoft\Windows\Maintenance\WinSAT" /tr "powershell.exe -NonI -W Hidden -enc $payload2" /sc ONLOGON /f 2>&1 | Write-Host
+
+    # Method 3: Register-ScheduledTask (same EID 4698 but different parent chain in 4688)
+    Write-Host "--- Method 3: Register-ScheduledTask (PS cmdlet — different EID 4688 chain) ---"
+    $action  = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-WindowStyle Hidden -NonInteractive -Command `"Write-Host T1053`""
     $trigger = New-ScheduledTaskTrigger -AtLogOn
     $settings = New-ScheduledTaskSettingsSet -Hidden
-    Write-Host "Creating scheduled task: $taskName"
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
-    Write-Host "Scheduled task created. Event 4698 should appear in Security log."
-    Get-ScheduledTask -TaskName $taskName | Select-Object TaskName,State | Format-Table -AutoSize
-cleanup: |
-  $taskName = "LogNoJutsu_Task_Test"
-  if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
-      Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
-      Write-Host "Cleanup: Scheduled task removed."
-  }
+    Register-ScheduledTask -TaskName "WindowsDefenderScan" -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
+    Write-Host "EID 4698 fired. Task XML contains PS with -WindowStyle Hidden."
+
+    Write-Host "[T1053.005] Complete. Check EID 4698 task XML content for all three tasks."
+cleanup: |-
+  schtasks /delete /tn "MicrosoftEdgeUpdate" /f 2>&1 | Out-Null
+  schtasks /delete /tn "\Microsoft\Windows\Maintenance\WinSAT" /f 2>&1 | Out-Null
+  Unregister-ScheduledTask -TaskName "WindowsDefenderScan" -Confirm:$false -ErrorAction Ignore
+  Write-Host "Cleanup: All simulation scheduled tasks removed."

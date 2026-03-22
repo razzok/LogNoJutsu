@@ -1,32 +1,72 @@
 id: T1083
 name: File and Directory Discovery
-description: Enumerates file system for interesting files — documents, credentials, configs, scripts. Classic attacker recon behavior.
+description: Attacker file enumeration targeting sensitive locations — Desktop, Documents, Downloads, C:\Users, recently modified files, sensitive file types (docx/xlsx/kdbx/pdf), and alternate data stream detection. The dir /s /b pattern combined with Get-ChildItem on credential/config paths generates the file discovery behavioral signal.
 tactic: discovery
 technique_id: T1083
 platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (dir/Get-ChildItem process/command)"
-  - "Sysmon 1 (process creation)"
+  - "4688 (cmd.exe / tree.com — dir /s /b on user profile directories)"
+  - "4104 (PowerShell ScriptBlock - Get-ChildItem recursive on sensitive paths)"
+  - "Sysmon 1 (tree.com process creation)"
 tags:
   - discovery
   - no-prereqs
+  - ueba-baseline
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1083] File and Directory Discovery"
-    Write-Host "--- User Profile Directories ---"
-    Get-ChildItem -Path $env:USERPROFILE -Depth 1 -ErrorAction SilentlyContinue | Select-Object Name,LastWriteTime,Length | Format-Table -AutoSize
-    Write-Host "--- Interesting File Types (Desktop, Documents) ---"
-    $interesting = @("*.txt","*.docx","*.xlsx","*.pdf","*.ps1","*.bat","*.config","*.xml","*.json","*.key","*.pem","*.pfx")
-    foreach ($ext in $interesting) {
-        $found = Get-ChildItem -Path $env:USERPROFILE -Filter $ext -Recurse -ErrorAction SilentlyContinue | Select-Object -First 5
-        if ($found) {
-            Write-Host "  Found $ext files:"
-            $found | Select-Object FullName | Format-Table -AutoSize -HideTableHeaders
+  command: |-
+    Write-Host "[T1083] File and Directory Discovery — attacker sensitive file enumeration"
+
+    # Common attacker target paths
+    $targets = @(
+        "$env:USERPROFILE\Desktop",
+        "$env:USERPROFILE\Documents",
+        "$env:USERPROFILE\Downloads",
+        "C:\Users"
+    )
+
+    # dir /s /b — attacker-style directory listing (EID 4688 for cmd.exe)
+    Write-Host "--- dir /s /b on attacker-targeted paths (EID 4688) ---"
+    foreach ($path in $targets) {
+        if (Test-Path $path) {
+            cmd /c "dir /s /b `"$path`" 2>nul" | Select-Object -First 5 | Write-Host
         }
     }
-    Write-Host "--- Root Drive Contents ---"
-    Get-ChildItem -Path "C:\" -ErrorAction SilentlyContinue | Select-Object Name | Format-Table -AutoSize -HideTableHeaders
+
+    # tree command — maps directory structure (EID 4688 for tree.com)
+    Write-Host "--- tree /F (directory structure map — EID 4688 for tree.com) ---"
+    tree "$env:USERPROFILE" /F 2>&1 | Select-Object -First 20 | Write-Host
+
+    # Sensitive file type search — documents, credentials, key databases
+    Write-Host "--- Sensitive file type search (docx/xlsx/pdf/kdb/kdbx) ---"
+    Get-ChildItem -Path $env:USERPROFILE -Recurse -ErrorAction Ignore `
+        -Include "*.pdf","*.docx","*.xlsx","*.kdb","*.kdbx","*.pem","*.pfx","*.p12" |
+        Select-Object -First 10 | Select-Object FullName, Length, LastWriteTime | Format-Table -AutoSize
+
+    # Recently modified files — attacker checks for recent activity
+    Write-Host "--- Recently modified files (last 7 days) ---"
+    Get-ChildItem -Path $env:USERPROFILE -Recurse -ErrorAction Ignore |
+        Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) } |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 10 |
+        Select-Object FullName, LastWriteTime | Format-Table -AutoSize
+
+    # Alternate data stream detection (attacker checks for hidden data)
+    Write-Host "--- Alternate data stream check (steganography/hidden content) ---"
+    Get-ChildItem -Path $env:TEMP -ErrorAction Ignore | ForEach-Object {
+        try {
+            $streams = Get-Item $_.FullName -Stream * -ErrorAction Ignore |
+                Where-Object { $_.Stream -ne ':$DATA' }
+            if ($streams) { Write-Host "  ADS found: $($_.FullName)" }
+        } catch {}
+    }
+
+    # Credential/config file search
+    Write-Host "--- Credential and config file search ---"
+    cmd /c "dir /s /b `"$env:USERPROFILE`" 2>nul" |
+        Where-Object { $_ -match "pass|cred|secret|key|token|\.config$|\.env$" } |
+        Select-Object -First 10 | Write-Host
+
+    Write-Host "[T1083] Complete. EID 4688 burst + EID 4104 file enumeration events generated."
 cleanup: ""

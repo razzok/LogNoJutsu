@@ -1,38 +1,51 @@
 id: T1136.001
 name: Create Local Account
-description: Creates a local user account simulating attacker persistence via account creation. Generates Event 4720 (account created) — key Exabeam Account Manipulation use case trigger.
+description: Creates local accounts using all three methods — net user (generates EID 4688 for net.exe), New-LocalUser PowerShell (different parent chain), and ADSI WinNT provider (avoids net.exe entirely — tests if SIEM detects via event log vs process monitoring). All methods add account to Administrators generating EID 4732.
 tactic: persistence
 technique_id: T1136.001
 platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "4720 (user account created)"
-  - "4722 (user account enabled)"
-  - "4688 (net.exe process creation)"
-  - "Sysmon 1 (net user command)"
+  - "4720 (User account created — TargetUserName, SubjectUserName fields)"
+  - "4722 (Account enabled — automatically fires after creation)"
+  - "4732 (Member added to security-enabled local group — when added to Administrators)"
+  - "4688 (net.exe with 'user /add' in CommandLine)"
 tags:
   - persistence
-  - account-manipulation
   - requires-elevation
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1136.001] Create Local Account - simulating attacker account creation"
-    $username = "lnj_test_acct"
-    $password = "LogNoJutsu!Temp2024"
+  command: |-
+    Write-Host "[T1136.001] Create Local Account — three creation methods"
 
-    Write-Host "Creating local account: $username"
-    net user $username $password /add /comment:"LogNoJutsu SIEM validation test account"
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "Account created successfully. Event 4720 should be generated."
-        net user $username 2>&1
-    } else {
-        Write-Host "Note: Account may already exist or insufficient privileges."
+    # Method 1: net user (classic attacker method — generates EID 4688 for net.exe)
+    Write-Host "--- Method 1: net user /add (EID 4688 net.exe + EID 4720 account created) ---"
+    net user LNJTestUser1 "P@ssw0rd123!" /add /comment:"Windows Diagnostic" /fullname:"Windows Update Service" 2>&1 | Write-Host
+    net localgroup Administrators LNJTestUser1 /add 2>&1 | Write-Host
+    Write-Host "EID 4720 (account created) + EID 4732 (added to Administrators) fired"
+
+    # Method 2: New-LocalUser PowerShell (same EID 4720 but no net.exe EID 4688)
+    Write-Host "--- Method 2: New-LocalUser (PS cmdlet — different EID 4688 parent chain) ---"
+    $pw = ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force
+    New-LocalUser -Name "LNJTestUser2" -Password $pw -Description "Diagnostic Account" -PasswordNeverExpires 2>&1 | Write-Host
+    Add-LocalGroupMember -Group "Administrators" -Member "LNJTestUser2" -ErrorAction SilentlyContinue
+
+    # Method 3: ADSI WinNT (no net.exe, no PS cmdlet — tests event-log-only detection)
+    Write-Host "--- Method 3: ADSI WinNT provider (bypasses net.exe — tests EID 4720 only) ---"
+    try {
+        $computer = [ADSI]"WinNT://$env:COMPUTERNAME,computer"
+        $user = $computer.Create("User","LNJTestUser3")
+        $user.SetPassword("P@ssw0rd123!")
+        $user.SetInfo()
+        Write-Host "ADSI user LNJTestUser3 created (EID 4720 fired without net.exe EID 4688)"
+    } catch {
+        Write-Host "ADSI creation: $_"
     }
-cleanup: |
-  $username = "lnj_test_acct"
-  if (Get-LocalUser -Name $username -ErrorAction SilentlyContinue) {
-      net user $username /delete
-      Write-Host "Cleanup: Test account '$username' removed. Event 4726 generated."
-  }
+
+    Write-Host "[T1136.001] Complete. 3x EID 4720 + 2x EID 4732 generated."
+cleanup: |-
+  net user LNJTestUser1 /delete 2>&1 | Out-Null
+  Remove-LocalUser -Name "LNJTestUser2" -ErrorAction Ignore
+  net user LNJTestUser3 /delete 2>&1 | Out-Null
+  Write-Host "Cleanup: All test accounts removed."

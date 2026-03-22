@@ -1,72 +1,66 @@
 id: T1486
 name: Data Encrypted for Impact (Ransomware Simulation)
-description: Simulates ransomware pre-encryption behavior — creates test files, renames them with a fake encrypted extension, and drops a ransom note. No real encryption occurs. Generates Sysmon Events 11 (file creation) and matches ransomware behavioral patterns Exabeam monitors.
+description: Full ransomware behavioral sequence — creates test files, AES-256 encrypts them via .NET (no external tools), appends .locked extension, deletes originals (Sysmon EID 23 file delete burst), drops a ransom note. The combination of mass file creation+encrypt+delete+ransom note is the exact behavioral chain Exabeam and behavioral EDR detect. Only affects files in TEMP test directory.
 tactic: impact
 technique_id: T1486
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "Sysmon 11 (FileCreate - mass file creation/rename with unusual extension)"
-  - "4688 (powershell.exe or cmd.exe)"
-  - "4104 (PowerShell ScriptBlock - file operations)"
+  - "Sysmon 11 (FileCreate - mass .locked file creation burst)"
+  - "Sysmon 23 (FileDelete - original files deleted after encryption)"
+  - "4104 (PowerShell ScriptBlock - RNGCryptoServiceProvider, CreateEncryptor, bulk file ops)"
+  - "Windows Defender EID 1116/1117 (behavioral ransomware detection may trigger)"
 tags:
   - impact
-  - ransomware
   - no-prereqs
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1486] Data Encrypted for Impact - Ransomware Simulation (NO real encryption)"
+  command: |-
+    Write-Host "[T1486] Ransomware Simulation — AES-256 encrypt + delete + ransom note"
+    $testDir = "$env:TEMP\LNJ_T1486"
+    New-Item -ItemType Directory -Path $testDir -Force | Out-Null
 
-    $targetDir = "$env:TEMP\LogNoJutsu_RansomSim"
-    $fakeExt   = ".lnj_encrypted"
-    $noteFile  = "$targetDir\README_RESTORE_FILES.txt"
+    # Create test files (only in simulation directory — no real files affected)
+    Write-Host "Creating test files in $testDir..."
+    1..10 | ForEach-Object { "Document content $_" | Out-File "$testDir\document_$_.txt" }
+    1..5  | ForEach-Object { "Spreadsheet data $_" | Out-File "$testDir\report_$_.docx" }
+    1..3  | ForEach-Object { "Config data $_"      | Out-File "$testDir\config_$_.xml"  }
+    Write-Host "18 test files created"
 
-    # Step 1: Create test files (Sysmon Event 11 — mass FileCreate)
-    Write-Host "--- Step 1: Creating test files for ransomware simulation ---"
-    New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
-    $fileNames = @("document.docx", "spreadsheet.xlsx", "presentation.pptx",
-                   "database.mdb", "backup.bak", "report.pdf", "notes.txt",
-                   "config.xml", "data.csv", "archive.zip")
-    foreach ($name in $fileNames) {
-        $content = "LogNoJutsu SIEM validation test file - $name - $(Get-Date)"
-        Set-Content -Path "$targetDir\$name" -Value $content
+    # AES-256 encryption via .NET — exact ransomware pattern (no external tools)
+    # Generates Sysmon EID 11 (new .locked files) + EID 23 (delete originals)
+    Write-Host "Encrypting files (AES-256 via .NET RNGCryptoServiceProvider)..."
+    Add-Type -AssemblyName System.Security
+    $key = New-Object byte[] 32
+    $iv  = New-Object byte[] 16
+    (New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes($key)
+    (New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes($iv)
+    $encrypted = 0
+    Get-ChildItem -Path $testDir -File | ForEach-Object {
+        $aes = [System.Security.Cryptography.Aes]::Create()
+        $aes.Key = $key; $aes.IV = $iv
+        $enc = $aes.CreateEncryptor()
+        $inBytes  = [System.IO.File]::ReadAllBytes($_.FullName)
+        $outBytes = $enc.TransformFinalBlock($inBytes, 0, $inBytes.Length)
+        $encPath  = $_.FullName + ".locked"
+        [System.IO.File]::WriteAllBytes($encPath, $outBytes)
+        Remove-Item $_.FullName  # Original deletion = Sysmon EID 23
+        $encrypted++
     }
-    Write-Host "Created $($fileNames.Count) test files in $targetDir"
+    Write-Host "$encrypted files encrypted (.locked extension) + originals deleted"
+    Write-Host "Sysmon EID 11 (file create burst) + EID 23 (file delete burst) generated"
 
-    # Step 2: "Encrypt" files — rename with fake extension (Sysmon Event 11)
-    Write-Host "--- Step 2: Renaming files with encrypted extension (behavioral ransomware pattern) ---"
-    Get-ChildItem -Path $targetDir -File | Where-Object { $_.Extension -ne ".txt" } | ForEach-Object {
-        $newName = $_.Name + $fakeExt
-        Rename-Item -Path $_.FullName -NewName $newName
-        Write-Host "  Renamed: $($_.Name) → $newName"
-    }
+    # Ransom note — behavioral indicator
+    @"
+YOUR FILES HAVE BEEN ENCRYPTED BY LOGNOJUTSU SIMULATION
+This is a SIEM VALIDATION EXERCISE — no real encryption occurred on production files.
+Test directory: $testDir
+Contact: lognojutsu@simulation.test
+"@ | Out-File "$testDir\README_DECRYPT.txt" -Force
+    Write-Host "Ransom note dropped: $testDir\README_DECRYPT.txt"
 
-    # Step 3: Drop ransom note (Sysmon Event 11 — ransom note creation)
-    Write-Host "--- Step 3: Dropping ransom note (Sysmon Event 11) ---"
-    $note = @"
-!!! YOUR FILES HAVE BEEN ENCRYPTED !!!
-
-THIS IS A SIMULATED RANSOMWARE ATTACK FOR SIEM VALIDATION PURPOSES.
-Tool: LogNoJutsu | Technique: T1486 | Date: $(Get-Date)
-
-NO REAL ENCRYPTION OCCURRED. All files renamed with extension: $fakeExt
-
-In a real attack, this note would contain:
-- Payment instructions (cryptocurrency wallet)
-- Contact email for "negotiation"
-- Deadline for payment
-- Threat of data publication (double extortion)
-
-SIEM validation check: Did your SIEM detect mass file rename/creation events?
-"@
-    Set-Content -Path $noteFile -Value $note
-    Write-Host "Ransom note created: $noteFile"
-    Write-Host "[T1486] Complete. Check Sysmon Event 11 for mass file operations."
-cleanup: |
-  $targetDir = "$env:TEMP\LogNoJutsu_RansomSim"
-  if (Test-Path $targetDir) {
-      Remove-Item -Path $targetDir -Recurse -Force
-      Write-Host "Cleanup: Ransomware simulation directory removed."
-  }
+    Write-Host "[T1486] Complete. File churn pattern (create+encrypt+delete) generated."
+cleanup: |-
+  Remove-Item -Path "$env:TEMP\LNJ_T1486" -Recurse -Force -ErrorAction Ignore
+  Write-Host "Cleanup: All encrypted test files and ransom note removed."

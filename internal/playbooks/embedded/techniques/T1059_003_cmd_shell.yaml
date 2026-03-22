@@ -1,28 +1,51 @@
 id: T1059.003
 name: Windows Command Shell (cmd.exe)
-description: Executes suspicious cmd.exe commands simulating attacker use of built-in Windows command shell. Generates Event 4688 (process creation with command line) and Sysmon Event 1.
+description: Simulates authentic attacker cmd.exe patterns — output redirection to files, stdin redirection (Raspberry Robin evasion), %COMSPEC% obfuscation, chained & commands, and the cmd.exe→powershell.exe parent-child chain. The last pattern (cmd spawning PS) is one of the most-triggered SIEM parent-child rules.
 tactic: execution
 technique_id: T1059.003
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4688 (cmd.exe process creation with command line)"
-  - "Sysmon 1 (process creation, cmd.exe parent)"
-  - "4104 (if cmd spawns powershell)"
+  - "4688 / Sysmon 1 (cmd.exe with redirection operators, chained & commands in CommandLine)"
+  - "Sysmon 11 (FileCreate — output redirect files)"
+  - "Sysmon 1 (powershell.exe child of cmd.exe — high-signal parent-child chain)"
+  - "4104 (PowerShell ScriptBlock when cmd spawns PS)"
 tags:
   - execution
   - no-prereqs
   - lolbin
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1059.003] Windows Command Shell - simulating attacker cmd.exe usage"
-    # Simulate attacker cmd usage patterns: reconnaissance via cmd, chained commands
-    cmd.exe /C "whoami /all"
-    cmd.exe /C "net user"
-    cmd.exe /C "net localgroup administrators"
-    cmd.exe /C "systeminfo | findstr /B /C:`"OS Name`" /C:`"OS Version`" /C:`"Domain`""
-    cmd.exe /C "dir C:\Users /AD"
-    Write-Host "[T1059.003] Complete. Events 4688 generated for each cmd.exe invocation."
-cleanup: ""
+  command: |-
+    Write-Host "[T1059.003] Windows Command Shell — authentic attacker cmd.exe patterns"
+    $out = "$env:TEMP\lnj_cmd_recon.txt"
+
+    # Pattern 1: Output redirection with chained commands (EID 4688 for cmd.exe with & operator)
+    Write-Host "--- Pattern 1: Chained recon commands with output redirection ---"
+    cmd.exe /c "whoami /all > `"$out`" & ipconfig /all >> `"$out`" & net user >> `"$out`""
+    Write-Host "Sysmon EID 11 fires for $out creation"
+
+    # Pattern 2: Stdin redirection (Raspberry Robin / evasion pattern)
+    Write-Host "--- Pattern 2: Stdin redirection (Raspberry Robin pattern) ---"
+    "net localgroup administrators" | Out-File "$env:TEMP\lnj_cmd_in.txt" -Encoding ASCII
+    cmd.exe /r "cmd < `"$env:TEMP\lnj_cmd_in.txt`"" 2>&1 | Write-Host
+
+    # Pattern 3: %COMSPEC% environment variable obfuscation
+    Write-Host "--- Pattern 3: COMSPEC obfuscation (malware evasion technique) ---"
+    cmd.exe /c "%COMSPEC% /c set PROCESSOR_ARCHITECTURE" 2>&1 | Write-Host
+
+    # Pattern 4: Chained & commands — single process, multiple operations
+    Write-Host "--- Pattern 4: Chained attacker recon via & (one cmd.exe, many commands) ---"
+    cmd.exe /c "echo T1059.003 & net user & net localgroup administrators & systeminfo" 2>&1 | Select-Object -First 20 | Write-Host
+
+    # Pattern 5: cmd.exe spawning PowerShell — most-detected parent-child chain
+    # cmd.exe -> powershell.exe = tier-1 SIEM rule (Sysmon EID 1 parent field)
+    Write-Host "--- Pattern 5: cmd.exe spawning PowerShell (high-signal parent-child chain) ---"
+    cmd.exe /c "powershell.exe -NoP -Exec Bypass -Command Write-Host 'LogNoJutsu T1059.003 cmd-to-ps chain'"
+
+    Start-Sleep -Milliseconds 300
+    if (Test-Path $out) { Get-Content $out | Select-Object -First 5 | Write-Host }
+    Write-Host "[T1059.003] Complete. EID 4688 with cmd.exe CommandLine + cmd→PS parent chain."
+cleanup: |-
+  Remove-Item "$env:TEMP\lnj_cmd_recon.txt","$env:TEMP\lnj_cmd_in.txt" -ErrorAction Ignore

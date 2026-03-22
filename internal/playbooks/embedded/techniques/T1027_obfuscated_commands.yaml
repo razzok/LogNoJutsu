@@ -1,16 +1,16 @@
 id: T1027
 name: Obfuscated Files or Information
-description: Executes Base64-encoded and obfuscated PowerShell commands as attackers commonly do to evade signature detection. Generates Events 4103/4104 (ScriptBlock Logging) — high-value Exabeam signal for obfuscation detection.
+description: Executes multiple attacker obfuscation patterns — Base64 -EncodedCommand, IEX string concat, format-operator, registry-stored payloads, and double-encoding. Matches documented Emotet/Cobalt Strike stager patterns. EID 4104 (ScriptBlock Logging) logs decoded content — the highest-value PowerShell SIEM event.
 tactic: defense-evasion
 technique_id: T1027
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4104 (PowerShell ScriptBlock - encoded/obfuscated command)"
-  - "4103 (PowerShell Module Logging)"
-  - "4688 (powershell.exe with -EncodedCommand flag)"
-  - "Sysmon 1 (powershell.exe with -Enc or -EncodedCommand argument)"
+  - "4104 (PowerShell ScriptBlock - decoded obfuscated content logged after deobfuscation)"
+  - "4103 (PowerShell Module Logging - IEX calls visible)"
+  - "4688 / Sysmon 1 (powershell.exe with -EncodedCommand -NoP -NonI -W Hidden -Exec Bypass)"
+  - "Sysmon 13 (RegistryValueSet - HKCU payload storage)"
 tags:
   - defense-evasion
   - no-prereqs
@@ -18,33 +18,45 @@ tags:
   - ueba-anomaly
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1027] Obfuscated Files or Information - simulating attacker obfuscation techniques"
+  command: |-
+    Write-Host "[T1027] Obfuscated Files or Information — multi-pattern obfuscation simulation"
 
-    # Technique 1: Base64-encoded command (most common attacker pattern)
-    Write-Host "--- Technique 1: Base64-encoded payload ---"
-    $payload1 = "Write-Host 'LogNoJutsu: Simulated obfuscated payload - T1027'; Get-Date; [System.Environment]::OSVersion"
-    $encoded1 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($payload1))
-    powershell.exe -NonInteractive -NoProfile -EncodedCommand $encoded1
+    # Pattern 1: Classic -EncodedCommand with attacker flags
+    # -NoP -NonI -W Hidden -Exec Bypass combined = tier-1 SIEM alert in Exabeam/Splunk/Elastic
+    Write-Host "--- Pattern 1: -EncodedCommand with full attacker flag set ---"
+    $p1 = "Write-Host 'LogNoJutsu T1027: Base64 payload'; [System.Environment]::OSVersion.Version"
+    $e1 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($p1))
+    powershell.exe -NoP -NonI -W Hidden -Exec Bypass -EncodedCommand $e1
 
-    # Technique 2: String concatenation obfuscation
-    Write-Host "--- Technique 2: String concatenation obfuscation ---"
-    $a = "Get-"; $b = "Pro"; $c = "cess"
-    $cmd = $a + $b + $c
-    Invoke-Expression "$cmd | Select-Object -First 3 Name, Id"
+    # Pattern 2: IEX + string concatenation (Invoke-Obfuscation style — matches Cobalt Strike stagers)
+    Write-Host "--- Pattern 2: IEX + string concatenation obfuscation ---"
+    $a = 'Wri'; $b = 'te-H'; $c = 'ost "LogNoJutsu T1027: concat obfuscation"'
+    IEX ($a + $b + $c)
 
-    # Technique 3: Character substitution obfuscation
-    Write-Host "--- Technique 3: Tick-mark obfuscation (common in wild) ---"
-    $obfCmd = "G`et-`Hos`tN`ame"
-    Invoke-Expression $obfCmd
+    # Pattern 3: Format operator obfuscation
+    Write-Host "--- Pattern 3: -f format operator obfuscation ---"
+    IEX ("{0}{1}{2}" -f 'Write','-Ho','st "LogNoJutsu T1027: format obfuscation"')
 
-    # Technique 4: Nested encoding (double-encoded — triggers Exabeam anomaly)
-    Write-Host "--- Technique 4: Double-encoded command ---"
+    # Pattern 4: Registry-stored payload — highly suspicious behavioral indicator
+    # Generates Sysmon EID 13 (registry write) + EID 4104 (script block on retrieval+execute)
+    Write-Host "--- Pattern 4: Registry-stored Base64 payload (Sysmon EID 13 + EID 4104) ---"
+    $regPath = "HKCU:\SOFTWARE\LogNoJutsuT1027"
+    $e2 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('Write-Host "LogNoJutsu T1027: registry-retrieved payload"'))
+    New-Item -Path $regPath -Force | Out-Null
+    Set-ItemProperty -Path $regPath -Name "update" -Value $e2 -Force
+    $r = (Get-ItemProperty -Path $regPath -Name "update").update
+    IEX ([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($r)))
+    Remove-Item -Path $regPath -Force -ErrorAction Ignore
+
+    # Pattern 5: Double-encoded command (nested encoding — Exabeam anomaly model trigger)
+    Write-Host "--- Pattern 5: Double-encoded (nested) command ---"
     $inner = "Write-Host 'LogNoJutsu T1027: double-encoded execution'"
     $innerEnc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
-    $outer = "powershell.exe -EncodedCommand $innerEnc"
+    $outer = "powershell.exe -NoLogo -NonInteractive -EncodedCommand $innerEnc"
     $outerEnc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($outer))
     powershell.exe -NonInteractive -NoProfile -EncodedCommand $outerEnc
 
-    Write-Host "[T1027] Complete. ScriptBlock events 4104 should show obfuscated content."
-cleanup: ""
+    Write-Host "[T1027] Complete. EID 4104 shows decoded script content; Sysmon EID 1 shows -Enc flag."
+cleanup: |-
+  Remove-Item -Path "HKCU:\SOFTWARE\LogNoJutsuT1027" -Force -ErrorAction Ignore
+  Write-Host "Cleanup: Registry payload key removed."

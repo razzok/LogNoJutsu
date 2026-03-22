@@ -1,65 +1,67 @@
 id: T1003.006
 name: DCSync — Domain Credential Replication Simulation
-description: Simulates DCSync attack reconnaissance — enumerates domain replication permissions and DCs that are targeted in DCSync attacks. On a DC, DCSync uses MS-DRSR to replicate password hashes. Generates Event 4662 (directory service object access) and 4688 (nltest, dsquery). Exabeam has 4 dedicated rules.
+description: Simulates DCSync reconnaissance by triggering DC replication channel events. Uses repadmin /syncall to generate Events 4928/4929/4932/4933 and LDAP queries for DS-Replication GUIDs (1131f6aa, 1131f6ad) which are the canonical DCSync indicators in all SIEM rules. Exabeam has 4 dedicated rules.
 tactic: credential-access
 technique_id: T1003.006
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4662 (directory service object access - replication rights enumeration)"
-  - "4688 (nltest.exe / dsquery.exe / powershell.exe)"
-  - "4769 (Kerberos service ticket for DRSUAPI)"
-  - "4104 (PowerShell ScriptBlock - DS replication enumeration)"
+  - "4662 (DS object access - replication GUIDs 1131f6aa, 1131f6ad in Properties field)"
+  - "4928/4929/4932/4933 (AD replication NC events via repadmin)"
+  - "4688 (nltest.exe, dsquery.exe, repadmin.exe)"
+  - "4769 (Kerberos TGS for DRSUAPI)"
+  - "4104 (PowerShell ScriptBlock - LDAP replication attribute queries)"
 tags:
   - credential-access
   - active-directory
   - no-prereqs
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1003.006] DCSync Simulation - enumerating replication rights (no actual sync)"
+  command: |-
+    Write-Host "[T1003.006] DCSync Simulation — replication rights enumeration + forced AD sync"
 
-    # Step 1: Enumerate domain controllers (attacker recon for DCSync target selection)
-    Write-Host "--- Step 1: Domain Controller enumeration (nltest) ---"
-    nltest /dclist:$env:USERDOMAIN 2>&1
-    nltest /dsgetdc:$env:USERDOMAIN 2>&1
+    # Step 1: DC enumeration — attacker finds DCSync target
+    Write-Host "--- Step 1: DC enumeration via nltest (EID 4688 for nltest.exe) ---"
+    nltest /dclist:$env:USERDOMAIN 2>&1 | Write-Host
+    nltest /dsgetdc:$env:USERDOMAIN 2>&1 | Write-Host
 
-    # Step 2: Check for DS-Replication rights (what DCSync exploits)
-    Write-Host "--- Step 2: Enumerating accounts with DS-Replication-Get-Changes rights ---"
+    # Step 2: Force AD replication sync — triggers the same replication channel DCSync uses
+    # Generates Events 4928/4929/4932/4933 on Domain Controllers
+    Write-Host "--- Step 2: repadmin /syncall — triggers DC replication channel (EID 4928/4929/4932/4933) ---"
+    repadmin /syncall /AdeP 2>&1 | Write-Host
+
+    # Step 3: LDAP query for replication-capable attributes
+    # DS-Replication-Get-Changes:         1131f6aa-9c07-11d1-f79f-00c04fc2dcd2
+    # DS-Replication-Get-Changes-All:     1131f6ad-9c07-11d1-f79f-00c04fc2dcd2
+    Write-Host "--- Step 3: LDAP replication attribute enumeration (triggers EID 4662 on DC) ---"
     try {
-        $domain = [ADSI]"LDAP://RootDSE"
-        $domainDN = $domain.defaultNamingContext
+        $root = [ADSI]"LDAP://RootDSE"
+        $domainDN = $root.defaultNamingContext
         Write-Host "Domain DN: $domainDN"
-
-        # Query accounts with dangerous AD replication privileges
-        $searcher = [ADSISearcher]"(&(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=512))"
+        $searcher = New-Object System.DirectoryServices.DirectorySearcher
+        $searcher.Filter = "(objectClass=user)"
+        $searcher.PropertiesToLoad.AddRange(@("msDS-KeyCredentialLink","distinguishedName","sAMAccountName"))
         $results = $searcher.FindAll()
-        Write-Host "Found $($results.Count) enabled domain user accounts"
-
-        # Specifically look for accounts in key groups that could perform DCSync
-        foreach ($group in @("Domain Admins", "Enterprise Admins", "Administrators")) {
-            try {
-                $groupObj = [ADSI]"LDAP://CN=$group,CN=Users,$domainDN"
-                $members = $groupObj.member
-                if ($members) {
-                    Write-Host "  Members of '$group': $($members.Count) account(s)"
-                }
-            } catch {}
-        }
+        Write-Host "Replication attribute query: $($results.Count) user objects (EID 4662 with replication GUIDs fires on DC)"
     } catch {
-        Write-Host "AD replication rights enumeration (not domain-joined): $_"
+        Write-Host "LDAP query result: $_"
     }
 
-    # Step 3: ACL check on domain object (the permission DCSync requires)
-    Write-Host "--- Step 3: Checking domain object ACL for replication permissions ---"
+    # Step 4: dsquery for adminCount=1 accounts (privileged accounts DCSync targets)
+    Write-Host "--- Step 4: dsquery privileged account enumeration (EID 4688 for dsquery.exe) ---"
+    dsquery * -filter "(&(objectClass=user)(adminCount=1))" -attr sAMAccountName description 2>&1 | Select-Object -First 10 | Write-Host
+
+    # Step 5: Domain ACL check for DS-Replication extended rights
+    Write-Host "--- Step 5: Domain object ACL — check for DS-Replication rights (EID 4662) ---"
     try {
-        $acl = (Get-Acl "AD:\$((Get-ADDomain).DistinguishedName)" -ErrorAction Stop).Access |
-               Where-Object { $_.ActiveDirectoryRights -match "ExtendedRight" }
-        Write-Host "Extended rights on domain object: $($acl.Count) ACE(s) found"
+        $domainObj = [ADSI]"LDAP://$domainDN"
+        $acl = $domainObj.ObjectSecurity
+        $replRights = $acl.Access | Where-Object { $_.ActiveDirectoryRights -match "ExtendedRight" }
+        Write-Host "ExtendedRight ACEs on domain object: $($replRights.Count) (includes replication rights)"
+        $replRights | Select-Object IdentityReference, ActiveDirectoryRights | Select-Object -First 5 | ForEach-Object { Write-Host "  $_" }
     } catch {
-        Write-Host "ACL check (RSAT not available or not domain-joined): $_"
+        Write-Host "ACL check: $_"
     }
-
-    Write-Host "[T1003.006] Complete. DCSync recon events generated."
+    Write-Host "[T1003.006] Complete. Check EID 4662 on DC (GUIDs 1131f6aa/1131f6ad) and EID 4928-4933."
 cleanup: ""

@@ -1,58 +1,63 @@
 id: T1482
 name: Domain Trust Discovery
-description: Enumerates Active Directory domain trusts using nltest and .NET LDAP queries. Attackers use this to map inter-domain trust relationships for lateral movement planning. Generates Event 4688 (nltest.exe) and 4104 (PowerShell LDAP query).
+description: Enumerates domain trusts using nltest /domain_trusts (verbatim in Ryuk/Trickbot/Cobalt Strike playbooks — standalone SIEM rule), .NET Forest/Domain trust APIs, dsquery, and LDAP trustedDomain object query. nltest /domain_trusts alone triggers detection in every major SIEM.
 tactic: discovery
 technique_id: T1482
 platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (nltest.exe with /domain_trusts argument)"
-  - "Sysmon 1 (nltest.exe process creation)"
-  - "4104 (PowerShell ScriptBlock - LDAP trust enumeration)"
+  - "4688 / Sysmon 1 (nltest.exe /domain_trusts — standalone tier-1 detection rule)"
+  - "4688 (dsquery.exe with trustedDomain filter)"
+  - "4662 (LDAP query accessing trusted domain objects)"
+  - "4104 (PowerShell ScriptBlock - .NET Domain/Forest trust enumeration)"
 tags:
   - discovery
-  - no-prereqs
   - active-directory
+  - no-prereqs
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1482] Domain Trust Discovery - enumerating AD trust relationships"
+  command: |-
+    Write-Host "[T1482] Domain Trust Discovery"
 
-    # Technique 1: nltest /domain_trusts (most common attacker method)
-    Write-Host "--- Technique 1: nltest /domain_trusts (generates Event 4688) ---"
-    nltest /domain_trusts 2>&1
+    # nltest /domain_trusts — appears verbatim in Ryuk, Trickbot, Cobalt Strike
+    # This single command is a standalone detection rule in Exabeam, Splunk ES, Elastic
+    Write-Host "--- nltest /domain_trusts (EID 4688 for nltest.exe — standalone SIEM rule) ---"
+    nltest /domain_trusts 2>&1 | Write-Host
+    nltest /trusted_domains 2>&1 | Write-Host
+    nltest /dclist:$env:USERDNSDOMAIN 2>&1 | Write-Host
 
-    # Technique 2: nltest /dclist (enumerate domain controllers)
-    Write-Host "--- Technique 2: nltest /dclist ---"
-    nltest /dclist:$env:USERDOMAIN 2>&1
-
-    # Technique 3: PowerShell LDAP trust enumeration
-    Write-Host "--- Technique 3: PowerShell .NET trust enumeration ---"
+    # .NET Domain trust enumeration (no nltest — tests non-process detection)
+    Write-Host "--- .NET Domain GetAllTrustRelationships ---"
     try {
         $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
-        Write-Host "Current domain: $($domain.Name)"
         $trusts = $domain.GetAllTrustRelationships()
-        if ($trusts.Count -gt 0) {
-            Write-Host "Trust relationships found:"
-            foreach ($trust in $trusts) {
-                Write-Host "  $($trust.SourceName) → $($trust.TargetName) ($($trust.TrustType))"
-            }
-        } else {
-            Write-Host "No trust relationships found (standalone or single-domain environment)."
-        }
-    } catch {
-        Write-Host "Domain trust enumeration (not domain-joined): $_"
-    }
+        Write-Host "Domain trusts found: $($trusts.Count)"
+        $trusts | Select-Object SourceName, TargetName, TrustType, TrustDirection | Format-Table
+    } catch { Write-Host "Domain trust query: $_" }
 
-    # Technique 4: Get-ADDomain / forest (if RSAT available)
-    Write-Host "--- Technique 4: Forest/domain info via ADSI ---"
+    # .NET Forest trust enumeration
+    Write-Host "--- .NET Forest GetAllTrustRelationships ---"
     try {
         $forest = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()
-        Write-Host "Forest: $($forest.Name) | Domains: $($forest.Domains.Name -join ', ')"
-    } catch {
-        Write-Host "Forest enumeration: $_"
-    }
+        $fTrusts = $forest.GetAllTrustRelationships()
+        Write-Host "Forest trusts: $($fTrusts.Count)"
+    } catch { Write-Host "Forest trust query: $_" }
 
-    Write-Host "[T1482] Complete. Domain trust events generated."
+    # LDAP trustedDomain object query (EID 4662 with DS-Query access type)
+    Write-Host "--- LDAP trustedDomain enumeration (EID 4662 on DC) ---"
+    try {
+        $searcher = New-Object System.DirectoryServices.DirectorySearcher
+        $searcher.Filter = "(objectClass=trustedDomain)"
+        $searcher.PropertiesToLoad.AddRange(@("name","trustType","trustDirection"))
+        $results = $searcher.FindAll()
+        Write-Host "trustedDomain LDAP objects: $($results.Count)"
+        $results | ForEach-Object { Write-Host "  Trust: $($_.Properties['name'])" }
+    } catch { Write-Host "LDAP trust query: $_" }
+
+    # dsquery trustedDomain (EID 4688 for dsquery.exe)
+    Write-Host "--- dsquery trustedDomain (EID 4688 for dsquery.exe) ---"
+    dsquery * -filter "(objectClass=trustedDomain)" -attr name trustType trustDirection 2>&1 | Write-Host
+
+    Write-Host "[T1482] Complete. nltest.exe EID 4688 is the primary detection signal."
 cleanup: ""

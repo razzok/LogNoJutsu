@@ -1,33 +1,65 @@
 id: T1547.001
 name: Registry Run Key Persistence
-description: Creates a registry run key to simulate attacker persistence. Generates Sysmon Event 13 (registry value set).
+description: Creates persistence via HKCU Run (no elevation), HKLM Run (elevated — with encoded PS payload matching real malware), RunOnce (self-deleting), and Winlogon Userinit hijack (APT technique used by APT28/APT29). Sysmon EID 13 logs the key path AND value data — the encoded PS payload in the value triggers additional SIEM rules.
 tactic: persistence
 technique_id: T1547.001
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "Sysmon 13 (RegistryEvent - value set)"
-  - "4688 (reg.exe process creation)"
+  - "Sysmon 13 (RegistryValueSet — key path + value data showing powershell.exe -WindowStyle Hidden)"
+  - "4657 (Registry value modified — requires Object Access auditing on registry)"
+  - "Sysmon 1 (process from Run key at next logon shows suspicious parent chain)"
 tags:
   - persistence
   - no-prereqs
-  - registry
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1547.001] Registry Run Key Persistence"
-    $keyPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
-    $valueName = "LogNoJutsu_Persistence_Test"
-    $fakePayload = "C:\Windows\System32\notepad.exe"
-    Write-Host "Creating registry run key: $keyPath\$valueName"
-    Set-ItemProperty -Path $keyPath -Name $valueName -Value $fakePayload -Force
-    Write-Host "Run key created successfully. Sysmon Event 13 should be generated."
-    Write-Host "Registry entry: $valueName = $fakePayload"
-cleanup: |
-  $keyPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
-  $valueName = "LogNoJutsu_Persistence_Test"
-  if (Get-ItemProperty -Path $keyPath -Name $valueName -ErrorAction SilentlyContinue) {
-      Remove-ItemProperty -Path $keyPath -Name $valueName -Force
-      Write-Host "Cleanup: Registry run key removed."
+  command: |-
+    Write-Host "[T1547.001] Registry Run Key Persistence — multiple key locations"
+
+    # Method 1: HKCU Run (no elevation — most common attacker choice)
+    Write-Host "--- Method 1: HKCU\Run with hidden PS payload (Sysmon EID 13) ---"
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" `
+        -Name "WindowsUpdateHelper" `
+        -Value "powershell.exe -WindowStyle Hidden -NonInteractive -ExecutionPolicy Bypass -Command `"Write-Host persist`"" `
+        -Force
+    Write-Host "HKCU Run key set — Sysmon EID 13 value contains -WindowStyle Hidden"
+
+    # Method 2: HKLM Run (elevated) with encoded payload
+    Write-Host "--- Method 2: HKLM\Run with encoded payload (elevated attacker pattern) ---"
+    $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('Write-Host "LNJ T1547 HKLM persist"'))
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" `
+        -Name "MicrosoftEdgeAutoUpdate" `
+        -Value "cmd.exe /c powershell.exe -enc $enc" `
+        -Force -ErrorAction SilentlyContinue
+    Write-Host "HKLM Run key set — Sysmon EID 13 value contains encoded command"
+
+    # Method 3: RunOnce (self-deletes after execution — evasion technique)
+    Write-Host "--- Method 3: HKCU\RunOnce (self-deleting — evasion technique) ---"
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce" `
+        -Name "WindowsDefender" `
+        -Value "cmd.exe /c whoami > `"$env:TEMP\lnj_runonce.txt`"" `
+        -Force
+    Write-Host "RunOnce key set — executes once at next logon then auto-deletes"
+
+    # Method 4: Winlogon Userinit hijack (APT28/APT29 technique — high-privilege persistence)
+    Write-Host "--- Method 4: Winlogon Userinit hijack (APT technique — Sysmon EID 13) ---"
+    $winlogonPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+    $origUserinit = (Get-ItemProperty $winlogonPath -Name Userinit).Userinit
+    Write-Host "Original Userinit: $origUserinit"
+    Set-ItemProperty $winlogonPath -Name "Userinit" -Value ($origUserinit.TrimEnd(',') + ",cmd.exe /c whoami,") -Force -ErrorAction SilentlyContinue
+    Write-Host "Winlogon Userinit modified — Sysmon EID 13 on high-value key"
+
+    Write-Host "[T1547.001] Complete. 4x Sysmon EID 13 across Run/RunOnce/Winlogon keys."
+cleanup: |-
+  Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "WindowsUpdateHelper" -Force -EA Ignore
+  Remove-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name "MicrosoftEdgeAutoUpdate" -Force -EA Ignore
+  Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce" -Name "WindowsDefender" -Force -EA Ignore
+  $wp = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+  $orig = (Get-ItemProperty $wp -Name Userinit -EA Ignore).Userinit
+  if ($orig -match ",cmd\.exe /c whoami,") {
+      Set-ItemProperty $wp -Name "Userinit" -Value ($orig -replace ",cmd\.exe /c whoami,","") -Force -EA Ignore
   }
+  Remove-Item "$env:TEMP\lnj_runonce.txt" -EA Ignore
+  Write-Host "Cleanup: All Run keys and Winlogon Userinit restored."

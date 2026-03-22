@@ -1,35 +1,60 @@
 id: T1218.011
 name: Rundll32 Proxy Execution
-description: Uses rundll32.exe to execute code indirectly, a common LOLBin technique to bypass application whitelisting. Generates Sysmon Event 1 and Event 4688 with rundll32.exe as the executing process.
+description: Tests all major rundll32.exe LOLBin abuse patterns — url.dll OpenURL (most abused), pcwutl.dll LaunchApplication, advpack.dll INF execution, and shell32.dll. The rundll32.exe→cmd.exe parent-child chain is a tier-1 SIEM rule. Generates Sysmon EID 7 (DLL loaded) showing which DLL rundll32 used.
 tactic: defense-evasion
 technique_id: T1218.011
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4688 (rundll32.exe process creation)"
-  - "Sysmon 1 (rundll32.exe with suspicious arguments)"
-  - "Sysmon 7 (ImageLoaded - DLL loaded by rundll32)"
+  - "Sysmon 1 / 4688 (rundll32.exe with DLL+entrypoint in CommandLine — all patterns)"
+  - "Sysmon 1 (cmd.exe child of rundll32.exe — parent-child chain detection)"
+  - "Sysmon 7 (ImageLoad — DLL loaded by rundll32: url.dll, pcwutl.dll, advpack.dll)"
+  - "Sysmon 3 (NetworkConnect — if rundll32 makes HTTP request)"
 tags:
   - defense-evasion
   - lolbin
   - no-prereqs
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1218.011] Rundll32 Proxy Execution - simulating LOLBin abuse"
+  command: |-
+    Write-Host "[T1218.011] Rundll32 Proxy Execution — multiple LOLBin DLL patterns"
+    $out = "$env:TEMP\lnj_rundll32"
 
-    # Technique 1: Rundll32 invoking a legitimate Windows DLL function (generates events)
-    Write-Host "--- Technique 1: Rundll32 shell32 test ---"
-    Start-Process -FilePath "rundll32.exe" -ArgumentList "shell32.dll,Control_RunDLL" -Wait -WindowStyle Hidden
+    # Pattern 1: pcwutl.dll LaunchApplication — proxies process launch
+    Write-Host "--- Pattern 1: pcwutl.dll LaunchApplication ---"
+    rundll32.exe pcwutl.dll,LaunchApplication $env:SystemRoot\System32\cmd.exe 2>&1 | Write-Host
+    Start-Sleep -Milliseconds 500
 
-    # Technique 2: Rundll32 used to run JavaScript (common malware technique pattern)
-    Write-Host "--- Technique 2: Rundll32 advpack.dll pattern (event generation) ---"
-    Start-Process -FilePath "rundll32.exe" -ArgumentList "advpack.dll,DelNodeRunDLL32 C:\WINDOWS\Temp\LogNoJutsu_rundll32_test.inf" -Wait -WindowStyle Hidden
+    # Pattern 2: url.dll OpenURL with HTA (most commonly abused pattern)
+    # Creates temp HTA, loads via url.dll — generates EID 1 for rundll32+HTA child process
+    Write-Host "--- Pattern 2: url.dll OpenURL (HTA execution) ---"
+    $htaPath = "$out.hta"
+    @"
+<html><head><script language="VBScript">
+MsgBox "LogNoJutsu T1218.011 url.dll OpenURL simulation", 64, "LogNoJutsu"
+window.close()
+</script></head></html>
+"@ | Out-File -FilePath $htaPath -Encoding ASCII
+    rundll32.exe url.dll,OpenURL $htaPath 2>&1 | Write-Host
+    Start-Sleep -Milliseconds 800
 
-    # Technique 3: Rundll32 URL.dll OpenURL (common for phishing simulation)
-    Write-Host "--- Technique 3: Rundll32 url.dll pattern (generates Sysmon 1) ---"
-    Start-Process -FilePath "rundll32.exe" -ArgumentList "url.dll,FileProtocolHandler" -Wait -WindowStyle Hidden
+    # Pattern 3: shell32.dll Control_RunDLL (legitimate masquerade — tests content-based detection)
+    Write-Host "--- Pattern 3: shell32.dll Control_RunDLL ---"
+    rundll32.exe shell32.dll,Control_RunDLL timedate.cpl 2>&1 | Write-Host
 
-    Write-Host "[T1218.011] Complete. Sysmon Event 1 should be generated for each rundll32 invocation."
-cleanup: ""
+    # Pattern 4: advpack.dll with INF (used by malware families — generates Sysmon EID 7 for advpack.dll)
+    Write-Host "--- Pattern 4: advpack.dll LaunchINFSection ---"
+    $infPath = "$out.inf"
+    @"
+[version]
+Signature=`$chicago`$
+[DefaultInstall]
+"@ | Out-File -FilePath $infPath -Encoding ASCII
+    rundll32.exe advpack.dll,LaunchINFSection $infPath,,3,N 2>&1 | Write-Host
+
+    Start-Sleep -Milliseconds 500
+    Write-Host "[T1218.011] Complete. Sysmon EID 7 shows DLLs loaded; EID 1 shows rundll32 CommandLine."
+cleanup: |-
+  Remove-Item "$env:TEMP\lnj_rundll32*" -ErrorAction Ignore
+  Write-Host "Cleanup: rundll32 test files removed."

@@ -1,50 +1,42 @@
 id: T1135
 name: Network Share Discovery
-description: Enumerates network shares on local and remote systems, a common lateral movement and data collection reconnaissance technique. Generates Events 4688 (net.exe), Sysmon Event 3 (network connections to SMB), and 5140 (network share access).
+description: Enumerates network shares using net view, net share, admin share access (generates EID 5140/5145 — network share access audit events), Get-SmbShare, and WMI. Admin share access (\\COMPUTER\C$, \\COMPUTER\ADMIN$) generates the highest-signal share events in SIEM rules.
 tactic: discovery
 technique_id: T1135
 platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (net.exe with view argument)"
-  - "5140 (network share access)"
-  - "Sysmon 3 (NetworkConnect to port 445)"
-  - "Sysmon 1 (net.exe / net1.exe process creation)"
+  - "4688 (net.exe with view/share arguments)"
+  - "5140 (Network share accessed — admin share access)"
+  - "5145 (Network share object checked — file share audit)"
+  - "Sysmon 3 (NetworkConnect to SMB port 445)"
 tags:
   - discovery
   - no-prereqs
   - network
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1135] Network Share Discovery - enumerating accessible shares"
+  command: |-
+    Write-Host "[T1135] Network Share Discovery"
 
-    # Technique 1: Enumerate local shares
-    Write-Host "--- Technique 1: Local share enumeration (net share) ---"
-    net share 2>&1
+    # Local share enumeration
+    Write-Host "--- Local shares (EID 4688 for net.exe) ---"
+    net share 2>&1 | Write-Host
+    Get-SmbShare -ErrorAction SilentlyContinue | Select-Object Name, Path, Description | Format-Table -AutoSize
+    Get-WmiObject -Class Win32_Share | Select-Object Name, Path, Type | Format-Table -AutoSize
 
-    # Technique 2: Enumerate shares on localhost and common targets
-    Write-Host "--- Technique 2: Remote share enumeration (net view) ---"
-    net view \\$env:COMPUTERNAME 2>&1
-    net view \\localhost 2>&1
+    # Domain/network share discovery
+    Write-Host "--- Network share discovery (net view) ---"
+    net view 2>&1 | Write-Host
+    net view /all /domain 2>&1 | Write-Host
+    net view \\$env:COMPUTERNAME 2>&1 | Write-Host
 
-    # Technique 3: PowerShell SMB share enumeration
-    Write-Host "--- Technique 3: PowerShell Get-SmbShare / WMI share query ---"
-    try {
-        Get-SmbShare -ErrorAction Stop | Select-Object Name, Path, Description
-    } catch {
-        Get-WmiObject -Class Win32_Share | Select-Object Name, Path, Description, Type
-    }
+    # Admin share access — generates EID 5140 and 5145 (network share audit events)
+    Write-Host "--- Admin share access (EID 5140/5145 — highest-signal share events) ---"
+    dir \\$env:COMPUTERNAME\C$ 2>&1 | Select-Object -First 5 | Write-Host
+    dir \\$env:COMPUTERNAME\ADMIN$ 2>&1 | Select-Object -First 5 | Write-Host
+    dir \\$env:COMPUTERNAME\IPC$ 2>&1 | Write-Host
 
-    # Technique 4: Access well-known admin shares (generates 5140)
-    Write-Host "--- Technique 4: Accessing admin shares (generates Event 5140) ---"
-    $adminShares = @("C$", "IPC$", "ADMIN$")
-    foreach ($share in $adminShares) {
-        $path = "\\$env:COMPUTERNAME\$share"
-        Write-Host "  Testing access to $path"
-        Test-Path $path -ErrorAction SilentlyContinue | Out-Null
-    }
-
-    Write-Host "[T1135] Complete. Network share discovery events generated."
+    Write-Host "[T1135] Complete. EID 5140 on admin share access; EID 4688 burst for net.exe."
 cleanup: ""

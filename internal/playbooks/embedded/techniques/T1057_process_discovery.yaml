@@ -1,23 +1,55 @@
 id: T1057
 name: Process Discovery
-description: Lists running processes to identify security tools, AV, and interesting applications.
+description: Full attacker process enumeration — tasklist (with /v verbose and /svc services variants), wmic process get with CommandLine (highly suspicious field), Get-WmiObject Win32_Process with parent-child tree reconstruction targeting lsass/csrss/winlogon. Attackers enumerate processes to identify security tools, AV, and lateral movement targets.
 tactic: discovery
 technique_id: T1057
 platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (tasklist process creation)"
+  - "4688 / Sysmon 1 (tasklist.exe with /v and /svc flags)"
+  - "4688 / Sysmon 1 (wmic.exe 'process get commandline' — CommandLine field is highly suspicious)"
+  - "4104 (PowerShell ScriptBlock - Get-WmiObject Win32_Process CommandLine query)"
 tags:
   - discovery
   - no-prereqs
+  - ueba-baseline
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1057] Process Discovery"
-    Write-Host "--- Running Processes ---"
-    tasklist /v | Select-Object -First 40
-    Write-Host "--- Security-Relevant Processes ---"
-    $secProcs = @("MsMpEng","sysmon","splunkd","beats","nxlog","ossec","cb","carbonblack","cylance","crowdstrike","sentinel","defender")
-    Get-Process | Where-Object { $name = $_.Name.ToLower(); $secProcs | Where-Object { $name -like "*$_*" } } | Select-Object Name,Id,CPU | Format-Table -AutoSize
+  command: |-
+    Write-Host "[T1057] Process Discovery — full attacker enumeration"
+
+    # tasklist variants — /v (verbose with user context) and /svc (services) most suspicious
+    Write-Host "--- tasklist (EID 4688 for tasklist.exe) ---"
+    tasklist | Select-Object -First 15 | Write-Host
+    tasklist /v 2>&1 | Select-Object -First 10 | Write-Host      # Verbose — shows user context
+    tasklist /svc 2>&1 | Select-Object -First 10 | Write-Host    # Services per process
+
+    # Targeted search for security tools (attacker checks what's monitoring)
+    Write-Host "--- Target search: security tools and high-value processes ---"
+    tasklist | findstr /i "lsass csrss winlogon svchost defender mssense splunk cb" | Write-Host
+
+    # wmic process get CommandLine — highest-signal process discovery command
+    Write-Host "--- wmic process get commandline (EID 4688 wmic.exe — CommandLine field) ---"
+    wmic process get Name,ProcessId,ParentProcessId,CommandLine /format:csv 2>&1 | Select-Object -First 10 | Write-Host
+
+    # PowerShell Win32_Process — with CommandLine (logged in EID 4104)
+    Write-Host "--- Get-WmiObject Win32_Process with CommandLine ---"
+    Get-WmiObject Win32_Process |
+        Select-Object Name, ProcessId, ParentProcessId, CommandLine |
+        Where-Object { $_.CommandLine -ne $null } |
+        Select-Object -First 10 | Format-Table -AutoSize
+
+    # Parent-child tree reconstruction — attacker maps process hierarchy
+    Write-Host "--- Process tree reconstruction (attacker identifies parent-child chains) ---"
+    Get-WmiObject Win32_Process | ForEach-Object {
+        $parent = (Get-WmiObject Win32_Process -Filter "ProcessId=$($_.ParentProcessId)" -EA Ignore).Name
+        [PSCustomObject]@{ Name=$_.Name; PID=$_.ProcessId; Parent=$parent; PPID=$_.ParentProcessId }
+    } | Where-Object { $_.Name -match "lsass|csrss|winlogon|services|svchost" } | Format-Table
+
+    # Get-Process (PS native)
+    Write-Host "--- Get-Process sorted by memory (attacker identifies high-value targets) ---"
+    Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10 Name, Id, CPU, @{N='MB';E={[math]::Round($_.WorkingSet/1MB,1)}} | Format-Table
+
+    Write-Host "[T1057] Complete. EID 4688 for tasklist.exe and wmic.exe; EID 4104 for Win32_Process query."
 cleanup: ""

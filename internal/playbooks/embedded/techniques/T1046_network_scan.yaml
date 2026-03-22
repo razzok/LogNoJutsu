@@ -1,49 +1,62 @@
 id: T1046
 name: Network Service Discovery (Port Scan)
-description: Scans local network for open services and ports, simulating attacker network reconnaissance. Generates Sysmon Event 3 (network connections) for each connection attempt.
+description: Parallel port scan via PowerShell runspaces — creates a burst of simultaneous TCP connections from a single PID, matching real scanner behavior. Generates Sysmon EID 3 burst signature that behavioral SIEMs detect, unlike slow sequential scans which look nothing like real attacks.
 tactic: discovery
 technique_id: T1046
 platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "Sysmon 3 (NetworkConnect - multiple outbound connections)"
+  - "Sysmon 3 (NetworkConnect - burst of simultaneous connections from powershell.exe PID)"
+  - "5156/5157 (WFP allowed/blocked connections - rapid burst pattern)"
   - "4688 (powershell.exe process creation)"
-  - "4104 (PowerShell ScriptBlock - port scan code)"
+  - "4104 (PowerShell ScriptBlock - runspace port scan)"
 tags:
   - discovery
   - no-prereqs
   - network
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1046] Network Service Discovery - simulating port scan"
-
-    # Scan common attacker-targeted ports on localhost and gateway
+  command: |-
+    Write-Host "[T1046] Network Service Discovery — parallel runspace port scan"
     $target = "127.0.0.1"
-    $commonPorts = @(21, 22, 23, 25, 53, 80, 135, 139, 443, 445, 1433, 3306, 3389, 5985, 8080)
+    $ports  = @(21,22,23,25,53,80,135,139,389,443,445,1433,3306,3389,5985,8080,8443)
 
-    Write-Host "Scanning $target for common service ports (Sysmon 3 events generated per connection):"
-    foreach ($port in $commonPorts) {
-        $result = Test-NetConnection -ComputerName $target -Port $port -WarningAction SilentlyContinue -InformationLevel Quiet 2>$null
-        $status = if ($result) { "OPEN" } else { "closed" }
-        Write-Host "  Port $port/tcp : $status"
+    # Runspace pool scan — all ports hit simultaneously from one PID
+    # Creates burst signature that matches Nmap/internal scanner behavior
+    Write-Host "Parallel scanning $target ($($ports.Count) ports, 10 runspaces)..."
+    $pool = [RunspaceFactory]::CreateRunspacePool(1, 10)
+    $pool.Open()
+    $jobs = @()
+    foreach ($port in $ports) {
+        $ps = [PowerShell]::Create()
+        $ps.RunspacePool = $pool
+        [void]$ps.AddScript({
+            param($h,$p)
+            try {
+                $tcp = New-Object System.Net.Sockets.TcpClient
+                $async = $tcp.BeginConnect($h,$p,$null,$null)
+                if ($async.AsyncWaitHandle.WaitOne(300,$false)) {
+                    $tcp.EndConnect($async); "$h`:$p OPEN"
+                }
+                $tcp.Close()
+            } catch {}
+        }).AddArgument($target).AddArgument($port)
+        $jobs += [PSCustomObject]@{ PS=$ps; H=$ps.BeginInvoke() }
     }
+    $results = $jobs | ForEach-Object { $_.PS.EndInvoke($_.H); $_.PS.Dispose() }
+    $pool.Close()
+    $results | Where-Object { $_ } | ForEach-Object { Write-Host "  [OPEN] $_" }
 
-    # Also scan the default gateway (if available)
+    # Gateway scan — different Sysmon network event context
     try {
         $gw = (Get-NetRoute -DestinationPrefix "0.0.0.0/0" -ErrorAction Stop | Select-Object -First 1).NextHop
-        if ($gw) {
-            Write-Host "Scanning gateway $gw for key ports:"
-            foreach ($port in @(22, 80, 443, 3389)) {
-                $result = Test-NetConnection -ComputerName $gw -Port $port -WarningAction SilentlyContinue -InformationLevel Quiet 2>$null
-                $status = if ($result) { "OPEN" } else { "closed" }
-                Write-Host "  ${gw}:${port}/tcp : $status"
+        if ($gw -and $gw -ne "0.0.0.0") {
+            Write-Host "Gateway scan: $gw"
+            foreach ($p in @(80,443,3389)) {
+                Test-NetConnection -ComputerName $gw -Port $p -WarningAction SilentlyContinue -InformationLevel Quiet 2>$null | Out-Null
             }
         }
-    } catch {
-        Write-Host "Gateway scan skipped: $_"
-    }
-
-    Write-Host "[T1046] Complete. Sysmon Event 3 entries generated for connection attempts."
+    } catch {}
+    Write-Host "[T1046] Complete. Sysmon EID 3 burst from PID $PID."
 cleanup: ""

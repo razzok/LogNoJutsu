@@ -1,41 +1,51 @@
 id: T1047
 name: WMI Remote Execution
-description: Uses Windows Management Instrumentation (WMI) to execute commands, simulating a common lateral movement and execution technique. Generates Sysmon Events 1/20 and 4688 with WmiPrvSE.exe as parent process.
+description: Covers all three WMI execution patterns used by attackers — wmic.exe, Invoke-WmiMethod, and CIM cmdlets (modern). WmiPrvSE.exe as parent process is the key detection signal. Also covers loopback WMI remote execution which simulates lateral movement. Generates WMI Operational log events 5857/5858/5860/5861 in addition to Security/Sysmon events.
 tactic: execution
 technique_id: T1047
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4688 (wmic.exe process creation with command line)"
-  - "Sysmon 1 (process created by WmiPrvSE.exe parent)"
-  - "Sysmon 20 (WMI activity)"
-  - "4104 (if WMI spawns PowerShell)"
+  - "4688 / Sysmon 1 (wmic.exe with 'process call create' CommandLine)"
+  - "Sysmon 1 (WmiPrvSE.exe parent spawning cmd.exe child — key detection signal)"
+  - "WMI-Activity/Operational 5857/5860/5861 (WMI provider activity)"
+  - "4104 (PowerShell ScriptBlock - Invoke-WmiMethod / Invoke-CimMethod)"
 tags:
   - execution
   - lateral-movement
   - no-prereqs
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1047] WMI Execution - simulating attacker WMI usage"
+  command: |-
+    Write-Host "[T1047] WMI Execution — all three WMI execution patterns"
 
-    # Technique 1: WMIC process list (reconnaissance)
-    Write-Host "--- Technique 1: WMIC process enumeration (T1057 via WMI) ---"
-    wmic process list brief 2>&1 | Select-Object -First 10
+    # Pattern 1: wmic.exe process create — classic attacker command
+    # Generates EID 4688 for wmic.exe AND cmd.exe child; WmiPrvSE.exe as parent of cmd.exe
+    Write-Host "--- Pattern 1: wmic process call create (EID 4688 wmic.exe + WmiPrvSE parent) ---"
+    $outFile = "$env:TEMP\lnj_wmi.txt"
+    wmic process call create "cmd.exe /c whoami > `"$outFile`"" 2>&1 | Write-Host
+    Start-Sleep -Milliseconds 500
 
-    # Technique 2: WMIC local process creation (generates WmiPrvSE parent events)
-    Write-Host "--- Technique 2: WMIC local process creation ---"
-    wmic process call create "cmd.exe /C whoami" 2>&1
+    # Pattern 2: Invoke-WmiMethod — PowerShell WMI (different EID 4688 parent chain)
+    Write-Host "--- Pattern 2: Invoke-WmiMethod (PS WMI — WmiPrvSE.exe spawns process) ---"
+    Invoke-WmiMethod -Path "Win32_Process" -Name "Create" -ArgumentList "cmd.exe /c hostname >> `"$outFile`"" 2>&1 | Write-Host
 
-    # Technique 3: PowerShell WMI method (common attacker pattern; generates Sysmon 20)
-    Write-Host "--- Technique 3: PowerShell Invoke-WMIMethod ---"
-    Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList "cmd.exe /C hostname" 2>&1
+    # Pattern 3: Invoke-CimMethod — modern attacker pattern (post-2019 tooling)
+    Write-Host "--- Pattern 3: Invoke-CimMethod (modern CIM — generates WMI Operational EID 5861) ---"
+    Invoke-CimMethod -ClassName "Win32_Process" -MethodName "Create" -Arguments @{ CommandLine = "cmd.exe /c ipconfig >> `"$outFile`"" } 2>&1 | Write-Host
 
-    # Technique 4: WMI query for system info (reconnaissance)
-    Write-Host "--- Technique 4: WMI system information query ---"
-    Get-WmiObject -Class Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber
-    Get-WmiObject -Class Win32_ComputerSystem | Select-Object Name, Domain, UserName
+    # Pattern 4: WMI recon queries — attacker reconnaissance via WMI
+    Write-Host "--- Pattern 4: WMI reconnaissance queries ---"
+    Get-WmiObject -Query "SELECT * FROM Win32_Process WHERE Name = 'lsass.exe'" | Select-Object ProcessId, Name
+    Get-CimInstance -ClassName Win32_NetworkAdapterConfiguration -Filter "IPEnabled = True" | Select-Object Description, IPAddress
 
-    Write-Host "[T1047] Complete. WMI execution events generated."
-cleanup: ""
+    # Pattern 5: Loopback WMI remote (simulates lateral movement — generates network logon events)
+    Write-Host "--- Pattern 5: WMI loopback remote execution (simulates lateral movement) ---"
+    Invoke-WmiMethod -ComputerName "127.0.0.1" -Path "Win32_Process" -Name "Create" -ArgumentList "cmd.exe /c echo wmi_remote >> `"$outFile`"" 2>&1 | Write-Host
+
+    Start-Sleep -Milliseconds 500
+    if (Test-Path $outFile) { Get-Content $outFile; Remove-Item $outFile -Force }
+    Write-Host "[T1047] Complete. Check WmiPrvSE.exe parent in Sysmon EID 1 and WMI Operational log."
+cleanup: |-
+  Remove-Item "$env:TEMP\lnj_wmi.txt" -ErrorAction Ignore

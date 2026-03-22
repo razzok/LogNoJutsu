@@ -1,52 +1,53 @@
 id: T1036.005
 name: Match Legitimate Name or Location (Process Masquerading)
-description: Creates processes or files with names matching legitimate Windows system utilities to evade detection. Generates Sysmon Event 1 with suspicious parent/child relationships and Event 4688 with process hashes that don't match known-good values.
+description: Copies system binaries to non-standard paths under suspicious names (svchost.exe in TEMP, explorer.exe as PS, double-extension invoice.pdf.exe). Sysmon EID 1 records image path — svchost.exe from %TEMP% instead of System32 is a tier-1 SIEM alert. Sysmon v11+ OriginalFileName field reveals the true binary.
 tactic: defense-evasion
 technique_id: T1036.005
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "Sysmon 1 (process with suspicious parent or non-standard path for that name)"
-  - "4688 (process creation — name matches system binary but path differs)"
-  - "Sysmon 11 (FileCreate - binary copied to non-standard location)"
+  - "Sysmon 11 (FileCreate — binary copied to non-standard location)"
+  - "Sysmon 1 (Image path = TEMP\svchost.exe — path mismatch = tier-1 alert)"
+  - "4688 (process creation with image path not matching expected system location)"
+  - "Sysmon 13 (RegistryValueSet — masqueraded binary in Run key)"
 tags:
   - defense-evasion
   - no-prereqs
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1036.005] Process Masquerading - simulating process name/location spoofing"
+  command: |-
+    Write-Host "[T1036.005] Process Masquerading — legitimate name in non-standard location"
+    $tmpDir = "$env:TEMP\LNJ_Masq"
+    New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
 
-    $tempDir = "$env:TEMP\LogNoJutsu_Masq"
-    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+    # Technique 1: svchost.exe from TEMP — most-detected masquerade pattern
+    Write-Host "--- Technique 1: svchost.exe from TEMP (Sysmon EID 1 wrong image path) ---"
+    $fakeSvc = "$tmpDir\svchost.exe"
+    Copy-Item "$env:SystemRoot\System32\cmd.exe" -Destination $fakeSvc -Force
+    Start-Process -FilePath $fakeSvc -ArgumentList "/c echo LNJ-masquerade-svchost" -Wait -WindowStyle Hidden
+    Write-Host "Sysmon EID 1: Image=$tmpDir\svchost.exe (not System32 — tier-1 alert)"
 
-    # Technique 1: Copy legitimate binary to temp path with same name (Sysmon 11 + 1)
-    Write-Host "--- Technique 1: Legitimate binary run from non-standard path ---"
-    $fakeHostPath = "$tempDir\svchost.exe"
-    Copy-Item "C:\Windows\System32\cmd.exe" -Destination $fakeHostPath
-    Write-Host "Copied cmd.exe as svchost.exe to: $fakeHostPath"
-    Start-Process -FilePath $fakeHostPath -ArgumentList "/C echo LogNoJutsu-masquerade-svchost" -Wait -WindowStyle Hidden
-    Write-Host "Sysmon Event 1: svchost.exe running from $tempDir (anomalous path)"
+    # Technique 2: explorer.exe (really powershell) masquerade
+    Write-Host "--- Technique 2: explorer.exe masquerade (Sysmon OriginalFileName=powershell.exe) ---"
+    $fakeExp = "$tmpDir\explorer.exe"
+    Copy-Item "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -Destination $fakeExp -Force
+    Start-Process -FilePath $fakeExp -ArgumentList "-NonInteractive -Command `"Write-Host 'LNJ-masquerade'`"" -Wait -WindowStyle Hidden
 
-    # Technique 2: Renamed powershell masquerading as explorer
-    Write-Host "--- Technique 2: PowerShell masquerading as explorer.exe ---"
-    $fakePath = "$tempDir\explorer.exe"
-    Copy-Item "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -Destination $fakePath
-    Start-Process -FilePath $fakePath -ArgumentList "-NonInteractive -Command `"Write-Host 'LogNoJutsu-masquerade-explorer'`"" -Wait -WindowStyle Hidden
-    Write-Host "Sysmon Event 1: explorer.exe (really powershell) from $tempDir"
+    # Technique 3: Double extension (.pdf.exe) social engineering pattern
+    Write-Host "--- Technique 3: Double extension masquerade (invoice_Q4_2024.pdf.exe) ---"
+    $doubleExt = "$tmpDir\invoice_Q4_2024.pdf.exe"
+    Copy-Item "$env:SystemRoot\System32\cmd.exe" -Destination $doubleExt -Force
+    Start-Process -FilePath $doubleExt -ArgumentList "/c echo LNJ-double-extension" -Wait -WindowStyle Hidden
 
-    # Technique 3: Binary with double extension (filename.txt.exe pattern)
-    Write-Host "--- Technique 3: Double extension masquerade (filename.txt.exe) ---"
-    $doubleExt = "$tempDir\invoice_Q4_2024.pdf.exe"
-    Copy-Item "C:\Windows\System32\cmd.exe" -Destination $doubleExt
-    Start-Process -FilePath $doubleExt -ArgumentList "/C echo LogNoJutsu-double-extension" -Wait -WindowStyle Hidden
-    Write-Host "Process with double-extension name executed (social engineering pattern)"
+    # Technique 4: Masqueraded binary in registry persistence
+    Write-Host "--- Technique 4: Masqueraded binary in Run key (Sysmon EID 13) ---"
+    New-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" `
+        -Name "RuntimeBroker" -Value "$tmpDir\svchost.exe /c echo persist" `
+        -PropertyType String -Force | Out-Null
 
-    Write-Host "[T1036.005] Complete. Check Sysmon Event 1 for process path anomalies."
-cleanup: |
-  $tempDir = "$env:TEMP\LogNoJutsu_Masq"
-  if (Test-Path $tempDir) {
-      Remove-Item -Path $tempDir -Recurse -Force
-      Write-Host "Cleanup: Masquerading simulation files removed."
-  }
+    Write-Host "[T1036.005] Complete. Sysmon EID 1 (path mismatch) + EID 11 (file create) + EID 13 (Run key)."
+cleanup: |-
+  Remove-Item -Path "$env:TEMP\LNJ_Masq" -Recurse -Force -ErrorAction Ignore
+  Remove-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "RuntimeBroker" -Force -ErrorAction Ignore
+  Write-Host "Cleanup: Masqueraded files and registry key removed."

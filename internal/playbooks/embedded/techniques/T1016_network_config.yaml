@@ -1,24 +1,52 @@
 id: T1016
 name: System Network Configuration Discovery
-description: Queries network adapter configuration, routing table, and DNS settings.
+description: Full attacker network recon sequence — ipconfig /all, ipconfig /displaydns (DNS cache — highly suspicious), arp -a, route print, nbtstat, nslookup, netsh firewall show, Get-DnsClientCache. Temporal clustering of all these commands in under 30 seconds is the Exabeam behavioral detection signal.
 tactic: discovery
 technique_id: T1016
 platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (ipconfig process creation)"
+  - "4688 burst (ipconfig.exe, arp.exe, route.exe, netsh.exe, nbtstat.exe, nslookup.exe — rapid succession)"
+  - "Sysmon 1 (ipconfig.exe with /displaydns — DNS cache dump, highly suspicious)"
+  - "4104 (PowerShell ScriptBlock - Get-NetIPConfiguration, Get-DnsClientCache)"
 tags:
   - discovery
   - no-prereqs
+  - ueba-baseline
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1016] Network Configuration Discovery"
-    Write-Host "--- Network Adapters ---"
+  command: |-
+    Write-Host "[T1016] System Network Configuration Discovery — full attacker recon burst"
+
+    # Full sequence — rapid succession = Exabeam discovery burst behavioral alert
+    Write-Host "--- ipconfig (EID 4688 for ipconfig.exe) ---"
     ipconfig /all
-    Write-Host "--- Routing Table ---"
-    route print
-    Write-Host "--- DNS Cache ---"
-    ipconfig /displaydns | Select-Object -First 20
+    ipconfig /displaydns | Select-Object -First 20   # DNS cache — attacker maps internal hostnames
+
+    Write-Host "--- ARP table (arp -a) — attacker maps local subnet ---"
+    arp -a
+
+    Write-Host "--- Route table (route print) ---"
+    route print | Select-Object -First 20
+
+    Write-Host "--- NetBIOS (nbtstat) ---"
+    nbtstat -n 2>&1 | Write-Host
+    nbtstat -r 2>&1 | Write-Host
+
+    Write-Host "--- nslookup domain resolution ---"
+    nslookup $env:USERDNSDOMAIN 2>&1 | Write-Host
+
+    Write-Host "--- Firewall config (netsh advfirewall) ---"
+    netsh advfirewall firewall show rule name=all 2>&1 | Select-Object -First 20 | Write-Host
+
+    Write-Host "--- Workstation network config (net config) ---"
+    net config workstation 2>&1 | Select-Object -First 10 | Write-Host
+
+    Write-Host "--- PowerShell network cmdlets ---"
+    Get-NetIPAddress | Select-Object InterfaceAlias, IPAddress, PrefixLength | Format-Table -AutoSize
+    Get-NetRoute | Where-Object NextHop -ne "::" | Select-Object DestinationPrefix, NextHop | Format-Table -AutoSize
+    Get-DnsClientCache -ErrorAction SilentlyContinue | Select-Object Name, Type, Data | Select-Object -First 15 | Format-Table -AutoSize
+
+    Write-Host "[T1016] Complete. EID 4688 burst: ipconfig+arp+route+nbtstat+nslookup+netsh in rapid succession."
 cleanup: ""

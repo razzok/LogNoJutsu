@@ -1,32 +1,50 @@
 id: T1543.003
 name: Create Windows Service
-description: Creates a Windows service simulating malware persistence. Generates Event 7045 (new service installed).
+description: Creates services via three methods — sc.exe (EID 4688 for sc.exe + EID 7045), New-Service PowerShell (different process chain), and direct registry creation (bypasses sc.exe entirely — tests registry-based detection). Running all three validates whether SIEM detects via process events, security events, or registry monitoring independently.
 tactic: persistence
 technique_id: T1543.003
 platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "7045 (A new service was installed)"
-  - "4697 (Service installed in the system)"
-  - "4688 (sc.exe process creation)"
+  - "System EID 7045 (New service installed — ServiceName, ServiceFileName, ServiceAccount)"
+  - "Security EID 4697 (Service installed — Security log duplicate)"
+  - "4688 / Sysmon 1 (sc.exe with 'create' and service parameters in CommandLine)"
+  - "Sysmon 13 (RegistryValueSet - HKLM\SYSTEM\CurrentControlSet\Services direct creation)"
 tags:
   - persistence
   - requires-elevation
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1543.003] Windows Service Creation"
-    $serviceName = "LogNoJutsuTestSvc"
-    $displayName = "LogNoJutsu Test Service"
-    $binaryPath = "C:\Windows\System32\notepad.exe"
-    Write-Host "Creating service: $serviceName"
-    sc.exe create $serviceName binPath= $binaryPath DisplayName= $displayName start= demand | Out-Host
-    Write-Host "Service created. Event 7045 should appear in System log."
-    Get-Service -Name $serviceName -ErrorAction SilentlyContinue | Select-Object Name,Status,StartType | Format-Table -AutoSize
-cleanup: |
-  $serviceName = "LogNoJutsuTestSvc"
-  if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
-      sc.exe delete $serviceName | Out-Null
-      Write-Host "Cleanup: Service removed."
-  }
+  command: |-
+    Write-Host "[T1543.003] Create Windows Service — sc.exe + New-Service + registry"
+
+    # Method 1: sc.exe (generates EID 7045 + EID 4688 for sc.exe itself)
+    Write-Host "--- Method 1: sc.exe create (EID 4688 for sc.exe + System EID 7045) ---"
+    sc.exe create LNJSvcTest1 binPath= "cmd.exe /k echo LNJService" start= demand type= own DisplayName= "Windows Diagnostic Service" 2>&1 | Write-Host
+    sc.exe start LNJSvcTest1 2>&1 | Out-Null
+    Write-Host "System EID 7045 fired: ServiceName=LNJSvcTest1, DisplayName=Windows Diagnostic Service"
+
+    # Method 2: New-Service PowerShell (EID 7045 fires but no sc.exe EID 4688)
+    Write-Host "--- Method 2: New-Service PS cmdlet (EID 7045, no sc.exe EID 4688) ---"
+    New-Service -Name "LNJSvcTest2" -BinaryPathName "$env:SystemRoot\System32\cmd.exe /k echo svc2" -DisplayName "Windows Diagnostic Host" -Description "Provides system diagnostics" -StartupType Manual -ErrorAction SilentlyContinue | Write-Host
+
+    # Method 3: Registry-based (bypasses sc.exe AND New-Service — APT technique)
+    # Tests if SIEM detects via Sysmon EID 13 (registry) vs. EID 7045 only
+    Write-Host "--- Method 3: Registry-direct service creation (Sysmon EID 13 — APT technique) ---"
+    $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\LNJSvcTest3"
+    New-Item -Path $regPath -Force | Out-Null
+    Set-ItemProperty -Path $regPath -Name "ImagePath"    -Value "cmd.exe /k echo regservice"  -Type ExpandString
+    Set-ItemProperty -Path $regPath -Name "ObjectName"   -Value "LocalSystem"                  -Type String
+    Set-ItemProperty -Path $regPath -Name "Start"        -Value 3                              -Type DWord
+    Set-ItemProperty -Path $regPath -Name "Type"         -Value 16                             -Type DWord
+    Set-ItemProperty -Path $regPath -Name "ErrorControl" -Value 1                              -Type DWord
+    Set-ItemProperty -Path $regPath -Name "DisplayName"  -Value "Windows Diagnostic Agent"    -Type String
+    Write-Host "Registry service created — Sysmon EID 13 fired (no EID 7045 until next boot)"
+
+    Write-Host "[T1543.003] Complete. EID 7045 for sc.exe/New-Service; Sysmon EID 13 for registry method."
+cleanup: |-
+  sc.exe delete LNJSvcTest1 2>&1 | Out-Null
+  sc.exe delete LNJSvcTest2 2>&1 | Out-Null
+  Remove-Item "HKLM:\SYSTEM\CurrentControlSet\Services\LNJSvcTest3" -Recurse -Force -ErrorAction Ignore
+  Write-Host "Cleanup: All simulation services removed."

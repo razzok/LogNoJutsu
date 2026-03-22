@@ -1,47 +1,64 @@
 id: T1021.001
 name: Remote Desktop Protocol — Lateral Movement Simulation
-description: Simulates RDP lateral movement behavior by generating logon-type-10 events and querying RDP session state. Does NOT establish a real RDP session to avoid disrupting the target system.
+description: Enables RDP (registry + firewall rule generating EID 4946), stores RDP credentials via cmdkey (generates EID 4648), queries RDP session history, and changes RDP port (attacker evasion technique generating Sysmon EID 13 on PortNumber registry key). Does NOT open an interactive RDP session. Cleanup restores all settings.
 tactic: lateral-movement
 technique_id: T1021.001
 platform: windows
 phase: attack
-elevation_required: false
+elevation_required: true
 expected_events:
-  - "4624 (Logon Type 10 - Remote Interactive)"
-  - "4625 (Failed RDP logon attempts)"
-  - "4778 (Session reconnected)"
-  - "Sysmon 3 (network connection to port 3389)"
+  - "4688 / Sysmon 1 (cmdkey.exe with /generic:TERMSRV — EID 4648 explicit credential)"
+  - "4946 (Windows Firewall rule added for port 3389)"
+  - "Sysmon 13 (RegistryValueSet - fDenyTSConnections + PortNumber modification)"
+  - "4648 (Logon with explicit credentials — cmdkey RDP credential storage)"
 tags:
   - lateral-movement
-  - rdp
-  - ueba-lateral-movement
+  - no-prereqs
 executor:
   type: powershell
-  command: |
+  command: |-
     Write-Host "[T1021.001] RDP Lateral Movement Simulation"
-    Write-Host "--- Checking RDP status on this system ---"
-    $rdpStatus = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -ErrorAction SilentlyContinue
-    if ($rdpStatus.fDenyTSConnections -eq 0) {
-        Write-Host "RDP is ENABLED on this system (port 3389)"
-    } else {
-        Write-Host "RDP is DISABLED on this system"
-    }
-    Write-Host "--- Active RDP Sessions ---"
-    query session 2>$null
-    Write-Host "--- Simulating failed RDP authentication (generates Event 4625) ---"
-    # Generate failed NTLM auth via .NET to simulate RDP pre-auth failures
-    Add-Type -AssemblyName System.DirectoryServices.AccountManagement
-    1..5 | ForEach-Object {
-        try {
-            $ctx = New-Object System.DirectoryServices.AccountManagement.PrincipalContext([System.DirectoryServices.AccountManagement.ContextType]::Machine)
-            $ctx.ValidateCredentials("rdp_target_user_$_", "WrongRDPPass$_!") | Out-Null
-        } catch {}
-        Write-Host "  Simulated RDP auth attempt $_ (failed — expected)"
-        Start-Sleep -Milliseconds 500
-    }
-    Write-Host "--- Network scan for RDP-enabled hosts (local subnet) ---"
-    $localIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" } | Select-Object -First 1).IPAddress
-    Write-Host "Local IP: $localIP"
-    Write-Host "Note: In a real attack, attacker would scan subnet for open port 3389"
-    Write-Host "Sysmon Event 3 (network connection to :3389) should appear if scan is performed"
-cleanup: ""
+    $rdpReg = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server"
+    $rdpTcp = "$rdpReg\WinStations\RDP-Tcp"
+
+    # Save originals for cleanup
+    $origDeny = (Get-ItemProperty $rdpReg -Name fDenyTSConnections -EA Ignore).fDenyTSConnections
+    $origPort = (Get-ItemProperty $rdpTcp -Name PortNumber -EA Ignore).PortNumber
+
+    # Method 1: Enable RDP via registry (Sysmon EID 13 on fDenyTSConnections)
+    Write-Host "--- Method 1: Enable RDP via registry (Sysmon EID 13) ---"
+    Set-ItemProperty -Path $rdpReg -Name "fDenyTSConnections" -Value 0 -Force
+    Set-ItemProperty -Path $rdpTcp -Name "UserAuthentication" -Value 0 -Force
+    Write-Host "RDP enabled: fDenyTSConnections=0 — Sysmon EID 13 on Terminal Server key"
+
+    # Method 2: Firewall rule for RDP (EID 4946 — Windows Firewall rule added)
+    Write-Host "--- Method 2: Firewall rule for port 3389 (EID 4946) ---"
+    netsh advfirewall firewall add rule name="LNJ-AllowRDP" dir=in action=allow protocol=TCP localport=3389 2>&1 | Write-Host
+    Write-Host "EID 4946 fired: firewall rule added for TCP 3389"
+
+    # Method 3: cmdkey credential storage (EID 4648 explicit credential)
+    Write-Host "--- Method 3: cmdkey RDP credential store (EID 4648) ---"
+    cmdkey /generic:"TERMSRV/$env:COMPUTERNAME" /user:"$env:COMPUTERNAME\$env:USERNAME" /pass:"SimRDPPass" 2>&1 | Write-Host
+    Write-Host "EID 4648 fired: explicit credentials stored for TERMSRV"
+
+    # Method 4: RDP connection history enumeration (attacker recon)
+    Write-Host "--- Method 4: RDP connection history (attacker recon) ---"
+    Get-ItemProperty "HKCU:\Software\Microsoft\Terminal Server Client\Servers" -EA Ignore |
+        Select-Object * -ExcludeProperty PS* | Format-List
+    Get-ItemProperty "HKCU:\Software\Microsoft\Terminal Server Client\Default" -EA Ignore |
+        Select-Object * -ExcludeProperty PS* | Format-List
+
+    # Method 5: Change RDP port (evasion — Sysmon EID 13 on PortNumber)
+    Write-Host "--- Method 5: RDP port change to 33389 (Sysmon EID 13 on PortNumber) ---"
+    Set-ItemProperty -Path $rdpTcp -Name "PortNumber" -Value 33389 -Type DWord
+    Write-Host "RDP port changed to 33389 — Sysmon EID 13 fired on PortNumber key"
+
+    Write-Host "[T1021.001] Complete. EID 4648 (cmdkey), EID 4946 (FW rule), Sysmon EID 13 (registry)."
+cleanup: |-
+  $rdpReg = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server"
+  $rdpTcp = "$rdpReg\WinStations\RDP-Tcp"
+  Set-ItemProperty -Path $rdpReg -Name "fDenyTSConnections" -Value 1 -Force -EA Ignore
+  Set-ItemProperty -Path $rdpTcp -Name "PortNumber" -Value 3389 -Type DWord -EA Ignore
+  netsh advfirewall firewall delete rule name="LNJ-AllowRDP" 2>&1 | Out-Null
+  cmdkey /delete:"TERMSRV/$env:COMPUTERNAME" 2>&1 | Out-Null
+  Write-Host "Cleanup: RDP disabled, port restored, FW rule removed, credential deleted."

@@ -1,32 +1,57 @@
 id: T1069
 name: Permission Groups Discovery
-description: Enumerates local and domain groups to identify privilege escalation paths and high-value targets.
+description: Enumerates all local security groups with focus on privileged groups (Administrators, Remote Desktop Users, Remote Management Users). 'net localgroup Administrators' is one of the highest-signal single commands in SIEM rules — standalone tier-1 detection. Also covers domain group enumeration and current user group membership via whoami /groups.
 tactic: discovery
-technique_id: T1069.001
+technique_id: T1069
 platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (net.exe process creation)"
+  - "4688 / Sysmon 1 (net.exe 'localgroup Administrators' — standalone tier-1 SIEM rule)"
+  - "4688 (whoami.exe with /groups flag)"
+  - "4104 (PowerShell ScriptBlock - Get-LocalGroup / Get-LocalGroupMember)"
 tags:
   - discovery
   - no-prereqs
+  - ueba-baseline
 executor:
   type: powershell
-  command: |
+  command: |-
     Write-Host "[T1069] Permission Groups Discovery"
-    Write-Host "--- Local Groups ---"
+
+    # net localgroup Administrators — highest-signal single command in SIEM rules
+    Write-Host "--- net localgroup (EID 4688 for net.exe — 'Administrators' is a standalone rule) ---"
     net localgroup
-    Write-Host "--- Local Administrators ---"
-    net localgroup "Administrators"
-    Write-Host "--- Remote Desktop Users ---"
-    net localgroup "Remote Desktop Users" 2>$null
-    Write-Host "--- Checking domain membership ---"
-    $domain = (Get-WmiObject Win32_ComputerSystem).PartOfDomain
-    if ($domain) {
-        Write-Host "System is domain-joined. Querying domain groups..."
-        net group /domain 2>$null | Select-Object -First 20
-    } else {
-        Write-Host "System is NOT domain-joined (workgroup)."
-    }
+    net localgroup Administrators
+    net localgroup "Remote Desktop Users" 2>&1 | Write-Host
+    net localgroup "Remote Management Users" 2>&1 | Write-Host
+    net localgroup "Backup Operators" 2>&1 | Write-Host
+
+    # whoami /groups — current user's group memberships
+    Write-Host "--- whoami /groups (EID 4688 for whoami.exe) ---"
+    whoami /groups /fo csv 2>&1 | Select-Object -First 10 | Write-Host
+
+    # PowerShell Get-LocalGroup / Get-LocalGroupMember
+    Write-Host "--- PowerShell group enumeration (EID 4104) ---"
+    Get-LocalGroup | Select-Object Name, Description, SID | Format-Table -AutoSize
+    Get-LocalGroupMember -Group "Administrators" -ErrorAction SilentlyContinue |
+        Select-Object Name, PrincipalSource, ObjectClass | Format-Table -AutoSize
+
+    # wmic group enumeration
+    Write-Host "--- wmic group get (EID 4688 for wmic.exe) ---"
+    wmic group get Name,SID,Domain,LocalAccount /format:csv 2>&1 | Write-Host
+
+    # .NET current user group membership
+    Write-Host "--- .NET WindowsIdentity groups (attacker checks own privileges) ---"
+    [System.Security.Principal.WindowsIdentity]::GetCurrent().Groups |
+        ForEach-Object {
+            try { $_.Translate([System.Security.Principal.NTAccount]).Value } catch { $_.Value }
+        } | Where-Object { $_ -match "Admin|Power|Remote|Backup" } | Write-Host
+
+    # Domain groups (if domain-joined)
+    Write-Host "--- Domain group discovery ---"
+    net group /domain 2>&1 | Select-Object -First 10 | Write-Host
+    net group "Domain Admins" /domain 2>&1 | Write-Host
+
+    Write-Host "[T1069] Complete. 'net localgroup Administrators' EID 4688 is the primary SIEM trigger."
 cleanup: ""

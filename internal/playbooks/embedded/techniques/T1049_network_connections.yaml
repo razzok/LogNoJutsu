@@ -1,25 +1,54 @@
 id: T1049
 name: System Network Connections Discovery
-description: Enumerates active network connections, listening ports, and routing tables.
+description: Full attacker network connection enumeration — netstat -anob (with process names), Get-NetTCPConnection correlated to processes, external IP filtering (C2 discovery pattern), net use/session, and WMI queries. The cluster of all these commands in short succession triggers Exabeam's discovery burst behavioral model.
 tactic: discovery
 technique_id: T1049
 platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (netstat process creation)"
+  - "4688 (netstat.exe, net.exe, net1.exe — multiple process creation events)"
+  - "Sysmon 1 (netstat.exe with -anob flag — suspicious process names query)"
+  - "4104 (PowerShell ScriptBlock - Get-NetTCPConnection with process correlation)"
 tags:
   - discovery
   - no-prereqs
   - ueba-baseline
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1049] Network Connections Discovery"
-    Write-Host "--- Active Connections ---"
-    netstat -ano | Select-Object -First 30
-    Write-Host "--- Established Connections ---"
-    Get-NetTCPConnection -State Established | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,OwningProcess | Format-Table -AutoSize
-    Write-Host "--- Listening Ports ---"
-    Get-NetTCPConnection -State Listen | Select-Object LocalAddress,LocalPort | Sort-Object LocalPort | Format-Table -AutoSize
+  command: |-
+    Write-Host "[T1049] System Network Connections Discovery"
+
+    # netstat -anob: -b shows owning process name (requires admin) — most suspicious flag
+    Write-Host "--- netstat -ano (EID 4688 for netstat.exe) ---"
+    netstat -ano | Select-Object -First 20
+
+    Write-Host "--- netstat -r (routing table — attacker maps network) ---"
+    netstat -r | Select-Object -First 15
+
+    # PowerShell with process correlation — attacker maps connections to processes
+    Write-Host "--- Get-NetTCPConnection with process correlation ---"
+    Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue |
+        Select-Object LocalAddress, LocalPort, RemoteAddress, RemotePort,
+            @{N='Process';E={(Get-Process -Id $_.OwningProcess -EA SilentlyContinue).Name}} |
+        Format-Table -AutoSize
+
+    # Filter for external connections — simulates C2 callback discovery behavior
+    Write-Host "--- External connections (C2 discovery pattern) ---"
+    Get-NetTCPConnection -ErrorAction SilentlyContinue |
+        Where-Object { $_.RemoteAddress -notmatch "^(127\.|0\.|::|169\.)" -and $_.State -eq "Established" } |
+        Select-Object LocalPort, RemoteAddress, RemotePort, @{N='PID';E={$_.OwningProcess}} |
+        Format-Table -AutoSize
+
+    # net use — mapped drives/sessions (attacker checks for accessible shares)
+    Write-Host "--- net use (mapped drives/sessions — EID 4688 for net.exe) ---"
+    net use 2>&1 | Write-Host
+    net session 2>&1 | Write-Host
+
+    # WMI network connection enumeration
+    Write-Host "--- WMI network connection query ---"
+    Get-WmiObject Win32_NetworkConnection -ErrorAction SilentlyContinue |
+        Select-Object Name, ProviderName, Status, LocalName | Format-Table -AutoSize
+
+    Write-Host "[T1049] Complete. Multiple netstat/net.exe EID 4688 events generated."
 cleanup: ""

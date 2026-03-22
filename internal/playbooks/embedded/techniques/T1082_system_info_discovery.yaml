@@ -1,29 +1,46 @@
 id: T1082
 name: System Information Discovery
-description: Collects detailed OS, hardware, and domain information using built-in Windows utilities.
+description: Full attacker system recon sequence — runs systeminfo, wmic, reg query (MachineGuid, BIOS), whoami, hostname, and Get-CimInstance in rapid succession. The temporal clustering of multiple discovery tool invocations (EID 4688 burst) is the behavioral signal Exabeam detects, not just individual commands.
 tactic: discovery
 technique_id: T1082
 platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (systeminfo process creation)"
-  - "4688 (wmic process creation)"
+  - "4688 (systeminfo.exe, wmic.exe, reg.exe, hostname.exe, whoami.exe — burst in quick succession)"
+  - "Sysmon 1 (wmic.exe with /format:csv — common attacker output pattern)"
+  - "4104 (PowerShell ScriptBlock - Get-CimInstance queries)"
 tags:
   - discovery
   - no-prereqs
   - ueba-baseline
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1082] System Information Discovery"
-    $info = @{}
-    $info["hostname"] = $env:COMPUTERNAME
-    $info["username"] = $env:USERNAME
-    $info["domain"] = $env:USERDOMAIN
-    $info["os"] = (Get-CimInstance Win32_OperatingSystem).Caption
-    $info["arch"] = $env:PROCESSOR_ARCHITECTURE
-    $info["uptime"] = (Get-Date) - (gcim Win32_OperatingSystem).LastBootUpTime
-    $info | ConvertTo-Json
-    systeminfo | Select-String -Pattern "OS Name|OS Version|System Type|Domain|Logon Server"
+  command: |-
+    Write-Host "[T1082] System Information Discovery — full attacker recon burst"
+
+    # Full sequence — all commands in rapid succession = Exabeam discovery burst behavioral alert
+    Write-Host "--- OS and hardware identification ---"
+    systeminfo | Select-String -Pattern "OS Name|OS Version|System Type|Total Physical|Domain|Logon Server"
+    hostname
+    whoami /all
+
+    Write-Host "--- MachineGuid and BIOS (target fingerprinting) ---"
+    reg query HKLM\SOFTWARE\Microsoft\Cryptography /v MachineGuid
+    reg query "HKLM\HARDWARE\DESCRIPTION\System" /v SystemBiosVersion
+
+    Write-Host "--- WMIC system queries (EID 4688 for wmic.exe with CSV format) ---"
+    wmic os get Caption,Version,BuildNumber,OSArchitecture /format:csv 2>&1 | Write-Host
+    wmic computersystem get Manufacturer,Model,TotalPhysicalMemory,Domain /format:csv 2>&1 | Write-Host
+    wmic bios get SerialNumber,SMBIOSBIOSVersion /format:csv 2>&1 | Write-Host
+
+    Write-Host "--- Net workstation config ---"
+    net config workstation 2>&1 | Select-Object -First 10 | Write-Host
+
+    Write-Host "--- PowerShell CIM queries ---"
+    Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber, LastBootUpTime
+    Get-CimInstance Win32_ComputerSystem  | Select-Object Name, Domain, Manufacturer, Model
+    Write-Host "Env: $env:COMPUTERNAME | $env:USERDOMAIN | $env:USERNAME | $env:PROCESSOR_ARCHITECTURE"
+
+    Write-Host "[T1082] Complete. EID 4688 burst: systeminfo+wmic+reg+hostname+whoami in sequence."
 cleanup: ""

