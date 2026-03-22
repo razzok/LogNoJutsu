@@ -2,41 +2,41 @@ package playbooks
 
 // Technique represents a single MITRE ATT&CK technique definition.
 type Technique struct {
-	ID          string            `yaml:"id"`
-	Name        string            `yaml:"name"`
-	Description string            `yaml:"description"`
-	Tactic      string            `yaml:"tactic"`
-	TechniqueID string            `yaml:"technique_id"`
-	Platform    string            `yaml:"platform"`
-	Phase       string            `yaml:"phase"` // "discovery" or "attack"
-	Executor    Executor          `yaml:"executor"`
-	Cleanup     string            `yaml:"cleanup"`
-	ExpectedEvents []string       `yaml:"expected_events"`
-	ElevationRequired bool        `yaml:"elevation_required"`
-	Tags        []string          `yaml:"tags"`
-	InputArgs   map[string]string `yaml:"input_args"`
+	ID                string            `yaml:"id"                 json:"id"`
+	Name              string            `yaml:"name"               json:"name"`
+	Description       string            `yaml:"description"        json:"description"`
+	Tactic            string            `yaml:"tactic"             json:"tactic"`
+	TechniqueID       string            `yaml:"technique_id"       json:"technique_id"`
+	Platform          string            `yaml:"platform"           json:"platform"`
+	Phase             string            `yaml:"phase"              json:"phase"`
+	Executor          Executor          `yaml:"executor"           json:"executor"`
+	Cleanup           string            `yaml:"cleanup"            json:"cleanup"`
+	ExpectedEvents    []string          `yaml:"expected_events"    json:"expected_events"`
+	ElevationRequired bool              `yaml:"elevation_required" json:"elevation_required"`
+	Tags              []string          `yaml:"tags"               json:"tags"`
+	InputArgs         map[string]string `yaml:"input_args"         json:"input_args,omitempty"`
 }
 
 type Executor struct {
-	Type    string `yaml:"type"` // "powershell" or "cmd"
-	Command string `yaml:"command"`
+	Type    string `yaml:"type"    json:"type"`
+	Command string `yaml:"command" json:"command"`
 }
 
 // Campaign is an ordered list of techniques forming an attack scenario.
 type Campaign struct {
-	ID          string           `yaml:"id"`
-	Name        string           `yaml:"name"`
-	Description string           `yaml:"description"`
-	Industry    string           `yaml:"industry"`
-	ThreatActor string           `yaml:"threat_actor"`
-	Steps       []CampaignStep   `yaml:"steps"`
-	Tags        []string         `yaml:"tags"`
+	ID          string         `yaml:"id"           json:"id"`
+	Name        string         `yaml:"name"         json:"name"`
+	Description string         `yaml:"description"  json:"description"`
+	Industry    string         `yaml:"industry"     json:"industry"`
+	ThreatActor string         `yaml:"threat_actor" json:"threat_actor"`
+	Steps       []CampaignStep `yaml:"steps"        json:"steps"`
+	Tags        []string       `yaml:"tags"         json:"tags"`
 }
 
 type CampaignStep struct {
-	TechniqueID string `yaml:"technique_id"` // references Technique.ID
-	DelayAfter  int    `yaml:"delay_after"`  // seconds to wait after this step
-	Optional    bool   `yaml:"optional"`
+	TechniqueID string `yaml:"technique_id" json:"technique_id"`
+	DelayAfter  int    `yaml:"delay_after"  json:"delay_after"`
+	Optional    bool   `yaml:"optional"     json:"optional"`
 }
 
 // ExecutionResult records the output of a single technique run.

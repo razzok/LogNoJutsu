@@ -306,20 +306,44 @@
       <div class="form-row">
         <div class="form-group">
           <label>Campaign / Playbook</label>
-          <select id="cfgCampaign" style="width:320px;">
-            <option value="">All Techniques (discovery + all attacks)</option>
+          <select id="cfgCampaign" style="width:380px;">
+            <option value="">All Techniques (alle Discovery + alle Attack-Techniken)</option>
           </select>
+        </div>
+      </div>
+
+      <div class="separator"></div>
+      <h3 style="font-size:14px; margin-bottom:10px;">⏱️ Phasen-Timing</h3>
+
+      <!-- Phase flow diagram -->
+      <div style="background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:16px; font-size:12px;">
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; color:var(--muted);">
+          <span style="background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:4px 10px; color:var(--text);">▶ Start</span>
+          <span>──</span>
+          <span style="color:var(--orange);" id="diag-t1-label">5s</span>
+          <span>──▶</span>
+          <span style="background:rgba(88,166,255,0.15); border:1px solid var(--accent); border-radius:4px; padding:4px 10px; color:var(--accent);">🔍 Phase 1: Discovery</span>
+          <span style="color:var(--muted); font-size:11px;">(~</span><span id="diag-disc-count" style="color:var(--accent); font-size:11px;">?</span><span style="color:var(--muted); font-size:11px;"> Techniken)</span>
+          <span>──</span>
+          <span style="color:var(--orange);" id="diag-t2-label">30s</span>
+          <span>──▶</span>
+          <span style="background:rgba(248,81,73,0.15); border:1px solid var(--red); border-radius:4px; padding:4px 10px; color:var(--red);">⚔️ Phase 2: Attack</span>
+          <span style="color:var(--muted); font-size:11px;">(~</span><span id="diag-atk-count" style="color:var(--red); font-size:11px;">?</span><span style="color:var(--muted); font-size:11px;"> Techniken)</span>
+          <span>──▶</span>
+          <span style="background:rgba(63,185,80,0.15); border:1px solid var(--green); border-radius:4px; padding:4px 10px; color:var(--green);">✓ Done + Cleanup</span>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label>Delay before Discovery Phase (seconds)</label>
-          <input type="number" id="cfgDelayDiscovery" value="5" min="0" max="3600" />
+          <label>T1 — Wartezeit vor Phase 1: Discovery (Sekunden)</label>
+          <input type="number" id="cfgDelayDiscovery" value="5" min="0" max="3600" oninput="updateDiagram()" />
+          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Zeit zwischen Klick auf „Start" und dem ersten Discovery-Befehl. Für reale Tests: 600–1800s (10–30 Min.), damit das SIEM-Baseline-Fenster passt.</span>
         </div>
         <div class="form-group">
-          <label>Delay before Attack Phase (seconds)</label>
-          <input type="number" id="cfgDelayAttack" value="30" min="0" max="3600" />
+          <label>T2 — Pause zwischen Phase 1 und Phase 2 (Sekunden)</label>
+          <input type="number" id="cfgDelayAttack" value="30" min="0" max="3600" oninput="updateDiagram()" />
+          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Zeit nach Ende von Phase 1 bis zum Start der Attack-Phase. Für UEBA-Tests: 60–300s, damit Exabeam Discovery-Events als Session eingruppiert.</span>
         </div>
       </div>
 
@@ -327,43 +351,44 @@
         <div class="form-group">
           <div class="toggle-row">
             <input type="checkbox" id="cfgCleanup" checked />
-            <label for="cfgCleanup">Run cleanup after each technique (removes created artifacts)</label>
+            <label for="cfgCleanup">Cleanup nach jeder Technik ausführen (angelegte Artefakte sofort entfernen)</label>
           </div>
+          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Deaktivieren = alle Artefakte bleiben bis Simulationsende bestehen (End-of-Sim-Cleanup). Sinnvoll um Persistence-Erkennungen über Zeit zu testen.</span>
         </div>
       </div>
 
       <div class="separator"></div>
-      <h3 style="font-size:14px; margin-bottom:12px;">👥 Multi-User Execution</h3>
+      <h3 style="font-size:14px; margin-bottom:12px;">👥 Multi-User Execution (optional)</h3>
 
       <div class="form-row">
         <div class="form-group">
           <label>User Rotation Mode</label>
-          <select id="cfgRotation" onchange="toggleUserSelection()" style="width:240px;">
-            <option value="none">None — run as current user</option>
-            <option value="sequential">Sequential — cycle through profiles</option>
-            <option value="random">Random — random profile per technique</option>
+          <select id="cfgRotation" onchange="toggleUserSelection()" style="width:280px;">
+            <option value="none">None — als aktueller Benutzer ausführen</option>
+            <option value="sequential">Sequential — Profile der Reihe nach durchlaufen</option>
+            <option value="random">Random — zufälliges Profil pro Technik</option>
           </select>
+          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Techniken unter anderem Benutzerkontext ausführen → erzeugt Event 4648 (explicit credentials) für Exabeam UEBA.</span>
         </div>
       </div>
 
       <div id="userSelectionDiv" style="display:none;">
-        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Select User Profiles (hold Ctrl/Cmd for multiple)</label>
+        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Benutzerprofile auswählen (Ctrl/Cmd für Mehrfachauswahl)</label>
         <select id="cfgUserProfiles" multiple style="width:100%; height:120px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:6px; font-size:13px;">
         </select>
         <div style="font-size:11px; color:var(--muted); margin-top:4px;">
-          Each technique will be executed via <code>Start-Process -Credential</code> as the selected user — generates Event 4648.
+          Jede Technik wird via <code>Start-Process -Credential</code> als ausgewählter Benutzer ausgeführt — erzeugt Event 4648.
         </div>
       </div>
 
       <div class="separator"></div>
 
       <div class="alert alert-info" style="margin-top:0; margin-bottom:16px;">
-        ℹ️ The simulation starts <strong>only after clicking Start</strong>. Nothing runs automatically on launch.
-        Phase 1 (Discovery) begins after the first delay. Phase 2 (Attack) begins after Phase 1 + second delay.
+        ℹ️ Die Simulation startet <strong>erst nach Klick auf Start</strong>. Beim Öffnen des Tools läuft nichts automatisch.
       </div>
 
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btn-primary" id="btnStart" onclick="startSimulation()">▶ Start Simulation</button>
+        <button class="btn btn-primary" id="btnStart" onclick="startSimulation()">▶ Simulation starten</button>
         <button class="btn btn-danger" id="btnStopSched" onclick="stopSimulation()" disabled>⏹ Stop &amp; Cleanup</button>
       </div>
     </div>
@@ -677,14 +702,37 @@ function selectCampaign(id, el) {
 }
 
 async function loadCampaignSelect() {
-  const campaigns = await api('/api/campaigns');
+  const [campaigns, techniques] = await Promise.all([api('/api/campaigns'), api('/api/techniques')]);
   const sel = document.getElementById('cfgCampaign');
-  if (!sel || !campaigns) return;
-  const opts = ['<option value="">All Techniques (discovery + all attacks)</option>'];
-  (campaigns||[]).sort((a,b)=>a.industry.localeCompare(b.industry)).forEach(c => {
-    opts.push(`<option value="${c.id}" ${selectedCampaign===c.id?'selected':''}>${c.name} [${c.industry}]</option>`);
+  if (!sel) return;
+
+  // Update technique counts in diagram
+  if (Array.isArray(techniques)) {
+    const discCount = techniques.filter(t => t.phase === 'discovery').length;
+    const atkCount  = techniques.filter(t => t.phase === 'attack').length;
+    const discEl = document.getElementById('diag-disc-count');
+    const atkEl  = document.getElementById('diag-atk-count');
+    if (discEl) discEl.textContent = discCount;
+    if (atkEl)  atkEl.textContent  = atkCount;
+  }
+
+  if (!Array.isArray(campaigns)) return;
+  const opts = ['<option value="">Alle Techniken (alle Discovery + alle Attack-Techniken)</option>'];
+  campaigns.sort((a,b) => (a.industry||'').localeCompare(b.industry||'')).forEach(c => {
+    const steps = (c.steps||[]).length;
+    opts.push(`<option value="${c.id}" ${selectedCampaign===c.id?'selected':''}>${c.name} [${c.industry}] — ${steps} Techniken</option>`);
   });
   sel.innerHTML = opts.join('');
+  updateDiagram();
+}
+
+function updateDiagram() {
+  const t1 = document.getElementById('cfgDelayDiscovery');
+  const t2 = document.getElementById('cfgDelayAttack');
+  const l1 = document.getElementById('diag-t1-label');
+  const l2 = document.getElementById('diag-t2-label');
+  if (t1 && l1) l1.textContent = (parseInt(t1.value)||0) + 's';
+  if (t2 && l2) l2.textContent = (parseInt(t2.value)||0) + 's';
 }
 
 // ── Preparation ────────────────────────────────────────────────
