@@ -21,6 +21,9 @@ const (
 	PhaseAttack    Phase = "attack"
 	PhaseDone      Phase = "done"
 	PhaseAborted   Phase = "aborted"
+	PhasePoCPhase1 Phase = "poc_phase1"
+	PhasePoCGap    Phase = "poc_gap"
+	PhasePoCPhase2 Phase = "poc_phase2"
 )
 
 // UserRotation controls how user profiles are assigned to techniques.
@@ -41,6 +44,15 @@ type Config struct {
 	SelectedTechniques   []string     `json:"selected_techniques"`
 	UserProfileIDs       []string     `json:"user_profile_ids"` // empty = current user only
 	UserRotation         UserRotation `json:"user_rotation"`
+
+	// PoC multi-day scheduling mode
+	PoCMode            bool `json:"poc_mode"`
+	Phase1DurationDays int  `json:"phase1_duration_days"` // days to run discovery phase
+	Phase1TechsPerDay  int  `json:"phase1_techs_per_day"` // discovery techniques per day
+	Phase1DailyHour    int  `json:"phase1_daily_hour"`    // 0-23: hour at which to run each day
+	GapDays            int  `json:"gap_days"`             // silent days between phases
+	Phase2DurationDays int  `json:"phase2_duration_days"` // days to run attack phase
+	Phase2DailyHour    int  `json:"phase2_daily_hour"`    // 0-23: hour at which to run each day
 }
 
 // Status is the current engine state.
@@ -54,6 +66,12 @@ type Status struct {
 	Errors          []string                    `json:"errors"`
 	LogFile         string                      `json:"log_file"`
 	CleanupDone     bool                        `json:"cleanup_done"`
+
+	// PoC mode fields (populated only when PoCMode is active)
+	PoCDay           int    `json:"poc_day,omitempty"`
+	PoCTotalDays     int    `json:"poc_total_days,omitempty"`
+	PoCPhase         string `json:"poc_phase,omitempty"`          // "phase1", "gap", "phase2"
+	NextScheduledRun string `json:"next_scheduled_run,omitempty"` // RFC3339
 }
 
 // Engine manages the simulation lifecycle.
@@ -99,8 +117,12 @@ func (e *Engine) Start(cfg Config) error {
 	e.stopCh = make(chan struct{}, 1)
 	e.executedTechniques = nil
 	e.rotationIndex = 0
+	initialPhase := PhaseDiscovery
+	if cfg.PoCMode {
+		initialPhase = PhasePoCPhase1
+	}
 	e.status = Status{
-		Phase:           PhaseDiscovery,
+		Phase:           initialPhase,
 		StartTime:       time.Now().Format(time.RFC3339),
 		PhaseStartTimes: make(map[Phase]string),
 		Results:         []playbooks.ExecutionResult{},
@@ -196,6 +218,10 @@ func (e *Engine) pickUser() (*userstore.UserProfile, string) {
 }
 
 func (e *Engine) run() {
+	if e.cfg.PoCMode {
+		e.runPoC()
+		return
+	}
 	simlog.Info(fmt.Sprintf("Starting simulation. Discovery delay: %ds, Attack delay: %ds",
 		e.cfg.DelayBeforeDiscovery, e.cfg.DelayBeforeAttack))
 
@@ -239,6 +265,137 @@ func (e *Engine) run() {
 			return
 		}
 		e.runTechnique(t)
+	}
+
+	e.finish()
+}
+
+// nextOccurrenceOfHour returns the duration until the next occurrence of hour:00:00
+// on the local clock. If that time has already passed today, returns duration to tomorrow.
+func nextOccurrenceOfHour(hour int) time.Duration {
+	now := time.Now()
+	next := time.Date(now.Year(), now.Month(), now.Day(), hour, 0, 0, 0, now.Location())
+	if !next.After(now) {
+		next = next.Add(24 * time.Hour)
+	}
+	return next.Sub(now)
+}
+
+func (e *Engine) runPoC() {
+	cfg := e.cfg
+	totalDays := cfg.Phase1DurationDays + cfg.GapDays + cfg.Phase2DurationDays
+
+	simlog.Info(fmt.Sprintf("[PoC] Multi-day simulation: Phase1=%dd (%d techs/day @ %02d:00)  Gap=%dd  Phase2=%dd (campaign=%q @ %02d:00)  Total=%dd",
+		cfg.Phase1DurationDays, cfg.Phase1TechsPerDay, cfg.Phase1DailyHour,
+		cfg.GapDays,
+		cfg.Phase2DurationDays, cfg.CampaignID, cfg.Phase2DailyHour,
+		totalDays))
+
+	e.mu.Lock()
+	e.status.PoCTotalDays = totalDays
+	e.mu.Unlock()
+
+	// Shuffle discovery techniques once — cycle through them across days
+	discoveryTechs := e.registry.GetTechniquesByPhase("discovery")
+	rand.Shuffle(len(discoveryTechs), func(i, j int) {
+		discoveryTechs[i], discoveryTechs[j] = discoveryTechs[j], discoveryTechs[i]
+	})
+	techsPerDay := cfg.Phase1TechsPerDay
+	if techsPerDay < 1 {
+		techsPerDay = 2
+	}
+
+	// ── Phase 1: Discovery ──────────────────────────────────────────
+	e.setPhase(PhasePoCPhase1)
+	for day := 1; day <= cfg.Phase1DurationDays; day++ {
+		if e.isStopped() {
+			e.abort()
+			return
+		}
+		d := nextOccurrenceOfHour(cfg.Phase1DailyHour)
+		nextRun := time.Now().Add(d)
+		simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d/%d — waiting until %s", day, cfg.Phase1DurationDays, nextRun.Format("2006-01-02 15:04")))
+		e.mu.Lock()
+		e.status.PoCDay = day
+		e.status.PoCPhase = "phase1"
+		e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
+		e.status.CurrentStep = fmt.Sprintf("PoC Phase 1 — Tag %d/%d — warte bis %02d:00 Uhr", day, cfg.Phase1DurationDays, cfg.Phase1DailyHour)
+		e.mu.Unlock()
+
+		if !e.waitOrStop(d) {
+			e.abort()
+			return
+		}
+
+		if len(discoveryTechs) > 0 {
+			start := ((day - 1) * techsPerDay) % len(discoveryTechs)
+			for i := 0; i < techsPerDay; i++ {
+				if e.isStopped() {
+					e.abort()
+					return
+				}
+				t := discoveryTechs[(start+i)%len(discoveryTechs)]
+				simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d — technique %d/%d: %s", day, i+1, techsPerDay, t.ID))
+				e.runTechnique(t)
+			}
+		}
+		simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d complete", day))
+	}
+
+	// ── Gap ─────────────────────────────────────────────────────────
+	if cfg.GapDays > 0 {
+		e.setPhase(PhasePoCGap)
+		for day := 1; day <= cfg.GapDays; day++ {
+			if e.isStopped() {
+				e.abort()
+				return
+			}
+			d := nextOccurrenceOfHour(cfg.Phase2DailyHour)
+			nextRun := time.Now().Add(d)
+			simlog.Info(fmt.Sprintf("[PoC Gap] Day %d/%d — silent day, waiting until %s", day, cfg.GapDays, nextRun.Format("2006-01-02 15:04")))
+			e.mu.Lock()
+			e.status.PoCPhase = "gap"
+			e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
+			e.status.CurrentStep = fmt.Sprintf("PoC Pause — Tag %d/%d (keine Aktionen)", day, cfg.GapDays)
+			e.mu.Unlock()
+			if !e.waitOrStop(d) {
+				e.abort()
+				return
+			}
+		}
+	}
+
+	// ── Phase 2: Attack ──────────────────────────────────────────────
+	e.setPhase(PhasePoCPhase2)
+	for day := 1; day <= cfg.Phase2DurationDays; day++ {
+		if e.isStopped() {
+			e.abort()
+			return
+		}
+		d := nextOccurrenceOfHour(cfg.Phase2DailyHour)
+		nextRun := time.Now().Add(d)
+		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d/%d — waiting until %s", day, cfg.Phase2DurationDays, nextRun.Format("2006-01-02 15:04")))
+		e.mu.Lock()
+		e.status.PoCPhase = "phase2"
+		e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
+		e.status.CurrentStep = fmt.Sprintf("PoC Phase 2 — Tag %d/%d — warte bis %02d:00 Uhr", day, cfg.Phase2DurationDays, cfg.Phase2DailyHour)
+		e.mu.Unlock()
+
+		if !e.waitOrStop(d) {
+			e.abort()
+			return
+		}
+
+		attackTechs := e.getTechniquesForPhase()
+		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d — running %d attack techniques", day, len(attackTechs)))
+		for _, t := range attackTechs {
+			if e.isStopped() {
+				e.abort()
+				return
+			}
+			e.runTechnique(t)
+		}
+		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d complete", day))
 	}
 
 	e.finish()

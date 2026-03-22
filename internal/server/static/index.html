@@ -37,6 +37,26 @@
     .phase-attack { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid var(--red); }
     .phase-done { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid var(--green); }
     .phase-aborted { background: rgba(210,153,34,0.15); color: var(--orange); border: 1px solid var(--orange); }
+    .phase-poc_phase1 { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid var(--accent); }
+    .phase-poc_gap { background: rgba(139,148,158,0.15); color: var(--muted); border: 1px solid var(--muted); }
+    .phase-poc_phase2 { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid var(--red); }
+
+    .mode-tabs { display:flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; margin-bottom:16px; }
+    .mode-tab { flex:1; padding:10px 16px; background:var(--bg3); border:none; color:var(--muted); cursor:pointer; font-size:13px; transition:all .15s; text-align:center; line-height:1.5; }
+    .mode-tab:hover { color:var(--text); }
+    .mode-tab.active { background:rgba(88,166,255,0.1); color:var(--accent); font-weight:500; }
+
+    .poc-grid { display:grid; grid-template-columns:1fr 90px 1fr; gap:12px; margin-bottom:16px; }
+    .poc-phase-panel { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:16px; }
+    .poc-gap-panel { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:6px; }
+    .poc-phase-panel h4 { font-size:13px; margin-bottom:12px; font-weight:600; }
+    .poc-phase-panel .form-group { margin-bottom:10px; }
+    .poc-phase-panel input[type="number"], .poc-phase-panel select { width:100%; }
+    .poc-schedule { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:12px; }
+    .poc-schedule-row { display:flex; gap:10px; align-items:center; padding:4px 0; border-bottom:1px solid var(--border); }
+    .poc-schedule-row:last-child { border-bottom:none; }
+    .poc-schedule-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .poc-countdown { font-size:20px; font-weight:bold; color:var(--orange); font-variant-numeric:tabular-nums; }
 
     .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity .15s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:disabled { opacity: .4; cursor: not-allowed; }
@@ -198,6 +218,28 @@
         ✓ Simulation complete — all cleanup operations executed. Artifacts removed.
       </div>
 
+      <!-- PoC mode status panel — visible only during PoC simulation -->
+      <div id="pocInfoPanel" style="display:none; margin-bottom:16px;">
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:stretch;">
+          <div class="stat-box" style="padding:12px 18px; min-width:130px;">
+            <div class="val" id="pocDayDisplay" style="font-size:22px; color:var(--accent);">—</div>
+            <div class="lbl">PoC Tag</div>
+          </div>
+          <div class="stat-box" style="padding:12px 18px; min-width:130px;">
+            <div class="val" id="pocTotalDisplay" style="font-size:22px; color:var(--muted);">—</div>
+            <div class="lbl">Gesamttage</div>
+          </div>
+          <div class="stat-box" style="padding:12px 18px; min-width:200px; flex:1;">
+            <div class="poc-countdown" id="pocCountdown">—</div>
+            <div class="lbl">Nächste Ausführung</div>
+          </div>
+          <div class="stat-box" style="padding:12px 18px; min-width:180px; flex:1; text-align:left;">
+            <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Aktuelle Phase</div>
+            <div id="pocPhaseDesc" style="font-size:13px; color:var(--text);">—</div>
+          </div>
+        </div>
+      </div>
+
       <div id="logFileBanner" style="display:none; margin-bottom:12px;">
         Log file: <span id="logFilePath" class="logfile-pill"></span>
       </div>
@@ -313,37 +355,113 @@
       </div>
 
       <div class="separator"></div>
-      <h3 style="font-size:14px; margin-bottom:10px;">⏱️ Phasen-Timing</h3>
+      <h3 style="font-size:14px; margin-bottom:12px;">🎯 Simulations-Modus</h3>
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="modeTabQuick" onclick="switchMode('quick')">
+          ⚡ Quick Mode<br><span style="font-size:11px; font-weight:normal; color:inherit; opacity:.8;">Einmalige Simulation (Minuten)</span>
+        </button>
+        <button class="mode-tab" id="modeTabPoC" onclick="switchMode('poc')">
+          📅 PoC Multi-Day Mode<br><span style="font-size:11px; font-weight:normal; color:inherit; opacity:.8;">Mehrtägige Simulation für 4-Wochen PoC</span>
+        </button>
+      </div>
 
-      <!-- Phase flow diagram -->
-      <div style="background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:16px; font-size:12px;">
-        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; color:var(--muted);">
-          <span style="background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:4px 10px; color:var(--text);">▶ Start</span>
-          <span>──</span>
-          <span style="color:var(--orange);" id="diag-t1-label">5s</span>
-          <span>──▶</span>
-          <span style="background:rgba(88,166,255,0.15); border:1px solid var(--accent); border-radius:4px; padding:4px 10px; color:var(--accent);">🔍 Phase 1: Discovery</span>
-          <span style="color:var(--muted); font-size:11px;">(~</span><span id="diag-disc-count" style="color:var(--accent); font-size:11px;">?</span><span style="color:var(--muted); font-size:11px;"> Techniken)</span>
-          <span>──</span>
-          <span style="color:var(--orange);" id="diag-t2-label">30s</span>
-          <span>──▶</span>
-          <span style="background:rgba(248,81,73,0.15); border:1px solid var(--red); border-radius:4px; padding:4px 10px; color:var(--red);">⚔️ Phase 2: Attack</span>
-          <span style="color:var(--muted); font-size:11px;">(~</span><span id="diag-atk-count" style="color:var(--red); font-size:11px;">?</span><span style="color:var(--muted); font-size:11px;"> Techniken)</span>
-          <span>──▶</span>
-          <span style="background:rgba(63,185,80,0.15); border:1px solid var(--green); border-radius:4px; padding:4px 10px; color:var(--green);">✓ Done + Cleanup</span>
+      <!-- ─── QUICK MODE ─────────────────────────────────────────────── -->
+      <div id="quickModePanel">
+        <div style="background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:16px; font-size:12px;">
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; color:var(--muted);">
+            <span style="background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:4px 10px; color:var(--text);">▶ Start</span>
+            <span>──</span>
+            <span style="color:var(--orange);" id="diag-t1-label">5s</span>
+            <span>──▶</span>
+            <span style="background:rgba(88,166,255,0.15); border:1px solid var(--accent); border-radius:4px; padding:4px 10px; color:var(--accent);">🔍 Phase 1: Discovery</span>
+            <span style="color:var(--muted); font-size:11px;">(~</span><span id="diag-disc-count" style="color:var(--accent); font-size:11px;">?</span><span style="color:var(--muted); font-size:11px;"> Techniken)</span>
+            <span>──</span>
+            <span style="color:var(--orange);" id="diag-t2-label">30s</span>
+            <span>──▶</span>
+            <span style="background:rgba(248,81,73,0.15); border:1px solid var(--red); border-radius:4px; padding:4px 10px; color:var(--red);">⚔️ Phase 2: Attack</span>
+            <span style="color:var(--muted); font-size:11px;">(~</span><span id="diag-atk-count" style="color:var(--red); font-size:11px;">?</span><span style="color:var(--muted); font-size:11px;"> Techniken)</span>
+            <span>──▶</span>
+            <span style="background:rgba(63,185,80,0.15); border:1px solid var(--green); border-radius:4px; padding:4px 10px; color:var(--green);">✓ Done + Cleanup</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>T1 — Wartezeit vor Phase 1: Discovery (Sekunden)</label>
+            <input type="number" id="cfgDelayDiscovery" value="5" min="0" max="7200" oninput="updateDiagram()" />
+            <span style="font-size:11px; color:var(--muted); margin-top:3px;">Zeit zwischen „Start" und dem ersten Discovery-Befehl. Für reale Tests: 600–1800s (10–30 Min.).</span>
+          </div>
+          <div class="form-group">
+            <label>T2 — Pause zwischen Phase 1 und Phase 2 (Sekunden)</label>
+            <input type="number" id="cfgDelayAttack" value="30" min="0" max="7200" oninput="updateDiagram()" />
+            <span style="font-size:11px; color:var(--muted); margin-top:3px;">Zeit nach Ende von Phase 1 bis Start der Attack-Phase. UEBA-Tests: 60–300s.</span>
+          </div>
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>T1 — Wartezeit vor Phase 1: Discovery (Sekunden)</label>
-          <input type="number" id="cfgDelayDiscovery" value="5" min="0" max="3600" oninput="updateDiagram()" />
-          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Zeit zwischen Klick auf „Start" und dem ersten Discovery-Befehl. Für reale Tests: 600–1800s (10–30 Min.), damit das SIEM-Baseline-Fenster passt.</span>
+      <!-- ─── POC MULTI-DAY MODE ─────────────────────────────────────── -->
+      <div id="pocModePanel" style="display:none;">
+        <div class="alert alert-info" style="margin-bottom:14px;">
+          ℹ️ Im PoC-Modus läuft LogNoJutsu über Wochen. Phase 1 baut täglich ein paar Discovery-Events auf (Exabeam UEBA-Baseline), dann folgt eine Pause, dann Phase 2 mit täglichen vollen Angriffskampagnen.
         </div>
-        <div class="form-group">
-          <label>T2 — Pause zwischen Phase 1 und Phase 2 (Sekunden)</label>
-          <input type="number" id="cfgDelayAttack" value="30" min="0" max="3600" oninput="updateDiagram()" />
-          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Zeit nach Ende von Phase 1 bis zum Start der Attack-Phase. Für UEBA-Tests: 60–300s, damit Exabeam Discovery-Events als Session eingruppiert.</span>
+
+        <div class="poc-grid">
+          <!-- Phase 1 -->
+          <div class="poc-phase-panel">
+            <h4 style="color:var(--accent);">🔍 Phase 1 — Discovery</h4>
+            <div class="form-group">
+              <label>Dauer (Tage)</label>
+              <input type="number" id="pocP1Days" value="7" min="1" max="30" oninput="updatePoCSchedule()" />
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Empfehlung: 7–14 Tage. Exabeam braucht 2–3 Wochen für UEBA-Baseline.</span>
+            </div>
+            <div class="form-group">
+              <label>Techniken pro Tag</label>
+              <input type="number" id="pocP1TechsPerDay" value="3" min="1" max="15" oninput="updatePoCSchedule()" />
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">2–5 Discovery-Techniken/Tag für organisches Baseline-Muster.</span>
+            </div>
+            <div class="form-group">
+              <label>Uhrzeit (Stunde, 0–23)</label>
+              <input type="number" id="pocP1Hour" value="9" min="0" max="23" oninput="updatePoCSchedule()" />
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Tageszeit für die tägliche Ausführung. Empfehlung: Bürozeit (8–10 Uhr).</span>
+            </div>
+          </div>
+
+          <!-- Gap -->
+          <div class="poc-gap-panel">
+            <div style="font-size:20px;">⏸</div>
+            <div style="font-size:12px; font-weight:600; color:var(--muted);">Pause</div>
+            <input type="number" id="pocGapDays" value="3" min="0" max="14" oninput="updatePoCSchedule()" style="width:70px; text-align:center; font-size:15px; font-weight:bold;" />
+            <div style="font-size:11px; color:var(--muted);">Tage</div>
+            <div style="font-size:10px; color:var(--muted); margin-top:4px; line-height:1.4;">Stille Phase — keine Aktionen</div>
+          </div>
+
+          <!-- Phase 2 -->
+          <div class="poc-phase-panel">
+            <h4 style="color:var(--red);">⚔️ Phase 2 — Attack</h4>
+            <div class="form-group">
+              <label>Dauer (Tage)</label>
+              <input type="number" id="pocP2Days" value="7" min="1" max="30" oninput="updatePoCSchedule()" />
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Empfehlung: 7–14 Tage. Täglich eine volle Kampagne.</span>
+            </div>
+            <div class="form-group">
+              <label>Kampagne (täglich)</label>
+              <select id="pocP2Campaign" style="width:100%;" onchange="updatePoCSchedule()">
+                <option value="">Alle Attack-Techniken</option>
+              </select>
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Diese Kampagne wird jeden Tag von Phase 2 vollständig ausgeführt.</span>
+            </div>
+            <div class="form-group">
+              <label>Uhrzeit (Stunde, 0–23)</label>
+              <input type="number" id="pocP2Hour" value="10" min="0" max="23" oninput="updatePoCSchedule()" />
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Empfehlung: kurz nach Phase-1-Zeit oder andere Bürozeit.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule preview -->
+        <div class="poc-schedule" id="pocSchedulePreview">
+          <div style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px;">📅 Simulationsplan (ab heute)</div>
+          <div id="pocScheduleRows"><div style="color:var(--muted);">Lädt...</div></div>
         </div>
       </div>
 
@@ -544,20 +662,43 @@ function updateDashboard(s) {
   const results = s.results || [];
   const succeeded = results.filter(r => r.success).length;
   const failed = results.length - succeeded;
+  const pocPhases = ['poc_phase1', 'poc_gap', 'poc_phase2'];
+  const running = phase === 'discovery' || phase === 'attack' || pocPhases.includes(phase);
+  const isPocRunning = pocPhases.includes(phase);
 
   // Header
   document.getElementById('headerPhaseBadge').className = 'phase-badge phase-' + phase;
-  document.getElementById('headerPhaseBadge').textContent = phase.toUpperCase();
+  document.getElementById('headerPhaseBadge').textContent = phase.toUpperCase().replace('_', ' ');
   document.getElementById('headerCurrentStep').textContent =
-    (phase === 'discovery' || phase === 'attack') && s.current_step ? s.current_step : '';
+    running && s.current_step ? s.current_step : '';
 
   // Stats
-  document.getElementById('dashPhase').textContent = phase.toUpperCase();
+  document.getElementById('dashPhase').textContent = phase.toUpperCase().replace('_', ' ');
   document.getElementById('dashTotal').textContent = results.length;
   document.getElementById('dashOk').textContent = succeeded;
   document.getElementById('dashFail').textContent = failed;
 
-  const running = phase === 'discovery' || phase === 'attack';
+  // PoC info panel
+  const pocPanel = document.getElementById('pocInfoPanel');
+  if (isPocRunning) {
+    pocPanel.style.display = 'block';
+    document.getElementById('pocDayDisplay').textContent = s.poc_day || '—';
+    document.getElementById('pocTotalDisplay').textContent = s.poc_total_days || '—';
+    const phaseDesc = { phase1: '🔍 Phase 1: Discovery-Events aufbauen', gap: '⏸ Pause (keine Aktionen)', phase2: '⚔️ Phase 2: Angriffskampagnen' };
+    document.getElementById('pocPhaseDesc').textContent = phaseDesc[s.poc_phase] || s.poc_phase || '—';
+    // Countdown
+    if (s.next_scheduled_run) {
+      const diff = new Date(s.next_scheduled_run) - new Date();
+      if (diff > 0) {
+        const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000);
+        document.getElementById('pocCountdown').textContent = `${h}h ${m}m`;
+      } else {
+        document.getElementById('pocCountdown').textContent = 'Jetzt aktiv';
+      }
+    }
+  } else {
+    pocPanel.style.display = 'none';
+  }
 
   // Current step
   const stepDiv = document.getElementById('currentStepDiv');
@@ -637,14 +778,32 @@ async function startSimulation() {
   const profileIDs = rotation !== 'none'
     ? Array.from(profilesSel.selectedOptions).map(o => o.value)
     : [];
-  const cfg = {
-    delay_before_discovery: parseInt(document.getElementById('cfgDelayDiscovery').value) || 0,
-    delay_before_attack: parseInt(document.getElementById('cfgDelayAttack').value) || 30,
-    run_cleanup: document.getElementById('cfgCleanup').checked,
-    campaign_id: document.getElementById('cfgCampaign').value,
-    user_rotation: rotation,
-    user_profile_ids: profileIDs
-  };
+  const isPoc = document.getElementById('modeTabPoC').classList.contains('active');
+  let cfg;
+  if (isPoc) {
+    cfg = {
+      poc_mode: true,
+      phase1_duration_days: parseInt(document.getElementById('pocP1Days').value) || 7,
+      phase1_techs_per_day: parseInt(document.getElementById('pocP1TechsPerDay').value) || 3,
+      phase1_daily_hour: parseInt(document.getElementById('pocP1Hour').value) || 9,
+      gap_days: parseInt(document.getElementById('pocGapDays').value) || 0,
+      phase2_duration_days: parseInt(document.getElementById('pocP2Days').value) || 7,
+      phase2_daily_hour: parseInt(document.getElementById('pocP2Hour').value) || 10,
+      campaign_id: document.getElementById('pocP2Campaign').value,
+      run_cleanup: document.getElementById('cfgCleanup').checked,
+      user_rotation: rotation,
+      user_profile_ids: profileIDs
+    };
+  } else {
+    cfg = {
+      delay_before_discovery: parseInt(document.getElementById('cfgDelayDiscovery').value) || 0,
+      delay_before_attack: parseInt(document.getElementById('cfgDelayAttack').value) || 30,
+      run_cleanup: document.getElementById('cfgCleanup').checked,
+      campaign_id: document.getElementById('cfgCampaign').value,
+      user_rotation: rotation,
+      user_profile_ids: profileIDs
+    };
+  }
   const r = await api('/api/start', 'POST', cfg);
   if (r.error) { alert('Error: ' + r.error); return; }
   startPolling();
@@ -717,13 +876,27 @@ async function loadCampaignSelect() {
   }
 
   if (!Array.isArray(campaigns)) return;
+  const sorted = campaigns.sort((a,b) => (a.industry||'').localeCompare(b.industry||''));
   const opts = ['<option value="">Alle Techniken (alle Discovery + alle Attack-Techniken)</option>'];
-  campaigns.sort((a,b) => (a.industry||'').localeCompare(b.industry||'')).forEach(c => {
+  sorted.forEach(c => {
     const steps = (c.steps||[]).length;
     opts.push(`<option value="${c.id}" ${selectedCampaign===c.id?'selected':''}>${c.name} [${c.industry}] — ${steps} Techniken</option>`);
   });
   sel.innerHTML = opts.join('');
+
+  // Populate PoC Phase 2 campaign dropdown
+  const pocSel = document.getElementById('pocP2Campaign');
+  if (pocSel) {
+    const pocOpts = ['<option value="">Alle Attack-Techniken</option>'];
+    sorted.forEach(c => {
+      const steps = (c.steps||[]).length;
+      pocOpts.push(`<option value="${c.id}">${c.name} [${c.industry}] — ${steps} Techniken</option>`);
+    });
+    pocSel.innerHTML = pocOpts.join('');
+  }
+
   updateDiagram();
+  updatePoCSchedule();
 }
 
 function updateDiagram() {
@@ -733,6 +906,53 @@ function updateDiagram() {
   const l2 = document.getElementById('diag-t2-label');
   if (t1 && l1) l1.textContent = (parseInt(t1.value)||0) + 's';
   if (t2 && l2) l2.textContent = (parseInt(t2.value)||0) + 's';
+}
+
+function switchMode(mode) {
+  const isPoC = mode === 'poc';
+  document.getElementById('modeTabQuick').classList.toggle('active', !isPoC);
+  document.getElementById('modeTabPoC').classList.toggle('active', isPoC);
+  document.getElementById('quickModePanel').style.display = isPoC ? 'none' : '';
+  document.getElementById('pocModePanel').style.display = isPoC ? '' : 'none';
+  if (isPoC) updatePoCSchedule();
+}
+
+function updatePoCSchedule() {
+  const p1Days = parseInt(document.getElementById('pocP1Days')?.value) || 7;
+  const gapDays = parseInt(document.getElementById('pocGapDays')?.value) || 0;
+  const p2Days = parseInt(document.getElementById('pocP2Days')?.value) || 7;
+  const p1Hour = parseInt(document.getElementById('pocP1Hour')?.value) || 9;
+  const p2Hour = parseInt(document.getElementById('pocP2Hour')?.value) || 10;
+
+  const rows = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const fmt = d => d.toLocaleDateString('de-DE', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  // Phase 1 dates
+  const p1Start = new Date(today); p1Start.setDate(today.getDate() + 1);
+  const p1End = new Date(p1Start); p1End.setDate(p1Start.getDate() + p1Days - 1);
+  rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--accent)"></div><div style="min-width:120px;color:var(--accent);font-weight:500;">Phase 1 Discovery</div><div style="color:var(--text);">${fmt(p1Start)} – ${fmt(p1End)}</div><div style="margin-left:auto;color:var(--muted);">${p1Days} Tage • tägl. ${p1Hour}:00 Uhr</div></div>`);
+
+  // Gap dates
+  if (gapDays > 0) {
+    const gStart = new Date(p1End); gStart.setDate(p1End.getDate() + 1);
+    const gEnd = new Date(gStart); gEnd.setDate(gStart.getDate() + gapDays - 1);
+    rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--muted)"></div><div style="min-width:120px;color:var(--muted);font-weight:500;">Pause</div><div style="color:var(--muted);">${fmt(gStart)} – ${fmt(gEnd)}</div><div style="margin-left:auto;color:var(--muted);">${gapDays} Tage • keine Aktionen</div></div>`);
+  }
+
+  // Phase 2 dates
+  const p2Start = new Date(p1End); p2Start.setDate(p1End.getDate() + gapDays + 1);
+  const p2End = new Date(p2Start); p2End.setDate(p2Start.getDate() + p2Days - 1);
+  rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--red)"></div><div style="min-width:120px;color:var(--red);font-weight:500;">Phase 2 Attack</div><div style="color:var(--text);">${fmt(p2Start)} – ${fmt(p2End)}</div><div style="margin-left:auto;color:var(--muted);">${p2Days} Tage • tägl. ${p2Hour}:00 Uhr</div></div>`);
+
+  // Total
+  const totalDays = p1Days + gapDays + p2Days;
+  rows.push(`<div class="poc-schedule-row" style="margin-top:4px;"><div class="poc-schedule-dot" style="background:var(--green)"></div><div style="min-width:120px;color:var(--green);font-weight:500;">Ende</div><div style="color:var(--text);">${fmt(p2End)}</div><div style="margin-left:auto;color:var(--muted);">Gesamt: ${totalDays} Tage</div></div>`);
+
+  const el = document.getElementById('pocScheduleRows');
+  if (el) el.innerHTML = rows.join('');
 }
 
 // ── Preparation ────────────────────────────────────────────────
