@@ -30,12 +30,11 @@ executor:
     # Creates temp HTA, loads via url.dll — generates EID 1 for rundll32+HTA child process
     Write-Host "--- Pattern 2: url.dll OpenURL (HTA execution) ---"
     $htaPath = "$out.hta"
-    @"
-<html><head><script language="VBScript">
-MsgBox "LogNoJutsu T1218.011 url.dll OpenURL simulation", 64, "LogNoJutsu"
-window.close()
-</script></head></html>
-"@ | Out-File -FilePath $htaPath -Encoding ASCII
+    $htaContent = '<html><head><script language="VBScript">' + "`r`n"
+    $htaContent += 'MsgBox "LogNoJutsu T1218.011", 64, "LogNoJutsu"' + "`r`n"
+    $htaContent += 'window.close()' + "`r`n"
+    $htaContent += '</script></head></html>'
+    [System.IO.File]::WriteAllText($htaPath, $htaContent)
     rundll32.exe url.dll,OpenURL $htaPath 2>&1 | Write-Host
     Start-Sleep -Milliseconds 800
 
@@ -46,11 +45,8 @@ window.close()
     # Pattern 4: advpack.dll with INF (used by malware families — generates Sysmon EID 7 for advpack.dll)
     Write-Host "--- Pattern 4: advpack.dll LaunchINFSection ---"
     $infPath = "$out.inf"
-    @"
-[version]
-Signature=`$chicago`$
-[DefaultInstall]
-"@ | Out-File -FilePath $infPath -Encoding ASCII
+    $infContent = "[version]`r`n[DefaultInstall]`r`n"
+    [System.IO.File]::WriteAllText($infPath, $infContent)
     rundll32.exe advpack.dll,LaunchINFSection $infPath,,3,N 2>&1 | Write-Host
 
     Start-Sleep -Milliseconds 500

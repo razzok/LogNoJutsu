@@ -52,12 +52,11 @@ executor:
     Write-Host "Sysmon EID 11 (file create burst) + EID 23 (file delete burst) generated"
 
     # Ransom note — behavioral indicator
-    @"
-YOUR FILES HAVE BEEN ENCRYPTED BY LOGNOJUTSU SIMULATION
-This is a SIEM VALIDATION EXERCISE — no real encryption occurred on production files.
-Test directory: $testDir
-Contact: lognojutsu@simulation.test
-"@ | Out-File "$testDir\README_DECRYPT.txt" -Force
+    $note = "YOUR FILES HAVE BEEN ENCRYPTED BY LOGNOJUTSU SIMULATION`r`n"
+    $note += "This is a SIEM VALIDATION EXERCISE -- no real encryption occurred on production files.`r`n"
+    $note += "Test directory: $testDir`r`n"
+    $note += "Contact: lognojutsu@simulation.test`r`n"
+    [System.IO.File]::WriteAllText("$testDir\README_DECRYPT.txt", $note)
     Write-Host "Ransom note dropped: $testDir\README_DECRYPT.txt"
 
     Write-Host "[T1486] Complete. File churn pattern (create+encrypt+delete) generated."

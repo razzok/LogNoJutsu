@@ -10,7 +10,7 @@ expected_events:
   - "System EID 7045 (New service installed — ServiceName, ServiceFileName, ServiceAccount)"
   - "Security EID 4697 (Service installed — Security log duplicate)"
   - "4688 / Sysmon 1 (sc.exe with 'create' and service parameters in CommandLine)"
-  - "Sysmon 13 (RegistryValueSet - HKLM\SYSTEM\CurrentControlSet\Services direct creation)"
+  - "Sysmon 13 (RegistryValueSet - HKLM\\SYSTEM\\CurrentControlSet\\Services direct creation)"
 tags:
   - persistence
   - requires-elevation

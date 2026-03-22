@@ -1,6 +1,6 @@
 id: T1070.001
 name: Clear Windows Event Logs
-description: Clears event logs using wevtutil, Clear-EventLog, and .NET EventLog.Clear() — all three methods generate EID 1102 (Security log cleared) or EID 104 (other logs cleared). Critical: EID 1102 is generated BEFORE the Security log is cleared, so it always survives. This is one of the highest-confidence attacker indicators.
+description: "Clears event logs using wevtutil, Clear-EventLog, and .NET EventLog.Clear() — all three methods generate EID 1102 (Security log cleared) or EID 104 (other logs cleared). EID 1102 is generated BEFORE the Security log is cleared, so it always survives. This is one of the highest-confidence attacker indicators."
 tactic: defense-evasion
 technique_id: T1070.001
 platform: windows

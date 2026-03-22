@@ -7,7 +7,7 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "Sysmon 13 (RegistryValueSet - HKCU\Software\Classes\ms-settings\Shell\Open\command)"
+  - "Sysmon 13 (RegistryValueSet - HKCU\\Software\\Classes\\ms-settings\\Shell\\Open\\command)"
   - "Sysmon 1 (fodhelper.exe / eventvwr.msc spawning cmd.exe with HIGH integrity level)"
   - "4688 (child process of fodhelper.exe — elevated token without UAC prompt)"
   - "4673 (Privileged service called — UAC elevation event)"

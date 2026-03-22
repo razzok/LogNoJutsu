@@ -1,6 +1,6 @@
 id: T1546.003
 name: WMI Event Subscription Persistence
-description: Creates a complete WMI permanent subscription using New-CimInstance (modern attacker tooling) — all three required components: EventFilter, CommandLineEventConsumer, and FilterToConsumerBinding. Generates Sysmon EID 19/20/21 (all three WMI events must fire for full detection signature) and WMI Operational EID 5861. Exabeam has 6 dedicated rules.
+description: "Creates a complete WMI permanent subscription using New-CimInstance (modern attacker tooling) — all three required components: EventFilter, CommandLineEventConsumer, and FilterToConsumerBinding. Generates Sysmon EID 19/20/21 (all three WMI events must fire for full detection signature) and WMI Operational EID 5861. Exabeam has 6 dedicated rules."
 tactic: persistence
 technique_id: T1546.003
 platform: windows
