@@ -7,7 +7,11 @@ lognojutsu.exe
 # Simulation output files (generated at runtime on target system)
 lognojutsu_*.log
 lognojutsu_*.json
+lognojutsu_*.html
 lognojutsu_users.json
+
+# Editor backup files
+*.exe~
 
 # Go build cache
 *.test
