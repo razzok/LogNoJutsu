@@ -1,0 +1,52 @@
+id: T1574.002
+name: DLL Side-Loading
+description: Simulates DLL side-loading — compiles a benign test DLL via Add-Type, places it in a non-standard temp directory, and loads it into process memory. Sysmon EID 7 (ImageLoad) captures the DLL load from the unexpected path, which is the primary detection signal for side-loading. Used by APT41, PlugX, and most Chinese-nexus threat actors.
+tactic: defense-evasion
+technique_id: T1574.002
+platform: windows
+phase: attack
+elevation_required: false
+nist_controls:
+  - CM-7
+  - SI-3
+  - SI-4
+  - AU-12
+expected_events:
+  - "Sysmon 7 (ImageLoad — DLL loaded from non-standard path outside System32)"
+  - "4104 (PowerShell ScriptBlock — Add-Type, Assembly compilation)"
+  - "Sysmon 1 (Process creation with unusual DLL in module list)"
+tags:
+  - defense-evasion
+  - dll-sideload
+  - no-prereqs
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[T1574.002] DLL Side-Loading simulation"
+    $testDir = "$env:TEMP\lnj_sideload"
+    New-Item -ItemType Directory -Path $testDir -Force | Out-Null
+
+    # Compile a benign DLL via Add-Type (no external tools — Sysmon EID 7 on load)
+    Write-Host "--- Compiling benign DLL in non-standard location ---"
+    $src = 'using System; using System.IO; public class LnjSideload { public static void Run() { File.AppendAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "lnj_sideload.log"), DateTime.Now.ToString("o") + " T1574.002 DLL loaded\r\n"); } }'
+    Add-Type -TypeDefinition $src -OutputAssembly "$testDir\benign_helper.dll" -OutputType Library -ErrorAction Stop
+    Write-Host "DLL written to non-standard path: $testDir\benign_helper.dll"
+
+    # Load the DLL (triggers Sysmon EID 7 — ImageLoad from unexpected path)
+    Write-Host "--- Loading DLL from non-standard path (Sysmon EID 7) ---"
+    Add-Type -Path "$testDir\benign_helper.dll"
+    [LnjSideload]::Run()
+    Write-Host "DLL loaded and executed successfully"
+
+    # Show path context (side-loading relies on DLL search order)
+    Write-Host "--- DLL Search Order context (first 5 PATH entries) ---"
+    ($env:PATH -split ";") | Select-Object -First 5 | Write-Host
+
+    if (Test-Path "$env:TEMP\lnj_sideload.log") {
+        Write-Host "DLL execution log: $(Get-Content "$env:TEMP\lnj_sideload.log")"
+    }
+    Write-Host "[T1574.002] Complete. Sysmon EID 7 shows ImageLoad from $testDir."
+cleanup: |-
+  Remove-Item "$env:TEMP\lnj_sideload" -Recurse -Force -ErrorAction Ignore
+  Remove-Item "$env:TEMP\lnj_sideload.log" -ErrorAction Ignore
+  Write-Host "Cleanup: DLL side-load test files removed."

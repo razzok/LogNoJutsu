@@ -15,6 +15,7 @@ type Technique struct {
 	ElevationRequired bool              `yaml:"elevation_required" json:"elevation_required"`
 	Tags              []string          `yaml:"tags"               json:"tags"`
 	InputArgs         map[string]string `yaml:"input_args"         json:"input_args,omitempty"`
+	NistControls      []string          `yaml:"nist_controls"      json:"nist_controls,omitempty"`
 }
 
 type Executor struct {

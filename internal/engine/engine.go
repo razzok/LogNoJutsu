@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -45,6 +46,12 @@ type Config struct {
 	UserProfileIDs       []string     `json:"user_profile_ids"` // empty = current user only
 	UserRotation         UserRotation `json:"user_rotation"`
 
+	// Execution options
+	WhatIf                bool     `json:"whatif"`                  // preview without executing
+	DelayBetweenTechniques int     `json:"delay_between_techniques"` // seconds between each technique
+	ExcludedTactics       []string `json:"excluded_tactics"`         // skip techniques with these tactics
+	IncludedTactics       []string `json:"included_tactics"`         // only run these tactics (empty = all)
+
 	// PoC multi-day scheduling mode
 	PoCMode            bool `json:"poc_mode"`
 	Phase1DurationDays int  `json:"phase1_duration_days"` // days to run discovery phase
@@ -66,6 +73,10 @@ type Status struct {
 	Errors          []string                    `json:"errors"`
 	LogFile         string                      `json:"log_file"`
 	CleanupDone     bool                        `json:"cleanup_done"`
+
+	// WhatIf mode indicator
+	WhatIf     bool   `json:"whatif"`
+	ReportFile string `json:"report_file,omitempty"` // path to generated HTML report
 
 	// PoC mode fields (populated only when PoCMode is active)
 	PoCDay           int    `json:"poc_day,omitempty"`
@@ -127,6 +138,7 @@ func (e *Engine) Start(cfg Config) error {
 		PhaseStartTimes: make(map[Phase]string),
 		Results:         []playbooks.ExecutionResult{},
 		Errors:          []string{},
+		WhatIf:          cfg.WhatIf,
 	}
 	e.mu.Unlock()
 
@@ -236,14 +248,15 @@ func (e *Engine) run() {
 	// Phase 1: Discovery
 	e.setPhase(PhaseDiscovery)
 	simlog.Phase("discovery")
-	discoveryTechniques := e.registry.GetTechniquesByPhase("discovery")
-	simlog.Info(fmt.Sprintf("Discovery phase: %d techniques to run", len(discoveryTechniques)))
+	discoveryTechniques := e.filterByTactics(e.registry.GetTechniquesByPhase("discovery"))
+	simlog.Info(fmt.Sprintf("Discovery phase: %d techniques to run%s", len(discoveryTechniques), e.whatIfLabel()))
 	for _, t := range discoveryTechniques {
 		if e.isStopped() {
 			e.abort()
 			return
 		}
 		e.runTechnique(t)
+		e.delayBetween()
 	}
 
 	if e.cfg.DelayBeforeAttack > 0 {
@@ -258,13 +271,14 @@ func (e *Engine) run() {
 	e.setPhase(PhaseAttack)
 	simlog.Phase("attack")
 	attackTechniques := e.getTechniquesForPhase()
-	simlog.Info(fmt.Sprintf("Attack phase: %d techniques to run", len(attackTechniques)))
+	simlog.Info(fmt.Sprintf("Attack phase: %d techniques to run%s", len(attackTechniques), e.whatIfLabel()))
 	for _, t := range attackTechniques {
 		if e.isStopped() {
 			e.abort()
 			return
 		}
 		e.runTechnique(t)
+		e.delayBetween()
 	}
 
 	e.finish()
@@ -296,7 +310,7 @@ func (e *Engine) runPoC() {
 	e.mu.Unlock()
 
 	// Shuffle discovery techniques once — cycle through them across days
-	discoveryTechs := e.registry.GetTechniquesByPhase("discovery")
+	discoveryTechs := e.filterByTactics(e.registry.GetTechniquesByPhase("discovery"))
 	rand.Shuffle(len(discoveryTechs), func(i, j int) {
 		discoveryTechs[i], discoveryTechs[j] = discoveryTechs[j], discoveryTechs[i]
 	})
@@ -335,8 +349,9 @@ func (e *Engine) runPoC() {
 					return
 				}
 				t := discoveryTechs[(start+i)%len(discoveryTechs)]
-				simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d — technique %d/%d: %s", day, i+1, techsPerDay, t.ID))
+				simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d — technique %d/%d: %s%s", day, i+1, techsPerDay, t.ID, e.whatIfLabel()))
 				e.runTechnique(t)
+				e.delayBetween()
 			}
 		}
 		simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d complete", day))
@@ -387,13 +402,14 @@ func (e *Engine) runPoC() {
 		}
 
 		attackTechs := e.getTechniquesForPhase()
-		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d — running %d attack techniques", day, len(attackTechs)))
+		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d — running %d attack techniques%s", day, len(attackTechs), e.whatIfLabel()))
 		for _, t := range attackTechs {
 			if e.isStopped() {
 				e.abort()
 				return
 			}
 			e.runTechnique(t)
+			e.delayBetween()
 		}
 		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d complete", day))
 	}
@@ -415,7 +431,21 @@ func (e *Engine) runTechnique(t *playbooks.Technique) {
 	e.mu.Unlock()
 
 	var result playbooks.ExecutionResult
-	if e.cfg.RunCleanup {
+	if e.cfg.WhatIf {
+		// WhatIf: record what would run without executing anything
+		now := time.Now().Format(time.RFC3339)
+		result = playbooks.ExecutionResult{
+			TechniqueID:   t.ID,
+			TechniqueName: t.Name,
+			TacticID:      t.Tactic,
+			StartTime:     now,
+			EndTime:       now,
+			Success:       true,
+			Output:        "[WhatIf] Nicht ausgeführt — Vorschau-Modus aktiv",
+			RunAsUser:     userLabel,
+		}
+		simlog.Info(fmt.Sprintf("[WhatIf] Would run: %s — %s (as %s)", t.ID, t.Name, userLabel))
+	} else if e.cfg.RunCleanup {
 		result = executor.RunWithCleanup(t, profile, password)
 	} else {
 		result = executor.RunAs(t, profile, password)
@@ -435,12 +465,53 @@ func (e *Engine) runTechnique(t *playbooks.Technique) {
 	e.mu.Unlock()
 }
 
+// filterByTactics filters a technique list by the IncludedTactics / ExcludedTactics config.
+func (e *Engine) filterByTactics(techniques []*playbooks.Technique) []*playbooks.Technique {
+	if len(e.cfg.IncludedTactics) == 0 && len(e.cfg.ExcludedTactics) == 0 {
+		return techniques
+	}
+	included := make(map[string]bool, len(e.cfg.IncludedTactics))
+	for _, t := range e.cfg.IncludedTactics {
+		included[strings.ToLower(t)] = true
+	}
+	excluded := make(map[string]bool, len(e.cfg.ExcludedTactics))
+	for _, t := range e.cfg.ExcludedTactics {
+		excluded[strings.ToLower(t)] = true
+	}
+	var result []*playbooks.Technique
+	for _, t := range techniques {
+		tactic := strings.ToLower(t.Tactic)
+		if excluded[tactic] {
+			continue
+		}
+		if len(included) > 0 && !included[tactic] {
+			continue
+		}
+		result = append(result, t)
+	}
+	return result
+}
+
+// delayBetween waits DelayBetweenTechniques seconds if configured and not stopped.
+func (e *Engine) delayBetween() {
+	if e.cfg.DelayBetweenTechniques > 0 && !e.isStopped() {
+		e.waitOrStop(time.Duration(e.cfg.DelayBetweenTechniques) * time.Second)
+	}
+}
+
+func (e *Engine) whatIfLabel() string {
+	if e.cfg.WhatIf {
+		return " [WhatIf — Vorschau-Modus, keine echte Ausführung]"
+	}
+	return ""
+}
+
 func (e *Engine) abort() {
 	simlog.Phase("ABORTED — running cleanup")
 	e.runPendingCleanups()
 	count := len(e.GetStatus().Results)
 	simlog.Stop(fmt.Sprintf("Simulation ABORTED. %d techniques had run before abort.", count))
-	reporter.SaveResults(e.GetStatus().Results, e.GetStatus().LogFile)
+	reporter.SaveResults(e.GetStatus().Results, e.GetStatus().LogFile, e.cfg.WhatIf)
 	e.setPhase(PhaseAborted)
 	e.mu.Lock()
 	e.status.CurrentStep = ""
@@ -464,7 +535,12 @@ func (e *Engine) finish() {
 	summary := fmt.Sprintf("Simulation COMPLETE. %d/%d techniques successful. Log: %s",
 		succeeded, len(results), e.GetStatus().LogFile)
 	simlog.Stop(summary)
-	reporter.SaveResults(results, e.GetStatus().LogFile)
+	htmlReport := reporter.SaveResults(results, e.GetStatus().LogFile, e.cfg.WhatIf)
+	if htmlReport != "" {
+		e.mu.Lock()
+		e.status.ReportFile = htmlReport
+		e.mu.Unlock()
+	}
 	e.setPhase(PhaseDone)
 	e.mu.Lock()
 	e.status.CurrentStep = ""
@@ -492,10 +568,13 @@ func (e *Engine) runPendingCleanups() {
 }
 
 func (e *Engine) getTechniquesForPhase() []*playbooks.Technique {
+	var techs []*playbooks.Technique
 	if e.cfg.CampaignID != "" {
-		return e.getTechniquesForCampaign(e.cfg.CampaignID)
+		techs = e.getTechniquesForCampaign(e.cfg.CampaignID)
+	} else {
+		techs = e.registry.GetTechniquesByPhase("attack")
 	}
-	return e.registry.GetTechniquesByPhase("attack")
+	return e.filterByTactics(techs)
 }
 
 func (e *Engine) getTechniquesForCampaign(campaignID string) []*playbooks.Technique {

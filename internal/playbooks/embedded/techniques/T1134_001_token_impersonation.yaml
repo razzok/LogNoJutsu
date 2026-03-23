@@ -1,0 +1,62 @@
+id: T1134.001
+name: Token Impersonation/Theft
+description: Enumerates Windows token privileges via whoami /priv (EID 4688), checks for SeDebugPrivilege (required for LSASS access and token duplication), and reads the current identity via .NET WindowsIdentity API (EID 4104). Exabeam/Splunk detect the combination of SeDebugPrivilege enumeration + process access patterns as a privilege escalation behavioral chain.
+tactic: privilege-escalation
+technique_id: T1134.001
+platform: windows
+phase: attack
+elevation_required: false
+nist_controls:
+  - AC-6
+  - IA-5
+  - AU-2
+  - SI-4
+expected_events:
+  - "4673 (Sensitive Privilege Use — SeDebugPrivilege, SeTcknImpersonatePrivilege)"
+  - "4672 (Special Logon — elevated privilege token assigned)"
+  - "4688 / Sysmon 1 (whoami.exe /priv — CommandLine contains '/priv')"
+  - "4104 (PowerShell ScriptBlock — WindowsIdentity, WindowsPrincipal)"
+tags:
+  - privilege-escalation
+  - token
+  - no-prereqs
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[T1134.001] Token Impersonation/Theft — privilege and token enumeration"
+
+    # Enumerate current token privileges (EID 4688 for whoami.exe with /priv)
+    Write-Host "--- Token Privileges (whoami /priv) ---"
+    whoami /priv 2>&1 | Write-Host
+
+    # Check for SeDebugPrivilege specifically (required for token theft/process injection)
+    Write-Host "--- SeDebugPrivilege check ---"
+    $priv = whoami /priv 2>&1 | Select-String "SeDebugPrivilege"
+    if ($priv) {
+        Write-Host "SeDebugPrivilege: PRESENT — token manipulation techniques applicable"
+    } else {
+        Write-Host "SeDebugPrivilege: Not present in current context"
+    }
+
+    # Check SeImpersonatePrivilege (used by PrintSpoofer/JuicyPotato)
+    $impersonate = whoami /priv 2>&1 | Select-String "SeImpersonatePrivilege"
+    if ($impersonate) {
+        Write-Host "SeImpersonatePrivilege: PRESENT — impersonation attacks possible"
+    }
+
+    # Read token groups
+    Write-Host "--- Token Groups (enabled only) ---"
+    whoami /groups 2>&1 | Select-String "Enabled" | Write-Host
+
+    # .NET WindowsIdentity API (EID 4104 ScriptBlock captures API calls)
+    Write-Host "--- Current Windows Identity (via .NET) ---"
+    $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [System.Security.Principal.WindowsPrincipal]::new($id)
+    Write-Host "Name:     $($id.Name)"
+    Write-Host "AuthType: $($id.AuthenticationType)"
+    Write-Host "IsSystem: $($id.IsSystem)"
+    Write-Host "IsAdmin:  $($principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator))"
+
+    Write-Host "[T1134.001] Complete. EID 4673/4672 for privilege use; EID 4688 for whoami /priv."
+cleanup: |-
+  Write-Host "Cleanup: No artifacts created by T1134.001."

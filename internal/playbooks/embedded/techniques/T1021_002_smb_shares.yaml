@@ -1,0 +1,52 @@
+id: T1021.002
+name: SMB/Windows Admin Shares
+description: Enumerates Windows Admin Shares (C$, ADMIN$, IPC$) via net.exe and WMI, tests local admin share accessibility generating EID 5140/5145 (share object access). The net.exe share enumeration generates EID 4688 + Sysmon EID 1 with net.exe in CommandLine — a lateral movement tier-1 rule in Exabeam and Splunk ES.
+tactic: lateral-movement
+technique_id: T1021.002
+platform: windows
+phase: attack
+elevation_required: false
+nist_controls:
+  - AC-17
+  - SC-7
+  - AU-12
+  - SI-4
+expected_events:
+  - "5140 (Network Share Object Accessed — admin share enumeration)"
+  - "5145 (Network Share Object Checked — detailed share access)"
+  - "4688 / Sysmon 1 (net.exe share — CommandLine contains 'share')"
+  - "Sysmon 3 (NetworkConnect — port 445 SMB)"
+tags:
+  - lateral-movement
+  - smb
+  - no-prereqs
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[T1021.002] SMB/Windows Admin Shares Enumeration"
+
+    # Enumerate local shares via net.exe (generates EID 4688 for net.exe, EID 5140 for share access)
+    Write-Host "--- Local Shares (net share) ---"
+    net share 2>&1 | Write-Host
+
+    # Enumerate shares via WMI (different detection vector — no net.exe)
+    Write-Host "--- Admin Shares via WMI (Win32_Share) ---"
+    Get-WmiObject Win32_Share | Select-Object Name, Path, Description | Format-Table -AutoSize | Out-String | Write-Host
+
+    # Test local admin share access (generates EID 5140/5145)
+    Write-Host "--- Local Admin Share Access Test (C$ — generates EID 5140) ---"
+    $host_ = $env:COMPUTERNAME
+    $accessible = Test-Path "\$host_\C$" -ErrorAction SilentlyContinue
+    Write-Host "\$host_\C$ accessible: $accessible"
+
+    # Check SMB port 445 listener
+    Write-Host "--- SMB Port 445 Status ---"
+    netstat -an 2>&1 | Select-String ":445" | Write-Host
+
+    # Enumerate network shares via Get-SmbShare if available
+    Write-Host "--- Get-SmbShare ---"
+    Get-SmbShare -ErrorAction SilentlyContinue | Select-Object Name, Path, Description | Format-Table -AutoSize | Out-String | Write-Host
+
+    Write-Host "[T1021.002] Complete. Check EID 5140/5145 for share access; EID 4688 for net.exe."
+cleanup: |-
+  Write-Host "Cleanup: No artifacts created by T1021.002 enumeration."

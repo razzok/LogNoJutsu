@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"lognojutsu/internal/engine"
@@ -63,9 +64,11 @@ func Start(c Config) error {
 	mux.HandleFunc("/api/status", authMiddleware(handleStatus))
 	mux.HandleFunc("/api/techniques", authMiddleware(handleTechniques))
 	mux.HandleFunc("/api/campaigns", authMiddleware(handleCampaigns))
+	mux.HandleFunc("/api/tactics", authMiddleware(handleTactics))
 	mux.HandleFunc("/api/start", authMiddleware(handleStart))
 	mux.HandleFunc("/api/stop", authMiddleware(handleStop))
 	mux.HandleFunc("/api/logs", authMiddleware(handleLogs))
+	mux.HandleFunc("/api/report", authMiddleware(handleReport))
 
 	// Preparation API
 	mux.HandleFunc("/api/prepare", authMiddleware(handlePrepare))
@@ -133,6 +136,27 @@ func handleCampaigns(w http.ResponseWriter, r *http.Request) {
 		list = append(list, c)
 	}
 	writeJSON(w, list)
+}
+
+func handleTactics(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, registry.GetAllTactics())
+}
+
+// handleReport serves the latest HTML report file if one exists.
+func handleReport(w http.ResponseWriter, r *http.Request) {
+	reportFile := eng.GetStatus().ReportFile
+	if reportFile == "" {
+		writeError(w, "No report available yet — run a simulation first", http.StatusNotFound)
+		return
+	}
+	data, err := os.ReadFile(reportFile)
+	if err != nil {
+		writeError(w, "Could not read report file: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Disposition", `inline; filename="lognojutsu_report.html"`)
+	w.Write(data)
 }
 
 func handleStart(w http.ResponseWriter, r *http.Request) {

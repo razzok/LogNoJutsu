@@ -78,3 +78,26 @@ func (r *Registry) GetTechniquesByPhase(phase string) []*Technique {
 	}
 	return result
 }
+
+// GetAllTactics returns a sorted, deduplicated list of all tactic names across all techniques.
+func (r *Registry) GetAllTactics() []string {
+	seen := make(map[string]struct{})
+	for _, t := range r.Techniques {
+		if t.Tactic != "" {
+			seen[t.Tactic] = struct{}{}
+		}
+	}
+	result := make([]string, 0, len(seen))
+	for tactic := range seen {
+		result = append(result, tactic)
+	}
+	// simple sort
+	for i := 0; i < len(result); i++ {
+		for j := i + 1; j < len(result); j++ {
+			if result[i] > result[j] {
+				result[i], result[j] = result[j], result[i]
+			}
+		}
+	}
+	return result
+}
