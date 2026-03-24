@@ -6,7 +6,7 @@ Milestone 1 — Verified & Expanded: Make LogNoJutsu trustworthy for professiona
 
 ## Phases
 
-- [ ] **Phase 1: Events Manifest & Verification Engine** - Add expected Event IDs per technique and post-run pass/fail verification against local Windows Event Log
+- [x] **Phase 1: Events Manifest & Verification Engine** - Add expected Event IDs per technique and post-run pass/fail verification against local Windows Event Log (completed 2026-03-24)
 - [ ] **Phase 2: Code Structure & Test Coverage** - Refactor package-level globals to a struct, split into packages, add unit tests for engine, handlers, and verification logic
 - [ ] **Phase 3: Additional Techniques** - Add 5+ new MITRE ATT&CK techniques and 3+ Exabeam UEBA scenarios, all with events manifest entries
 - [ ] **Phase 4: CrowdStrike SIEM Coverage** - Add CrowdStrike Falcon detection mappings and Falcon-sensor-specific techniques to the events manifest and HTML report
@@ -24,7 +24,7 @@ Milestone 1 — Verified & Expanded: Make LogNoJutsu trustworthy for professiona
   3. HTML report shows a verification column: expected events, found events, and pass/fail indicator per technique
   4. A technique that fails to execute is flagged as "not verified" — distinct from "events not found in log"
   5. All existing techniques are populated with their correct expected Event IDs
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 01-01-PLAN.md — Core types (EventSpec, VerificationStatus, VerifiedEvent), verifier package, engine integration
 - [ ] 01-02-PLAN.md — Migrate all 43 technique YAML files to structured EventSpec format
