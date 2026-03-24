@@ -12,6 +12,7 @@ import (
 	"lognojutsu/internal/reporter"
 	"lognojutsu/internal/simlog"
 	"lognojutsu/internal/userstore"
+	"lognojutsu/internal/verifier"
 )
 
 type Phase string
@@ -51,6 +52,8 @@ type Config struct {
 	DelayBetweenTechniques int     `json:"delay_between_techniques"` // seconds between each technique
 	ExcludedTactics       []string `json:"excluded_tactics"`         // skip techniques with these tactics
 	IncludedTactics       []string `json:"included_tactics"`         // only run these tactics (empty = all)
+
+	VerificationWaitSecs int `json:"verification_wait_secs"` // 0 = default 3s
 
 	// PoC multi-day scheduling mode
 	PoCMode            bool `json:"poc_mode"`
@@ -435,14 +438,15 @@ func (e *Engine) runTechnique(t *playbooks.Technique) {
 		// WhatIf: record what would run without executing anything
 		now := time.Now().Format(time.RFC3339)
 		result = playbooks.ExecutionResult{
-			TechniqueID:   t.ID,
-			TechniqueName: t.Name,
-			TacticID:      t.Tactic,
-			StartTime:     now,
-			EndTime:       now,
-			Success:       true,
-			Output:        "[WhatIf] Nicht ausgeführt — Vorschau-Modus aktiv",
-			RunAsUser:     userLabel,
+			TechniqueID:        t.ID,
+			TechniqueName:      t.Name,
+			TacticID:           t.Tactic,
+			StartTime:          now,
+			EndTime:            now,
+			Success:            true,
+			Output:             "[WhatIf] Nicht ausgeführt — Vorschau-Modus aktiv",
+			RunAsUser:          userLabel,
+			VerificationStatus: playbooks.VerifNotRun,
 		}
 		simlog.Info(fmt.Sprintf("[WhatIf] Would run: %s — %s (as %s)", t.ID, t.Name, userLabel))
 	} else if e.cfg.RunCleanup {
@@ -454,6 +458,32 @@ func (e *Engine) runTechnique(t *playbooks.Technique) {
 			e.executedTechniques = append(e.executedTechniques, t)
 			e.mu.Unlock()
 		}
+	}
+
+	// ── Post-execution verification ──────────────────────────────────────
+	if !e.cfg.WhatIf && len(t.ExpectedEvents) > 0 {
+		waitSecs := e.cfg.VerificationWaitSecs
+		if waitSecs <= 0 {
+			waitSecs = 3
+		}
+		simlog.Info(fmt.Sprintf("[Verify] %s — waiting %ds for event log writes...", t.ID, waitSecs))
+		time.Sleep(time.Duration(waitSecs) * time.Second)
+
+		startTime, _ := time.Parse(time.RFC3339, result.StartTime)
+		status, verified := verifier.Verify(t.ExpectedEvents, startTime, result.Success, verifier.DefaultQueryFn)
+		result.VerificationStatus = status
+		result.VerifiedEvents = verified
+		result.VerifyTime = time.Now().Format(time.RFC3339)
+
+		foundCount := 0
+		for _, v := range verified {
+			if v.Found {
+				foundCount++
+			}
+		}
+		simlog.Info(fmt.Sprintf("[Verify] %s — %s (%d/%d events found)", t.ID, status, foundCount, len(verified)))
+	} else if !e.cfg.WhatIf {
+		result.VerificationStatus = playbooks.VerifNotRun
 	}
 
 	e.mu.Lock()

@@ -1,5 +1,32 @@
 package playbooks
 
+// EventSpec declares a single Windows event that a technique is expected to generate.
+type EventSpec struct {
+	EventID     int    `yaml:"event_id"           json:"event_id"`
+	Channel     string `yaml:"channel"            json:"channel"`
+	Description string `yaml:"description"        json:"description"`
+	Contains    string `yaml:"contains,omitempty" json:"contains,omitempty"`
+}
+
+// VerificationStatus indicates the result of post-execution event log verification.
+type VerificationStatus string
+
+const (
+	VerifNotRun      VerificationStatus = "not_run"
+	VerifPass        VerificationStatus = "pass"
+	VerifFail        VerificationStatus = "fail"
+	VerifNotExecuted VerificationStatus = "not_executed"
+)
+
+// VerifiedEvent records the per-EventSpec outcome after querying the event log.
+type VerifiedEvent struct {
+	EventID     int    `json:"event_id"`
+	Channel     string `json:"channel"`
+	Description string `json:"description"`
+	Found       bool   `json:"found"`
+	Count       int    `json:"count"`
+}
+
 // Technique represents a single MITRE ATT&CK technique definition.
 type Technique struct {
 	ID                string            `yaml:"id"                 json:"id"`
@@ -11,7 +38,7 @@ type Technique struct {
 	Phase             string            `yaml:"phase"              json:"phase"`
 	Executor          Executor          `yaml:"executor"           json:"executor"`
 	Cleanup           string            `yaml:"cleanup"            json:"cleanup"`
-	ExpectedEvents    []string          `yaml:"expected_events"    json:"expected_events"`
+	ExpectedEvents    []EventSpec       `yaml:"expected_events"    json:"expected_events"`
 	ElevationRequired bool              `yaml:"elevation_required" json:"elevation_required"`
 	Tags              []string          `yaml:"tags"               json:"tags"`
 	InputArgs         map[string]string `yaml:"input_args"         json:"input_args,omitempty"`
@@ -42,14 +69,17 @@ type CampaignStep struct {
 
 // ExecutionResult records the output of a single technique run.
 type ExecutionResult struct {
-	TechniqueID   string `json:"technique_id"`
-	TechniqueName string `json:"technique_name"`
-	TacticID      string `json:"tactic_id"`
-	StartTime     string `json:"start_time"`
-	EndTime       string `json:"end_time"`
-	Success       bool   `json:"success"`
-	Output        string `json:"output"`
-	ErrorOutput   string `json:"error_output"`
-	CleanupRun    bool   `json:"cleanup_run"`
-	RunAsUser     string `json:"run_as_user"` // "current user" or "DOMAIN\username"
+	TechniqueID        string             `json:"technique_id"`
+	TechniqueName      string             `json:"technique_name"`
+	TacticID           string             `json:"tactic_id"`
+	StartTime          string             `json:"start_time"`
+	EndTime            string             `json:"end_time"`
+	Success            bool               `json:"success"`
+	Output             string             `json:"output"`
+	ErrorOutput        string             `json:"error_output"`
+	CleanupRun         bool               `json:"cleanup_run"`
+	RunAsUser          string             `json:"run_as_user"`          // "current user" or "DOMAIN\username"
+	VerificationStatus VerificationStatus `json:"verification_status,omitempty"`
+	VerifiedEvents     []VerifiedEvent    `json:"verified_events,omitempty"`
+	VerifyTime         string             `json:"verify_time,omitempty"`
 }
