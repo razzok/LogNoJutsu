@@ -7,10 +7,18 @@ platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "4720 (User account created — TargetUserName, SubjectUserName fields)"
-  - "4722 (Account enabled — automatically fires after creation)"
-  - "4732 (Member added to security-enabled local group — when added to Administrators)"
-  - "4688 (net.exe with 'user /add' in CommandLine)"
+  - event_id: 4720
+    channel: "Security"
+    description: "User account created — TargetUserName, SubjectUserName fields"
+  - event_id: 4722
+    channel: "Security"
+    description: "Account enabled — automatically fires after creation"
+  - event_id: 4732
+    channel: "Security"
+    description: "Member added to security-enabled local group — added to Administrators"
+  - event_id: 4688
+    channel: "Security"
+    description: "net.exe with 'user /add' in CommandLine"
 tags:
   - persistence
   - requires-elevation

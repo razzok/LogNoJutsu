@@ -7,9 +7,15 @@ platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "Security EID 1102 (Audit log cleared — generated BEFORE clear, always survives)"
-  - "System EID 104 (Event log cleared — for non-Security logs)"
-  - "4688 / Sysmon 1 (wevtutil.exe with 'cl' subcommand)"
+  - event_id: 1102
+    channel: "Security"
+    description: "Audit log cleared — generated BEFORE clear, always survives"
+  - event_id: 104
+    channel: "System"
+    description: "Event log cleared — for non-Security logs"
+  - event_id: 4688
+    channel: "Security"
+    description: "wevtutil.exe with 'cl' subcommand"
 tags:
   - defense-evasion
   - requires-elevation

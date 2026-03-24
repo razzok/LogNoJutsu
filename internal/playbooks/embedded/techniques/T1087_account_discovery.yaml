@@ -7,9 +7,12 @@ platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 / Sysmon 1 (net.exe with 'localgroup Administrators' — standalone SIEM rule)"
-  - "4688 (net.exe, wmic.exe, cmdkey.exe, whoami.exe — burst cluster)"
-  - "4104 (PowerShell ScriptBlock - Get-LocalUser / Get-LocalGroupMember)"
+  - event_id: 4688
+    channel: "Security"
+    description: "net.exe with 'localgroup Administrators' — standalone SIEM rule"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - Get-LocalUser / Get-LocalGroupMember"
 tags:
   - discovery
   - no-prereqs

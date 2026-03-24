@@ -7,10 +7,18 @@ platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "Sysmon 19 (WmiEventFilter — filter name and WQL query logged)"
-  - "Sysmon 20 (WmiEventConsumer — consumer type CommandLineEventConsumer + command)"
-  - "Sysmon 21 (WmiEventConsumerToFilter — binding links filter to consumer)"
-  - "WMI-Activity/Operational EID 5861 (permanent subscription registered)"
+  - event_id: 19
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "WmiEventFilter — filter name and WQL query logged"
+  - event_id: 20
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "WmiEventConsumer — consumer type CommandLineEventConsumer + command"
+  - event_id: 21
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "WmiEventConsumerToFilter — binding links filter to consumer"
+  - event_id: 5861
+    channel: "Microsoft-Windows-WMI-Activity/Operational"
+    description: "Permanent WMI subscription registered"
 tags:
   - persistence
   - requires-elevation

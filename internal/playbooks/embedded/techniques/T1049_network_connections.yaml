@@ -7,9 +7,15 @@ platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (netstat.exe, net.exe, net1.exe — multiple process creation events)"
-  - "Sysmon 1 (netstat.exe with -anob flag — suspicious process names query)"
-  - "4104 (PowerShell ScriptBlock - Get-NetTCPConnection with process correlation)"
+  - event_id: 4688
+    channel: "Security"
+    description: "netstat.exe, net.exe, net1.exe — multiple process creation events"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "netstat.exe with -ano flag"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - Get-NetTCPConnection with process correlation"
 tags:
   - discovery
   - no-prereqs

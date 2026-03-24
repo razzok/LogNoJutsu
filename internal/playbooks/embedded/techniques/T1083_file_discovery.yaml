@@ -7,9 +7,15 @@ platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (cmd.exe / tree.com — dir /s /b on user profile directories)"
-  - "4104 (PowerShell ScriptBlock - Get-ChildItem recursive on sensitive paths)"
-  - "Sysmon 1 (tree.com process creation)"
+  - event_id: 4688
+    channel: "Security"
+    description: "cmd.exe / tree.com — dir /s /b on user profile directories"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - Get-ChildItem recursive on sensitive paths"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "tree.com process creation"
 tags:
   - discovery
   - no-prereqs

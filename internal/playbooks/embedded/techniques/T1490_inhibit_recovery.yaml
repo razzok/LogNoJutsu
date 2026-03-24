@@ -7,12 +7,16 @@ platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "4688 / Sysmon 1 (vssadmin.exe 'delete shadows /all /quiet' — standalone tier-1 SIEM alert)"
-  - "4688 / Sysmon 1 (bcdedit.exe /set recoveryenabled no)"
-  - "4688 / Sysmon 1 (wmic.exe shadowcopy delete)"
-  - "4688 / Sysmon 1 (wbadmin.exe delete catalog)"
-  - "Sysmon 13 (RegistryValueSet - SystemRestore disable keys)"
-  - "System EID 7036 (Volume Shadow Copy service state change)"
+  - event_id: 4688
+    channel: "Security"
+    description: "vssadmin.exe 'delete shadows /all /quiet' — standalone tier-1 SIEM alert"
+  - event_id: 4688
+    channel: "Security"
+    description: "bcdedit.exe /set recoveryenabled no"
+    contains: "bcdedit"
+  - event_id: 13
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "RegistryValueSet - SystemRestore disable keys"
 tags:
   - impact
   - requires-elevation

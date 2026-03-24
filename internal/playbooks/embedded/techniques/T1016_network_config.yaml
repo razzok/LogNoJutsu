@@ -7,9 +7,15 @@ platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 burst (ipconfig.exe, arp.exe, route.exe, netsh.exe, nbtstat.exe, nslookup.exe — rapid succession)"
-  - "Sysmon 1 (ipconfig.exe with /displaydns — DNS cache dump, highly suspicious)"
-  - "4104 (PowerShell ScriptBlock - Get-NetIPConfiguration, Get-DnsClientCache)"
+  - event_id: 4688
+    channel: "Security"
+    description: "ipconfig.exe, arp.exe, route.exe, netsh.exe, nbtstat.exe, nslookup.exe — rapid succession burst"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "ipconfig.exe with /displaydns — DNS cache dump"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - Get-NetIPConfiguration, Get-DnsClientCache"
 tags:
   - discovery
   - no-prereqs

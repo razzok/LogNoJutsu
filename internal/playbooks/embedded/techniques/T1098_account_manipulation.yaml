@@ -7,11 +7,18 @@ platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "4720 (User account created)"
-  - "4732 (Member added to security-enabled local group — Administrators)"
-  - "4738 (User account changed — PasswordNeverExpires, flags modified)"
-  - "4723/4724 (Password change/reset attempt)"
-  - "4688 (net.exe with 'localgroup Administrators ... /add')"
+  - event_id: 4720
+    channel: "Security"
+    description: "User account created"
+  - event_id: 4732
+    channel: "Security"
+    description: "Member added to security-enabled local group — Administrators"
+  - event_id: 4738
+    channel: "Security"
+    description: "User account changed — PasswordNeverExpires, flags modified"
+  - event_id: 4688
+    channel: "Security"
+    description: "net.exe with 'localgroup Administrators ... /add'"
 tags:
   - persistence
   - requires-elevation

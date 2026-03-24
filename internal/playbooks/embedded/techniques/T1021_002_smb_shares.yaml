@@ -12,10 +12,18 @@ nist_controls:
   - AU-12
   - SI-4
 expected_events:
-  - "5140 (Network Share Object Accessed — admin share enumeration)"
-  - "5145 (Network Share Object Checked — detailed share access)"
-  - "4688 / Sysmon 1 (net.exe share — CommandLine contains 'share')"
-  - "Sysmon 3 (NetworkConnect — port 445 SMB)"
+  - event_id: 5140
+    channel: "Security"
+    description: "Network Share Object Accessed — admin share enumeration"
+  - event_id: 5145
+    channel: "Security"
+    description: "Network Share Object Checked — detailed share access"
+  - event_id: 4688
+    channel: "Security"
+    description: "net.exe share — CommandLine contains 'share'"
+  - event_id: 3
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "NetworkConnect — port 445 SMB"
 tags:
   - lateral-movement
   - smb

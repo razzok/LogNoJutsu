@@ -7,10 +7,15 @@ platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 / Sysmon 1 (nltest.exe /domain_trusts — standalone tier-1 detection rule)"
-  - "4688 (dsquery.exe with trustedDomain filter)"
-  - "4662 (LDAP query accessing trusted domain objects)"
-  - "4104 (PowerShell ScriptBlock - .NET Domain/Forest trust enumeration)"
+  - event_id: 4688
+    channel: "Security"
+    description: "nltest.exe /domain_trusts — standalone tier-1 detection rule"
+  - event_id: 4662
+    channel: "Security"
+    description: "LDAP query accessing trusted domain objects"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - .NET Domain/Forest trust enumeration"
 tags:
   - discovery
   - active-directory

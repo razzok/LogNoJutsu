@@ -7,10 +7,18 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "Sysmon 1 (bitsadmin.exe with /setnotifycmdline argument — high-signal indicator)"
-  - "Microsoft-Windows-Bits-Client EID 59 (BITS transfer job started — URL + destination logged)"
-  - "Microsoft-Windows-Bits-Client EID 60 (BITS transfer stopped)"
-  - "Sysmon 3 (network connection from svchost.exe — BITS service reaching out)"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "bitsadmin.exe with /setnotifycmdline argument — high-signal indicator"
+  - event_id: 59
+    channel: "Microsoft-Windows-Bits-Client/Operational"
+    description: "BITS transfer job started — URL + destination logged"
+  - event_id: 60
+    channel: "Microsoft-Windows-Bits-Client/Operational"
+    description: "BITS transfer stopped"
+  - event_id: 3
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "NetworkConnect from svchost.exe — BITS service reaching out"
 tags:
   - persistence
   - no-prereqs

@@ -7,10 +7,18 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4104 (PowerShell ScriptBlock — decoded script content logged post-deobfuscation)"
-  - "4103 (PowerShell Module Logging — IEX / Invoke-Expression calls)"
-  - "4688 / Sysmon 1 (powershell.exe with -NoP -NonI -W Hidden -Exec Bypass in CommandLine)"
-  - "Sysmon 3 (network connection from powershell.exe — download cradle attempt)"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock — decoded script content logged post-deobfuscation"
+  - event_id: 4103
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell Module Logging — IEX / Invoke-Expression calls"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "powershell.exe with -NoP -NonI -W Hidden -Exec Bypass in CommandLine"
+  - event_id: 3
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "NetworkConnect from powershell.exe — download cradle attempt"
 tags:
   - execution
   - no-prereqs
