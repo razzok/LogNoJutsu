@@ -24,9 +24,9 @@ Milestone 1 — Verified & Expanded: Make LogNoJutsu trustworthy for professiona
   3. HTML report shows a verification column: expected events, found events, and pass/fail indicator per technique
   4. A technique that fails to execute is flagged as "not verified" — distinct from "events not found in log"
   5. All existing techniques are populated with their correct expected Event IDs
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
-- [ ] 01-01-PLAN.md — Core types (EventSpec, VerificationStatus, VerifiedEvent), verifier package, engine integration
+- [x] 01-01-PLAN.md — Core types (EventSpec, VerificationStatus, VerifiedEvent), verifier package, engine integration
 - [ ] 01-02-PLAN.md — Migrate all 43 technique YAML files to structured EventSpec format
 - [ ] 01-03-PLAN.md — HTML report verification column with pass/fail badges and per-event breakdown
 

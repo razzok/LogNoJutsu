@@ -7,11 +7,11 @@
 
 ### Verification
 
-- [ ] **VERIF-01**: Each technique declares the Windows Event IDs / log sources it is expected to generate
-- [ ] **VERIF-02**: After simulation run, tool queries local Windows Event Log for expected events
-- [ ] **VERIF-03**: Each technique reports pass (events found) or fail (events missing) in the run results
+- [x] **VERIF-01**: Each technique declares the Windows Event IDs / log sources it is expected to generate
+- [x] **VERIF-02**: After simulation run, tool queries local Windows Event Log for expected events
+- [x] **VERIF-03**: Each technique reports pass (events found) or fail (events missing) in the run results
 - [ ] **VERIF-04**: Verification results are included in the HTML report (expected vs. observed, pass/fail per technique)
-- [ ] **VERIF-05**: Verification distinguishes "technique did not execute" from "technique executed but event not found"
+- [x] **VERIF-05**: Verification distinguishes "technique did not execute" from "technique executed but event not found"
 
 ### Quality
 
@@ -71,11 +71,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VERIF-01 | Phase 1 | Pending |
-| VERIF-02 | Phase 1 | Pending |
-| VERIF-03 | Phase 1 | Pending |
+| VERIF-01 | Phase 1 | Complete |
+| VERIF-02 | Phase 1 | Complete |
+| VERIF-03 | Phase 1 | Complete |
 | VERIF-04 | Phase 1 | Pending |
-| VERIF-05 | Phase 1 | Pending |
+| VERIF-05 | Phase 1 | Complete |
 | QUAL-01 | Phase 2 | Pending |
 | QUAL-02 | Phase 2 | Pending |
 | QUAL-03 | Phase 2 | Pending |
