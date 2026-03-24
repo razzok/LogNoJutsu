@@ -7,9 +7,12 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4688 (process creation at off-hours timestamp)"
-  - "4624 (logon event at unusual hour)"
-  - "Exabeam: Abnormal activity time use case"
+  - event_id: 4688
+    channel: "Security"
+    description: "Process creation at off-hours timestamp (Exabeam: abnormal activity time)"
+  - event_id: 4624
+    channel: "Security"
+    description: "Logon event at unusual hour (Exabeam: abnormal activity time use case)"
 tags:
   - ueba
   - off-hours

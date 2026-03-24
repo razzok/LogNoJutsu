@@ -7,10 +7,12 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4688 (multiple enumeration commands in sequence)"
-  - "Sysmon 1 (process chain: net.exe, ipconfig, netstat, arp)"
-  - "Exabeam: Abnormal enumeration activity"
-  - "Exabeam: First-time network scanning behavior"
+  - event_id: 4688
+    channel: "Security"
+    description: "Multiple enumeration commands in sequence — net.exe, ipconfig, netstat, arp"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "Process chain: net.exe, ipconfig, netstat, arp (Exabeam abnormal enumeration)"
 tags:
   - ueba
   - lateral-movement

@@ -7,9 +7,15 @@ platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 / Sysmon 1 (tasklist.exe with /v and /svc flags)"
-  - "4688 / Sysmon 1 (wmic.exe 'process get commandline' — CommandLine field is highly suspicious)"
-  - "4104 (PowerShell ScriptBlock - Get-WmiObject Win32_Process CommandLine query)"
+  - event_id: 4688
+    channel: "Security"
+    description: "tasklist.exe with /v and /svc flags"
+  - event_id: 4688
+    channel: "Security"
+    description: "wmic.exe 'process get commandline' — CommandLine field is highly suspicious"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - Get-WmiObject Win32_Process CommandLine query"
 tags:
   - discovery
   - no-prereqs

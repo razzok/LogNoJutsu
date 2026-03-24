@@ -7,9 +7,12 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "Sysmon 13 (RegistryValueSet — key path + value data showing powershell.exe -WindowStyle Hidden)"
-  - "4657 (Registry value modified — requires Object Access auditing on registry)"
-  - "Sysmon 1 (process from Run key at next logon shows suspicious parent chain)"
+  - event_id: 13
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "RegistryValueSet — key path + value data showing powershell.exe -WindowStyle Hidden"
+  - event_id: 4657
+    channel: "Security"
+    description: "Registry value modified — requires Object Access auditing on registry"
 tags:
   - persistence
   - no-prereqs

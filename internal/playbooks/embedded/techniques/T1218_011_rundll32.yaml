@@ -7,10 +7,15 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "Sysmon 1 / 4688 (rundll32.exe with DLL+entrypoint in CommandLine — all patterns)"
-  - "Sysmon 1 (cmd.exe child of rundll32.exe — parent-child chain detection)"
-  - "Sysmon 7 (ImageLoad — DLL loaded by rundll32: url.dll, pcwutl.dll, advpack.dll)"
-  - "Sysmon 3 (NetworkConnect — if rundll32 makes HTTP request)"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "rundll32.exe with DLL+entrypoint in CommandLine"
+  - event_id: 7
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "ImageLoad — DLL loaded by rundll32: url.dll, pcwutl.dll, advpack.dll"
+  - event_id: 3
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "NetworkConnect — if rundll32 makes HTTP request"
 tags:
   - defense-evasion
   - lolbin

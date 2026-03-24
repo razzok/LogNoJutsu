@@ -7,10 +7,18 @@ platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "4688 (net.exe with view/share arguments)"
-  - "5140 (Network share accessed — admin share access)"
-  - "5145 (Network share object checked — file share audit)"
-  - "Sysmon 3 (NetworkConnect to SMB port 445)"
+  - event_id: 4688
+    channel: "Security"
+    description: "net.exe with view/share arguments"
+  - event_id: 5140
+    channel: "Security"
+    description: "Network share accessed — admin share access"
+  - event_id: 5145
+    channel: "Security"
+    description: "Network share object checked — file share audit"
+  - event_id: 3
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "NetworkConnect to SMB port 445"
 tags:
   - discovery
   - no-prereqs

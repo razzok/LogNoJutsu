@@ -7,10 +7,15 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4625 (Failed logon - LogonType=2 via LogonUser API, SubStatus=0xC000006A wrong password)"
-  - "4625 (Failed logon - LogonType=3 via net use IPC$, network logon attempt)"
-  - "4740 (Account lockout — only if lockout policy triggers)"
-  - "4688 (net.exe with use \\IPC$ arguments)"
+  - event_id: 4625
+    channel: "Security"
+    description: "Failed logon - LogonType=2 via LogonUser API, SubStatus=0xC000006A wrong password"
+  - event_id: 4740
+    channel: "Security"
+    description: "Account lockout — only if lockout policy triggers"
+  - event_id: 4688
+    channel: "Security"
+    description: "net.exe with use \\IPC$ arguments"
 tags:
   - credential-access
   - no-prereqs

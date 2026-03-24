@@ -12,10 +12,18 @@ nist_controls:
   - AU-2
   - SI-4
 expected_events:
-  - "4673 (Sensitive Privilege Use — SeDebugPrivilege, SeTcknImpersonatePrivilege)"
-  - "4672 (Special Logon — elevated privilege token assigned)"
-  - "4688 / Sysmon 1 (whoami.exe /priv — CommandLine contains '/priv')"
-  - "4104 (PowerShell ScriptBlock — WindowsIdentity, WindowsPrincipal)"
+  - event_id: 4673
+    channel: "Security"
+    description: "Sensitive Privilege Use — SeDebugPrivilege, SeImpersonatePrivilege"
+  - event_id: 4672
+    channel: "Security"
+    description: "Special Logon — elevated privilege token assigned"
+  - event_id: 4688
+    channel: "Security"
+    description: "whoami.exe /priv — CommandLine contains '/priv'"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock — WindowsIdentity, WindowsPrincipal"
 tags:
   - privilege-escalation
   - token

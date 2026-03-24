@@ -12,9 +12,15 @@ nist_controls:
   - SI-4
   - AU-12
 expected_events:
-  - "Sysmon 7 (ImageLoad — DLL loaded from non-standard path outside System32)"
-  - "4104 (PowerShell ScriptBlock — Add-Type, Assembly compilation)"
-  - "Sysmon 1 (Process creation with unusual DLL in module list)"
+  - event_id: 7
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "ImageLoad — DLL loaded from non-standard path outside System32"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock — Add-Type, Assembly compilation"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "Process creation with unusual DLL in module list"
 tags:
   - defense-evasion
   - dll-sideload

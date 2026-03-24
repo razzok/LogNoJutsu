@@ -7,10 +7,18 @@ platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "System EID 7045 (New service installed — ServiceName, ServiceFileName, ServiceAccount)"
-  - "Security EID 4697 (Service installed — Security log duplicate)"
-  - "4688 / Sysmon 1 (sc.exe with 'create' and service parameters in CommandLine)"
-  - "Sysmon 13 (RegistryValueSet - HKLM\\SYSTEM\\CurrentControlSet\\Services direct creation)"
+  - event_id: 7045
+    channel: "System"
+    description: "New service installed — ServiceName, ServiceFileName, ServiceAccount"
+  - event_id: 4697
+    channel: "Security"
+    description: "Service installed — Security log duplicate of EID 7045"
+  - event_id: 4688
+    channel: "Security"
+    description: "sc.exe with 'create' and service parameters in CommandLine"
+  - event_id: 13
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "RegistryValueSet - HKLM\\SYSTEM\\CurrentControlSet\\Services direct creation"
 tags:
   - persistence
   - requires-elevation

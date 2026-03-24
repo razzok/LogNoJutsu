@@ -7,9 +7,15 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4648 (Logon with explicit credentials — primary PtH Exabeam detection signal, 23 rules)"
-  - "4624 (LogonType=3 Network, AuthenticationPackageName=NTLM — PtH network logon pattern)"
-  - "4625 (Failed network logon — when wrong credentials used in net use attempt)"
+  - event_id: 4648
+    channel: "Security"
+    description: "Logon with explicit credentials — primary PtH Exabeam detection signal"
+  - event_id: 4624
+    channel: "Security"
+    description: "LogonType=3 Network, AuthenticationPackageName=NTLM — PtH network logon"
+  - event_id: 4625
+    channel: "Security"
+    description: "Failed network logon — when wrong credentials used in net use attempt"
 tags:
   - lateral-movement
   - credential-access

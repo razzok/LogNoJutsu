@@ -7,9 +7,15 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4698 (Scheduled task created — task XML with action/trigger/principal in event data)"
-  - "4688 / Sysmon 1 (schtasks.exe with /create and full arguments visible in CommandLine)"
-  - "4702 (Scheduled task updated — when task is modified)"
+  - event_id: 4698
+    channel: "Security"
+    description: "Scheduled task created — task XML with action/trigger/principal in event data"
+  - event_id: 4688
+    channel: "Security"
+    description: "schtasks.exe with /create and full arguments visible in CommandLine"
+  - event_id: 4702
+    channel: "Security"
+    description: "Scheduled task updated — when task is modified"
 tags:
   - persistence
   - no-prereqs

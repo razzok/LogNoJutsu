@@ -7,11 +7,21 @@ platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "Sysmon 10 (ProcessAccess - TargetImage: lsass.exe, GrantedAccess: 0x1010 or 0x1410)"
-  - "Sysmon 1 (rundll32.exe - CommandLine contains comsvcs.dll MiniDump)"
-  - "Sysmon 11 (FileCreate - .dmp file in TEMP)"
-  - "4656 (Handle request to lsass.exe with PROCESS_VM_READ)"
-  - "4663 (Object access - lsass.exe)"
+  - event_id: 10
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "ProcessAccess - TargetImage: lsass.exe, GrantedAccess: 0x1010 or 0x1410"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "rundll32.exe - CommandLine contains comsvcs.dll MiniDump"
+  - event_id: 11
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "FileCreate - .dmp file in TEMP"
+  - event_id: 4656
+    channel: "Security"
+    description: "Handle request to lsass.exe with PROCESS_VM_READ"
+  - event_id: 4663
+    channel: "Security"
+    description: "Object access - lsass.exe"
 tags:
   - credential-access
   - lsass

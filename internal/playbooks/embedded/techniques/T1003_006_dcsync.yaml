@@ -7,11 +7,21 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4662 (DS object access - replication GUIDs 1131f6aa, 1131f6ad in Properties field)"
-  - "4928/4929/4932/4933 (AD replication NC events via repadmin)"
-  - "4688 (nltest.exe, dsquery.exe, repadmin.exe)"
-  - "4769 (Kerberos TGS for DRSUAPI)"
-  - "4104 (PowerShell ScriptBlock - LDAP replication attribute queries)"
+  - event_id: 4662
+    channel: "Security"
+    description: "DS object access - replication GUIDs 1131f6aa, 1131f6ad in Properties field"
+  - event_id: 4928
+    channel: "Security"
+    description: "AD replication NC events via repadmin"
+  - event_id: 4688
+    channel: "Security"
+    description: "nltest.exe, dsquery.exe, repadmin.exe"
+  - event_id: 4769
+    channel: "Security"
+    description: "Kerberos TGS for DRSUAPI"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - LDAP replication attribute queries"
 tags:
   - credential-access
   - active-directory

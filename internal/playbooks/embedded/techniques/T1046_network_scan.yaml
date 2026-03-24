@@ -7,10 +7,15 @@ platform: windows
 phase: discovery
 elevation_required: false
 expected_events:
-  - "Sysmon 3 (NetworkConnect - burst of simultaneous connections from powershell.exe PID)"
-  - "5156/5157 (WFP allowed/blocked connections - rapid burst pattern)"
-  - "4688 (powershell.exe process creation)"
-  - "4104 (PowerShell ScriptBlock - runspace port scan)"
+  - event_id: 3
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "NetworkConnect - burst of simultaneous connections from powershell.exe PID"
+  - event_id: 5156
+    channel: "Security"
+    description: "WFP allowed connections - rapid burst pattern"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - runspace port scan"
 tags:
   - discovery
   - no-prereqs

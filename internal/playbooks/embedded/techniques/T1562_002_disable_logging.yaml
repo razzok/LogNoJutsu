@@ -7,10 +7,15 @@ platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "4719 (System audit policy changed — fires when auditpol disables a category)"
-  - "4688 / Sysmon 1 (auditpol.exe with /set /category ... /success:disable)"
-  - "4688 / Sysmon 1 (wevtutil.exe sl ... /e:false — disabling Sysmon channel)"
-  - "Sysmon 13 (RegistryValueSet — EventLog MaxSize reduction)"
+  - event_id: 4719
+    channel: "Security"
+    description: "System audit policy changed — fires when auditpol disables a category"
+  - event_id: 4688
+    channel: "Security"
+    description: "auditpol.exe with /set /category ... /success:disable"
+  - event_id: 13
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "RegistryValueSet — EventLog MaxSize reduction"
 tags:
   - defense-evasion
   - requires-elevation

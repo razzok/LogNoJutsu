@@ -7,10 +7,18 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4104 (PowerShell ScriptBlock - decoded obfuscated content logged after deobfuscation)"
-  - "4103 (PowerShell Module Logging - IEX calls visible)"
-  - "4688 / Sysmon 1 (powershell.exe with -EncodedCommand -NoP -NonI -W Hidden -Exec Bypass)"
-  - "Sysmon 13 (RegistryValueSet - HKCU payload storage)"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - decoded obfuscated content logged after deobfuscation"
+  - event_id: 4103
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell Module Logging - IEX calls visible"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "powershell.exe with -EncodedCommand -NoP -NonI -W Hidden -Exec Bypass"
+  - event_id: 13
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "RegistryValueSet - HKCU payload storage"
 tags:
   - defense-evasion
   - no-prereqs

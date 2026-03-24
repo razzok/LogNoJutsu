@@ -7,10 +7,18 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "Sysmon 11 (FileCreate — binary copied to non-standard location)"
-  - "Sysmon 1 (Image path = TEMP\\svchost.exe — path mismatch = tier-1 alert)"
-  - "4688 (process creation with image path not matching expected system location)"
-  - "Sysmon 13 (RegistryValueSet — masqueraded binary in Run key)"
+  - event_id: 11
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "FileCreate — binary copied to non-standard location"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "Image path = TEMP\\svchost.exe — path mismatch tier-1 alert"
+  - event_id: 4688
+    channel: "Security"
+    description: "Process creation with image path not matching expected system location"
+  - event_id: 13
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "RegistryValueSet — masqueraded binary in Run key"
 tags:
   - defense-evasion
   - no-prereqs

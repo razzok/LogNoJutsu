@@ -12,10 +12,15 @@ nist_controls:
   - AC-3
   - AU-12
 expected_events:
-  - "Sysmon 3 (NetworkConnect — outbound HTTP from PowerShell to external host)"
-  - "4104 (PowerShell ScriptBlock — Invoke-WebRequest, base64 encoding, ConvertTo-Json)"
-  - "Sysmon 22 (DNSEvent — DNS query for exfil target)"
-  - "Proxy/firewall log — HTTP POST with large base64 body"
+  - event_id: 3
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "NetworkConnect — outbound HTTP from PowerShell to external host"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock — Invoke-WebRequest, base64 encoding, ConvertTo-Json"
+  - event_id: 22
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "DNSEvent — DNS query for exfil target"
 tags:
   - exfiltration
   - no-prereqs

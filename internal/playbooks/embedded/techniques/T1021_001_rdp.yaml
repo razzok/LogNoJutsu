@@ -7,10 +7,15 @@ platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - "4688 / Sysmon 1 (cmdkey.exe with /generic:TERMSRV — EID 4648 explicit credential)"
-  - "4946 (Windows Firewall rule added for port 3389)"
-  - "Sysmon 13 (RegistryValueSet - fDenyTSConnections + PortNumber modification)"
-  - "4648 (Logon with explicit credentials — cmdkey RDP credential storage)"
+  - event_id: 4648
+    channel: "Security"
+    description: "Logon with explicit credentials — cmdkey RDP credential storage"
+  - event_id: 4946
+    channel: "Security"
+    description: "Windows Firewall rule added for port 3389"
+  - event_id: 13
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "RegistryValueSet - fDenyTSConnections + PortNumber modification"
 tags:
   - lateral-movement
   - no-prereqs

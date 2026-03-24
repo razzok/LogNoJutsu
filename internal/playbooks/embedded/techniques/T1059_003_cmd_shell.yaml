@@ -7,10 +7,18 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4688 / Sysmon 1 (cmd.exe with redirection operators, chained & commands in CommandLine)"
-  - "Sysmon 11 (FileCreate — output redirect files)"
-  - "Sysmon 1 (powershell.exe child of cmd.exe — high-signal parent-child chain)"
-  - "4104 (PowerShell ScriptBlock when cmd spawns PS)"
+  - event_id: 4688
+    channel: "Security"
+    description: "cmd.exe with redirection operators, chained & commands in CommandLine"
+  - event_id: 11
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "FileCreate — output redirect files"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "powershell.exe child of cmd.exe — high-signal parent-child chain"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock when cmd spawns PS"
 tags:
   - execution
   - no-prereqs
