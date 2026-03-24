@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Milestone:** 1 — Verified & Expanded
 **Active phase:** 01-events-manifest-verification-engine
-**Last action:** Completed 01-events-manifest-verification-engine/01-01-PLAN.md
-**Next step:** Execute 01-02-PLAN.md (HTML report verification results)
-**Last session:** 2026-03-24T20:00:45.095Z
+**Last action:** Completed 01-events-manifest-verification-engine/01-02-PLAN.md
+**Next step:** Execute 01-03-PLAN.md
+**Last session:** 2026-03-24T21:30:00Z
 
 ## Phase Progress
 
@@ -45,13 +45,15 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 - VerifNotRun used for both WhatIf mode and no-expected-events case (Phase 01, Plan 01)
 - Default 3s wait before event log query to allow OS flush (Phase 01, Plan 01)
 - [Phase 01]: Used verifStr funcMap helper for typed string comparison in HTML template
+- Removed non-queryable entries (proxy/firewall logs) from expected_events during YAML migration (Phase 01, Plan 02)
+- T1490 retains contains field on bcdedit 4688 entry to distinguish from vssadmin 4688 (Phase 01, Plan 02)
 
 ## Performance Metrics
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 01-events-manifest-verification-engine | 01 | 15min | 2 | 5 |
-| Phase 01-events-manifest-verification-engine P03 | 10 | 1 tasks | 3 files |
+| 01-events-manifest-verification-engine | 02 | 20min | 1 | 43 |
 
 ## Codebase Map
 
