@@ -81,15 +81,17 @@ type tacticStat struct {
 }
 
 type htmlData struct {
-	GeneratedAt string
-	LogFile     string
-	TotalRun    int
-	Succeeded   int
-	Failed      int
-	SuccessRate int
-	WhatIf      bool
-	TacticStats []tacticStat
-	Results     []playbooks.ExecutionResult
+	GeneratedAt  string
+	LogFile      string
+	TotalRun     int
+	Succeeded    int
+	Failed       int
+	SuccessRate  int
+	WhatIf       bool
+	TacticStats  []tacticStat
+	Results      []playbooks.ExecutionResult
+	VerifPassed  int
+	VerifFailed  int
 }
 
 func fmtTime(s string) string {
@@ -139,6 +141,16 @@ func saveHTML(r Report, filename string) error {
 		successRate = r.Succeeded * 100 / r.TotalRun
 	}
 
+	verifPassed := 0
+	verifFailed := 0
+	for _, res := range r.Results {
+		if res.VerificationStatus == playbooks.VerifPass {
+			verifPassed++
+		} else if res.VerificationStatus == playbooks.VerifFail {
+			verifFailed++
+		}
+	}
+
 	data := htmlData{
 		GeneratedAt: fmtTime(r.GeneratedAt),
 		LogFile:     r.LogFile,
@@ -149,10 +161,13 @@ func saveHTML(r Report, filename string) error {
 		WhatIf:      r.WhatIf,
 		TacticStats: tactics,
 		Results:     r.Results,
+		VerifPassed: verifPassed,
+		VerifFailed: verifFailed,
 	}
 
 	funcMap := template.FuncMap{
 		"fmtTime": fmtTime,
+		"verifStr": func(v playbooks.VerificationStatus) string { return string(v) },
 		"truncate": func(s string, n int) string {
 			s = strings.ReplaceAll(s, "\r\n", "\n")
 			if len(s) > n {
@@ -229,6 +244,11 @@ tr:hover td{background:#161b22}
 .tag{display:inline-block;background:#21262d;border:1px solid #30363d;border-radius:4px;padding:1px 7px;font-size:11px;color:#8b949e;margin-right:3px}
 .mono{font-family:Consolas,'Courier New',monospace}
 .output{font-family:Consolas,monospace;font-size:11px;white-space:pre-wrap;background:#0a0e13;padding:8px;border-radius:4px;color:#8b949e;max-height:120px;overflow-y:auto;margin-top:6px;border:1px solid #21262d}
+.verif-pass{color:#3fb950;font-weight:600}
+.verif-fail{color:#f85149;font-weight:600}
+.verif-skip{color:#8b949e}
+.verif-list{font-size:11px;margin-top:4px;padding-left:0;list-style:none}
+.verif-list li{margin:1px 0}
 .footer{text-align:center;color:#8b949e;font-size:12px;padding:24px;border-top:1px solid #30363d;margin-top:32px}
 @media print{.hdr{background:#fff;color:#000}.body{background:#fff}}
 </style>
@@ -270,6 +290,7 @@ tr:hover td{background:#161b22}
         <th>Name</th>
         <th>Taktik</th>
         <th>Status</th>
+        <th>Verifikation</th>
         <th>Benutzer</th>
       </tr>
     </thead>
@@ -285,6 +306,24 @@ tr:hover td{background:#161b22}
       </td>
       <td><span class="tag">{{.TacticID}}</span></td>
       <td class="{{if .Success}}ok{{else}}fail{{end}}">{{if .Success}}✓ OK{{else}}✗ Fehler{{end}}</td>
+      <td>
+        {{if eq (verifStr .VerificationStatus) "pass"}}
+          <span class="verif-pass">&#10003; Pass</span>
+        {{else if eq (verifStr .VerificationStatus) "fail"}}
+          <span class="verif-fail">&#10007; Fail</span>
+        {{else if eq (verifStr .VerificationStatus) "not_executed"}}
+          <span class="verif-skip">&mdash; Nicht ausgeführt</span>
+        {{else}}
+          <span class="verif-skip">&mdash;</span>
+        {{end}}
+        {{if .VerifiedEvents}}
+        <ul class="verif-list">
+          {{range .VerifiedEvents}}
+          <li>{{if .Found}}&#10003;{{else}}&#10007;{{end}} EID {{.EventID}} <span style="color:#8b949e">{{.Channel}}</span></li>
+          {{end}}
+        </ul>
+        {{end}}
+      </td>
       <td style="color:#bc8cff;font-size:12px;">{{.RunAsUser}}</td>
     </tr>
     {{end}}
