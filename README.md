@@ -2566,6 +2566,38 @@ Wird die Simulation manuell abgebrochen, wird automatisch ein vollständiger Cle
 
 ---
 
+## SIEM-Plattform-spezifische Voraussetzungen
+
+### Microsoft Sentinel
+
+LogNoJutsu enthalt Techniken mit dem Prafix `AZURE_`, die gezielt Windows Security Events erzeugen, welche von Microsoft Sentinels integrierten Analytic Rules erkannt werden. Diese Techniken laufen lokal auf dem Windows-System — keine Azure-Konnektivitat zur Laufzeit erforderlich.
+
+**Voraussetzungen:**
+
+| Komponente | Beschreibung |
+|------------|-------------|
+| Azure Monitor Agent (AMA) | Auf dem Testsystem installiert und mit dem Log Analytics Workspace verbunden. MMA (Log Analytics Agent) wird ebenfalls unterstutzt, ist aber von Microsoft als deprecated markiert. |
+| Windows Security Events Connector | In Microsoft Sentinel aktiviert — leitet Security-Channel-Events (4662, 4688, 4769) an die SecurityEvent-Tabelle weiter |
+| Analytic Rules | Folgende Built-in-Regeln mussen in Sentinel aktiviert sein: |
+
+**Empfohlene Sentinel Analytic Rules:**
+
+- **Potential Kerberoasting** — erkennt Bulk-TGS-Anfragen mit RC4-Verschlusselung (EID 4769, EncryptionType=0x17)
+- **Non Domain Controller Active Directory Replication** — erkennt Replikationsanfragen von Nicht-DC-Systemen (EID 4662 mit DS-Replication GUIDs)
+- **Dumping LSASS Process Into a File** — erkennt LSASS-Speicherzugriffe (EID 4656/4663)
+
+**AZURE_-Techniken:**
+
+| Technik | MITRE ATT&CK | Sentinel Analytic Rule | Primar-Event |
+|---------|-------------|----------------------|-------------|
+| AZURE_kerberoasting | T1558.003 | Potential Kerberoasting | EID 4769 |
+| AZURE_ldap_recon | T1087.002 | Anomalous LDAP Activity | EID 4688 |
+| AZURE_dcsync | T1003.006 | Non Domain Controller Active Directory Replication | EID 4662 |
+
+> **Hinweis:** Die AZURE_-Techniken benotigen ein domainverbundenes Windows-System mit Active Directory. Auf Standalone-Systemen werden die AD-bezogenen Events nicht generiert.
+
+---
+
 ## Kommandozeilen-Optionen
 
 ```
