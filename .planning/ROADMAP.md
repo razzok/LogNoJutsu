@@ -9,7 +9,7 @@ Milestone 1 — Verified & Expanded: Make LogNoJutsu trustworthy for professiona
 - [x] **Phase 1: Events Manifest & Verification Engine** - Add expected Event IDs per technique and post-run pass/fail verification against local Windows Event Log (completed 2026-03-24)
 - [x] **Phase 2: Code Structure & Test Coverage** - Refactor package-level globals to a struct, split into packages, add unit tests for engine, handlers, and verification logic (completed 2026-03-25)
 - [x] **Phase 3: Additional Techniques** - Add 5+ new MITRE ATT&CK techniques and 3+ Exabeam UEBA scenarios, all with events manifest entries (completed 2026-03-25)
-- [ ] **Phase 4: CrowdStrike SIEM Coverage** - Add CrowdStrike Falcon detection mappings and Falcon-sensor-specific techniques to the events manifest and HTML report
+- [x] **Phase 4: CrowdStrike SIEM Coverage** - Add CrowdStrike Falcon detection mappings and Falcon-sensor-specific techniques to the events manifest and HTML report (completed 2026-03-25)
 - [ ] **Phase 5: Microsoft Sentinel Coverage** - Add Microsoft Sentinel / Azure AD detection mappings and Azure-specific techniques to the events manifest and HTML report
 
 ## Phase Details
@@ -70,11 +70,11 @@ Plans:
   2. At least 3 techniques specifically target and generate Falcon sensor events
   3. HTML report shows a CrowdStrike coverage column listing mapped detection rules per technique
   4. Documentation covers CrowdStrike-specific prerequisites and setup
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 04-01-PLAN.md — SIEMCoverage field on Technique/ExecutionResult, engine propagation, 10 existing YAML CrowdStrike mappings
 - [x] 04-02-PLAN.md — 3 new FALCON_ technique YAML files (process injection, LSASS access, lateral movement)
-- [ ] 04-03-PLAN.md — Conditional CrowdStrike column in HTML report with CS badge and N/A styling
+- [x] 04-03-PLAN.md — Conditional CrowdStrike column in HTML report with CS badge and N/A styling
 
 ### Phase 5: Microsoft Sentinel Coverage
 **Goal**: Add Microsoft Sentinel / Azure AD detection mappings and techniques targeting Azure-specific log sources. HTML report shows a Sentinel coverage column.
