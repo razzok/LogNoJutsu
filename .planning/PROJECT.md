@@ -31,7 +31,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - [ ] Enhanced HTML report showing verification results (expected vs. observed events)
 - ✓ Test coverage: Go unit and integration tests for engine, HTTP handlers, verification logic — Phase 2
 - ✓ Code structure: refactor package-level globals to struct, split into packages — Phase 2
-- [ ] Additional MITRE ATT&CK techniques and Exabeam UEBA scenarios
+- ✓ Additional MITRE ATT&CK techniques and Exabeam UEBA scenarios — Phase 3
 - [ ] CrowdStrike SIEM coverage: detection mappings + Falcon-sensor-specific techniques
 - [ ] Microsoft Sentinel coverage: detection mappings + Azure AD / Sentinel-specific techniques
 
@@ -49,6 +49,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - Requires local admin for Attack phase techniques; normal user for Discovery
 - README written in German (target user base)
 - Phase 2 complete: Server struct refactor done, 13 unit tests across engine/handlers/verifier, go test ./... green
+- Phase 3 complete: 52 total techniques (5 new ATT&CK Collection+C2 + 4 UEBA scenarios), all with EventSpec entries, 6 loader tests green
 - Codebase map available at `.planning/codebase/`
 
 ## Constraints
