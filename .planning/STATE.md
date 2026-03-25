@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 02
-last_updated: "2026-03-25T07:44:01.156Z"
+last_updated: "2026-03-25T07:48:26.036Z"
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 **Active phase:** 01-events-manifest-verification-engine
 **Last action:** Completed 01-events-manifest-verification-engine/01-02-PLAN.md
 **Next step:** Execute 01-03-PLAN.md
-**Last session:** 2026-03-25T07:44:01.150Z
+**Last session:** 2026-03-25T07:48:26.029Z
 
 ## Phase Progress
 
@@ -49,6 +49,8 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 - T1490 retains contains field on bcdedit 4688 entry to distinguish from vssadmin 4688 (Phase 01, Plan 02)
 - [Phase 02]: Server struct holds eng/registry/users/cfg — all HTTP handlers are method receivers, Start remains package-level, main.go unchanged
 - [Phase 02]: RunnerFunc nil-default pattern in Engine mirrors verifier QueryFn — no change to New() or production path
+- [Phase 02-code-structure-test-coverage]: Package engine (not engine_test) used for engine tests to access unexported filterByTactics
+- [Phase 02-code-structure-test-coverage]: D-11 naming convention for verifier tests: TestVerifier_pass/fail/notRun_WhatIf as thin wrapper tests
 
 ## Performance Metrics
 
@@ -57,6 +59,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 | 01-events-manifest-verification-engine | 01 | 15min | 2 | 5 |
 | 01-events-manifest-verification-engine | 02 | 20min | 1 | 43 |
 | Phase 02-code-structure-test-coverage P01 | 2min | 2 tasks | 3 files |
+| Phase 02-code-structure-test-coverage P02 | 5min | 2 tasks | 2 files |
 
 ## Codebase Map
 
