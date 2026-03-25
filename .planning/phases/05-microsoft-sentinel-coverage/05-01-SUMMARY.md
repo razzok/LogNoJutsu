@@ -110,6 +110,14 @@ None - no external service configuration required.
 - Plan 05-02 can add new AZURE_-prefixed techniques following identical YAML pattern
 - Plan 05-03 HTML report Sentinel column will read `SIEMCoverage["sentinel"]` already populated by this plan
 
+## Self-Check: PASSED
+
+- FOUND: internal/playbooks/loader_test.go (TestSentinelCoverage function present)
+- FOUND: 5 technique YAML files with sentinel key
+- FOUND: commits c7f0f7e (RED) and 9dff2fa (GREEN)
+- FOUND: .planning/phases/05-microsoft-sentinel-coverage/05-01-SUMMARY.md
+- All acceptance criteria met; full go test ./... green
+
 ---
 *Phase: 05-microsoft-sentinel-coverage*
 *Completed: 2026-03-25*
