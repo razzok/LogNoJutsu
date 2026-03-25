@@ -33,7 +33,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - ✓ Code structure: refactor package-level globals to struct, split into packages — Phase 2
 - ✓ Additional MITRE ATT&CK techniques and Exabeam UEBA scenarios — Phase 3
 - ✓ CrowdStrike SIEM coverage: detection mappings + Falcon-sensor-specific techniques — Phase 4
-- [ ] Microsoft Sentinel coverage: detection mappings + Azure AD / Sentinel-specific techniques
+- ✓ Microsoft Sentinel coverage: detection mappings + Azure AD / Sentinel-specific techniques — Phase 5
 
 ### Out of Scope
 
@@ -51,6 +51,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - Phase 2 complete: Server struct refactor done, 13 unit tests across engine/handlers/verifier, go test ./... green
 - Phase 3 complete: 52 total techniques (5 new ATT&CK Collection+C2 + 4 UEBA scenarios), all with EventSpec entries, 6 loader tests green
 - Phase 4 complete: SIEMCoverage data model on Technique/ExecutionResult, 10 YAML Falcon mappings, 3 FALCON_ techniques, conditional CS column in HTML report
+- Phase 5 complete: siem_coverage.sentinel on 5 existing techniques, 3 AZURE_ techniques (kerberoasting/LDAP recon/DCSync), conditional MS badge column in HTML report, German README Sentinel section — 57 total techniques
 - Codebase map available at `.planning/codebase/`
 
 ## Constraints
@@ -69,4 +70,4 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | Server struct refactor | Replaced package-level globals with Server struct + method receivers | ✓ Done — handlers testable via httptest |
 
 ---
-*Last updated: 2026-03-25 after Phase 4 completion*
+*Last updated: 2026-03-25 after Phase 5 completion — Milestone 1 complete*
