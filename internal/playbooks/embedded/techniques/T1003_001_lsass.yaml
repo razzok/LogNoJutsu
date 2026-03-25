@@ -30,6 +30,8 @@ tags:
 siem_coverage:
   crowdstrike:
     - "Credential Dumping"
+  sentinel:
+    - "Dumping LSASS Process Into a File"
 executor:
   type: powershell
   command: |-

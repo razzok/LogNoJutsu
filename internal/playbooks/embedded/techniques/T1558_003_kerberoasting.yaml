@@ -72,4 +72,7 @@ executor:
     klist 2>&1 | Select-String "Service Name|Encryption Type|KerbTicket" | Write-Host
 
     Write-Host "[T1558.003] Complete. EID 4769 on DC: EncryptionType=0x17 (RC4) = Kerberoastable."
+siem_coverage:
+  sentinel:
+    - "Potential Kerberoasting"
 cleanup: ""

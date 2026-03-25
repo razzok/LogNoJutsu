@@ -95,6 +95,63 @@ func TestSIEMCoverage(t *testing.T) {
 	}
 }
 
+func TestSentinelCoverage(t *testing.T) {
+	reg, err := LoadEmbedded()
+	if err != nil {
+		t.Fatalf("LoadEmbedded() failed: %v", err)
+	}
+
+	// HIGH confidence Sentinel rule names (verified from Azure/Azure-Sentinel GitHub)
+	highConfidence := map[string]string{
+		"T1558.003": "Potential Kerberoasting",
+		"T1003.001": "Dumping LSASS Process Into a File",
+		"T1003.006": "Non Domain Controller Active Directory Replication",
+	}
+	for techID, ruleName := range highConfidence {
+		tech, ok := reg.Techniques[techID]
+		if !ok {
+			t.Errorf("technique %s not found", techID)
+			continue
+		}
+		sentinel := tech.SIEMCoverage["sentinel"]
+		if len(sentinel) == 0 {
+			t.Errorf("%s should have non-empty siem_coverage.sentinel", techID)
+			continue
+		}
+		found := false
+		for _, name := range sentinel {
+			if name == ruleName {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("%s siem_coverage.sentinel should contain %q, got %v", techID, ruleName, sentinel)
+		}
+	}
+
+	// MEDIUM confidence — just check non-empty
+	mediumConfidence := []string{"T1059.001", "T1136.001"}
+	for _, techID := range mediumConfidence {
+		tech, ok := reg.Techniques[techID]
+		if !ok {
+			t.Errorf("technique %s not found", techID)
+			continue
+		}
+		if len(tech.SIEMCoverage["sentinel"]) == 0 {
+			t.Errorf("%s should have non-empty siem_coverage.sentinel", techID)
+		}
+	}
+
+	// Discovery technique should NOT have sentinel coverage
+	disc, ok := reg.Techniques["T1016"]
+	if !ok {
+		t.Fatal("T1016 not found")
+	}
+	if len(disc.SIEMCoverage["sentinel"]) != 0 {
+		t.Errorf("T1016 (discovery) should have no siem_coverage.sentinel, got %v", disc.SIEMCoverage["sentinel"])
+	}
+}
+
 func TestNewUEBACount(t *testing.T) {
 	reg, err := LoadEmbedded()
 	if err != nil {

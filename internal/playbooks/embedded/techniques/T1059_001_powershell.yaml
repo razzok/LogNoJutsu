@@ -27,6 +27,8 @@ siem_coverage:
   crowdstrike:
     - "Suspicious Scripts and Commands"
     - "Interpreter-Only"
+  sentinel:
+    - "Suspicious Powershell Commandlet Executed"  # MEDIUM confidence — verify rule name in Sentinel portal
 executor:
   type: powershell
   command: |-
