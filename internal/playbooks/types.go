@@ -41,8 +41,9 @@ type Technique struct {
 	ExpectedEvents    []EventSpec       `yaml:"expected_events"    json:"expected_events"`
 	ElevationRequired bool              `yaml:"elevation_required" json:"elevation_required"`
 	Tags              []string          `yaml:"tags"               json:"tags"`
-	InputArgs         map[string]string `yaml:"input_args"         json:"input_args,omitempty"`
-	NistControls      []string          `yaml:"nist_controls"      json:"nist_controls,omitempty"`
+	InputArgs         map[string]string   `yaml:"input_args"         json:"input_args,omitempty"`
+	NistControls      []string            `yaml:"nist_controls"      json:"nist_controls,omitempty"`
+	SIEMCoverage      map[string][]string `yaml:"siem_coverage,omitempty"  json:"siem_coverage,omitempty"`
 }
 
 type Executor struct {
@@ -79,7 +80,8 @@ type ExecutionResult struct {
 	ErrorOutput        string             `json:"error_output"`
 	CleanupRun         bool               `json:"cleanup_run"`
 	RunAsUser          string             `json:"run_as_user"`          // "current user" or "DOMAIN\username"
-	VerificationStatus VerificationStatus `json:"verification_status,omitempty"`
-	VerifiedEvents     []VerifiedEvent    `json:"verified_events,omitempty"`
-	VerifyTime         string             `json:"verify_time,omitempty"`
+	VerificationStatus VerificationStatus  `json:"verification_status,omitempty"`
+	VerifiedEvents     []VerifiedEvent     `json:"verified_events,omitempty"`
+	VerifyTime         string              `json:"verify_time,omitempty"`
+	SIEMCoverage       map[string][]string `json:"siem_coverage,omitempty"`
 }

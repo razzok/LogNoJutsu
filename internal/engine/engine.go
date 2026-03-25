@@ -479,6 +479,7 @@ func (e *Engine) runTechnique(t *playbooks.Technique) {
 			e.mu.Unlock()
 		}
 	}
+	result.SIEMCoverage = t.SIEMCoverage
 
 	// ── Post-execution verification ──────────────────────────────────────
 	if !e.cfg.WhatIf && len(t.ExpectedEvents) > 0 {
