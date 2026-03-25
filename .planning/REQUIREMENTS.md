@@ -18,7 +18,7 @@
 - [x] **QUAL-01**: Package-level globals in server.go refactored to a struct (enables testable handlers)
 - [x] **QUAL-02**: Codebase split into logical packages (engine, server, techniques, reporter)
 - [x] **QUAL-03**: Unit tests for simulation engine state machine (start, stop, phase transitions)
-- [ ] **QUAL-04**: Unit tests for HTTP handlers covering key API endpoints
+- [x] **QUAL-04**: Unit tests for HTTP handlers covering key API endpoints
 - [x] **QUAL-05**: Unit tests for verification logic (event log querying, pass/fail determination)
 
 ### Techniques
