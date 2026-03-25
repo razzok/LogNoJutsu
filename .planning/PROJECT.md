@@ -29,8 +29,8 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - [ ] Events manifest: each technique declares expected Windows Event IDs / log sources
 - [ ] Verification engine: after execution, query local Event Log and report pass/fail per technique
 - [ ] Enhanced HTML report showing verification results (expected vs. observed events)
-- [ ] Test coverage: Go unit and integration tests for engine, HTTP handlers, verification logic
-- [ ] Code structure: refactor package-level globals to struct, split into packages
+- ✓ Test coverage: Go unit and integration tests for engine, HTTP handlers, verification logic — Phase 2
+- ✓ Code structure: refactor package-level globals to struct, split into packages — Phase 2
 - [ ] Additional MITRE ATT&CK techniques and Exabeam UEBA scenarios
 - [ ] CrowdStrike SIEM coverage: detection mappings + Falcon-sensor-specific techniques
 - [ ] Microsoft Sentinel coverage: detection mappings + Azure AD / Sentinel-specific techniques
@@ -48,7 +48,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - Distributed to clients as a standalone .exe for use on Windows 10/11/Server 2016+
 - Requires local admin for Attack phase techniques; normal user for Discovery
 - README written in German (target user base)
-- Current state: zero test files, package-level globals in server.go block clean testing
+- Phase 2 complete: Server struct refactor done, 13 unit tests across engine/handlers/verifier, go test ./... green
 - Codebase map available at `.planning/codebase/`
 
 ## Constraints
@@ -64,7 +64,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 |----------|-----------|---------|
 | Go over PowerShell | Single binary distribution, no PS execution policy issues | ✓ Good |
 | Local event log verification (not SIEM API) | Keeps tool standalone; SIEM-agnostic approach | — Pending |
-| Flat package structure | Fast to build initially | ⚠️ Revisit — globals blocking tests |
+| Server struct refactor | Replaced package-level globals with Server struct + method receivers | ✓ Done — handlers testable via httptest |
 
 ---
-*Last updated: 2026-03-24 after initial project initialization*
+*Last updated: 2026-03-25 after Phase 2 completion*
