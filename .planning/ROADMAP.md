@@ -55,7 +55,11 @@ Plans:
   2. At least 3 new Exabeam UEBA scenarios added
   3. All new techniques have ExpectedEvents populated (pass verification from Phase 1)
   4. README updated to document new techniques
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 03-01-PLAN.md — 5 new ATT&CK YAML files: Collection (T1005, T1560.001, T1119) and C2 (T1071.001, T1071.004)
+- [ ] 03-02-PLAN.md — 4 new UEBA scenario YAML files + TestExpectedEvents loader test for TECH-03 validation
+- [ ] 03-03-PLAN.md — README documentation for all 9 new techniques in German
 
 ### Phase 4: CrowdStrike SIEM Coverage
 **Goal**: Add CrowdStrike Falcon detection mappings and techniques that generate Falcon sensor events. HTML report shows a CrowdStrike coverage column.
