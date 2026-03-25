@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-last_updated: "2026-03-25T14:31:41.721Z"
+status: Executing Phase 04
+last_updated: "2026-03-25T18:42:57.682Z"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 12
+  completed_plans: 10
 ---
 
 # Project State
@@ -19,7 +19,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 03 — additional-techniques
+**Current focus:** Phase 04 — crowdstrike-siem-coverage
 
 ## Current Status
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 **Active phase:** 02-code-structure-test-coverage
 **Last action:** Completed 02-code-structure-test-coverage/02-03-PLAN.md
 **Next step:** Phase 02 complete — all 3 plans done
-**Last session:** 2026-03-25T14:28:20.740Z
+**Last session:** 2026-03-25T18:42:57.676Z
 
 ## Phase Progress
 
@@ -59,6 +59,8 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 - [Phase 03-additional-techniques]: TestNewTechniqueCount committed in RED state (partially failing) because plan 03-01's ATT&CK files are Wave 1 parallel — test passes at wave-end when all 9 files are present
 - [Phase 03-additional-techniques]: UEBA-LATERAL-NEW-ASSET covers network-based first-time asset access (SMB+RDP probe), distinct from UEBA-LATERAL-CHAIN which covers enumeration speed burst
 - [Phase 03-additional-techniques]: ATT&CK sections inserted at end of Phase 2: Attack block, UEBA sections at end of UEBA-Szenarien — preserves section organization
+- [Phase 04-crowdstrike-siem-coverage]: Single result.SIEMCoverage = t.SIEMCoverage line after if/else block in runTechnique covers all four code paths with one line
+- [Phase 04-crowdstrike-siem-coverage]: Discovery/UEBA techniques excluded from siem_coverage — benign enumeration does not trigger Falcon prevention policies
 
 ## Performance Metrics
 
@@ -72,6 +74,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 | Phase 03-additional-techniques P01 | 3min | 2 tasks | 5 files |
 | Phase 03-additional-techniques P02 | 10min | 2 tasks | 5 files |
 | Phase 03-additional-techniques P03 | 3min | 2 tasks | 1 files |
+| Phase 04-crowdstrike-siem-coverage P01 | 3min | 2 tasks | 13 files |
 
 ## Codebase Map
 

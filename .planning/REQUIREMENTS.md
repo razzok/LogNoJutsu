@@ -29,7 +29,7 @@
 
 ### CrowdStrike Coverage
 
-- [ ] **CROW-01**: CrowdStrike Falcon detection rule mappings documented per technique in events manifest
+- [x] **CROW-01**: CrowdStrike Falcon detection rule mappings documented per technique in events manifest
 - [ ] **CROW-02**: At least 3 techniques that specifically generate Falcon sensor events
 - [ ] **CROW-03**: HTML report shows CrowdStrike-specific coverage column when Falcon events are present
 
@@ -84,7 +84,7 @@
 | TECH-01 | Phase 3 | Complete |
 | TECH-02 | Phase 3 | Complete |
 | TECH-03 | Phase 3 | Complete |
-| CROW-01 | Phase 4 | Pending |
+| CROW-01 | Phase 4 | Complete |
 | CROW-02 | Phase 4 | Pending |
 | CROW-03 | Phase 4 | Pending |
 | SENT-01 | Phase 5 | Pending |
