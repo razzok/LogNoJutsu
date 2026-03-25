@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 03
-last_updated: "2026-03-25T14:19:07.963Z"
+last_updated: "2026-03-25T14:28:20.746Z"
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 **Active phase:** 02-code-structure-test-coverage
 **Last action:** Completed 02-code-structure-test-coverage/02-03-PLAN.md
 **Next step:** Phase 02 complete — all 3 plans done
-**Last session:** 2026-03-25T14:19:07.956Z
+**Last session:** 2026-03-25T14:28:20.740Z
 
 ## Phase Progress
 
@@ -58,6 +58,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 - [Phase 03-additional-techniques]: C2 techniques use .invalid TLD (RFC 2606) and 127.0.0.1 loopback only — no real outbound C2 traffic
 - [Phase 03-additional-techniques]: TestNewTechniqueCount committed in RED state (partially failing) because plan 03-01's ATT&CK files are Wave 1 parallel — test passes at wave-end when all 9 files are present
 - [Phase 03-additional-techniques]: UEBA-LATERAL-NEW-ASSET covers network-based first-time asset access (SMB+RDP probe), distinct from UEBA-LATERAL-CHAIN which covers enumeration speed burst
+- [Phase 03-additional-techniques]: ATT&CK sections inserted at end of Phase 2: Attack block, UEBA sections at end of UEBA-Szenarien — preserves section organization
 
 ## Performance Metrics
 
@@ -70,6 +71,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 | Phase 02-code-structure-test-coverage P03 | 3min | 2 tasks | 1 file |
 | Phase 03-additional-techniques P01 | 3min | 2 tasks | 5 files |
 | Phase 03-additional-techniques P02 | 10min | 2 tasks | 5 files |
+| Phase 03-additional-techniques P03 | 3min | 2 tasks | 1 files |
 
 ## Codebase Map
 

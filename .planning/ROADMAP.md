@@ -8,7 +8,7 @@ Milestone 1 — Verified & Expanded: Make LogNoJutsu trustworthy for professiona
 
 - [x] **Phase 1: Events Manifest & Verification Engine** - Add expected Event IDs per technique and post-run pass/fail verification against local Windows Event Log (completed 2026-03-24)
 - [x] **Phase 2: Code Structure & Test Coverage** - Refactor package-level globals to a struct, split into packages, add unit tests for engine, handlers, and verification logic (completed 2026-03-25)
-- [ ] **Phase 3: Additional Techniques** - Add 5+ new MITRE ATT&CK techniques and 3+ Exabeam UEBA scenarios, all with events manifest entries
+- [x] **Phase 3: Additional Techniques** - Add 5+ new MITRE ATT&CK techniques and 3+ Exabeam UEBA scenarios, all with events manifest entries (completed 2026-03-25)
 - [ ] **Phase 4: CrowdStrike SIEM Coverage** - Add CrowdStrike Falcon detection mappings and Falcon-sensor-specific techniques to the events manifest and HTML report
 - [ ] **Phase 5: Microsoft Sentinel Coverage** - Add Microsoft Sentinel / Azure AD detection mappings and Azure-specific techniques to the events manifest and HTML report
 
@@ -55,11 +55,11 @@ Plans:
   2. At least 3 new Exabeam UEBA scenarios added
   3. All new techniques have ExpectedEvents populated (pass verification from Phase 1)
   4. README updated to document new techniques
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 03-01-PLAN.md — 5 new ATT&CK YAML files: Collection (T1005, T1560.001, T1119) and C2 (T1071.001, T1071.004)
 - [x] 03-02-PLAN.md — 4 new UEBA scenario YAML files + TestExpectedEvents loader test for TECH-03 validation
-- [ ] 03-03-PLAN.md — README documentation for all 9 new techniques in German
+- [x] 03-03-PLAN.md — README documentation for all 9 new techniques in German
 
 ### Phase 4: CrowdStrike SIEM Coverage
 **Goal**: Add CrowdStrike Falcon detection mappings and techniques that generate Falcon sensor events. HTML report shows a CrowdStrike coverage column.
