@@ -97,6 +97,13 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 Available at `.planning/codebase/` — generated 2026-03-24.
 Key finding: zero test files; package-level globals in server.go block clean testing.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260325-v44 | Translate README.md from German to English | 2026-03-25 | 4ac348a | [260325-v44-translate-readme-md-from-german-to-engli](./quick/260325-v44-translate-readme-md-from-german-to-engli/) |
+
 ---
 *Initialized: 2026-03-24*
 *Updated: 2026-03-24 after plan 01-01 completion*
+*Last activity: 2026-03-25 - Completed quick task 260325-v44: Translate README.md from German to English*
