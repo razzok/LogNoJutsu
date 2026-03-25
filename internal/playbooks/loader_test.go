@@ -19,10 +19,10 @@ func TestNewTechniqueCount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadEmbedded() failed: %v", err)
 	}
-	if len(reg.Techniques) < 51 {
-		t.Errorf("expected at least 51 techniques, got %d", len(reg.Techniques))
+	if len(reg.Techniques) < 54 {
+		t.Errorf("expected at least 54 techniques, got %d", len(reg.Techniques))
 	}
-	required := []string{"T1005", "T1560.001", "T1119", "T1071.001", "T1071.004", "FALCON_process_injection", "FALCON_lsass_access", "FALCON_lateral_movement_psexec"}
+	required := []string{"T1005", "T1560.001", "T1119", "T1071.001", "T1071.004", "FALCON_process_injection", "FALCON_lsass_access", "FALCON_lateral_movement_psexec", "AZURE_kerberoasting", "AZURE_ldap_recon", "AZURE_dcsync"}
 	for _, id := range required {
 		if _, ok := reg.Techniques[id]; !ok {
 			t.Errorf("missing required new ATT&CK technique: %s", id)
@@ -170,6 +170,61 @@ func TestNewUEBACount(t *testing.T) {
 	for _, id := range required {
 		if _, ok := reg.Techniques[id]; !ok {
 			t.Errorf("missing required new UEBA scenario: %s", id)
+		}
+	}
+}
+
+func TestAzureTechniques(t *testing.T) {
+	reg, err := LoadEmbedded()
+	if err != nil {
+		t.Fatalf("LoadEmbedded() failed: %v", err)
+	}
+
+	azureIDs := []string{"AZURE_kerberoasting", "AZURE_ldap_recon", "AZURE_dcsync"}
+	invalidTactics := map[string]bool{"sentinel": true, "azure": true, "microsoft": true, "azure-ad": true}
+
+	for _, id := range azureIDs {
+		tech, ok := reg.Techniques[id]
+		if !ok {
+			t.Errorf("missing AZURE technique: %s", id)
+			continue
+		}
+		if len(tech.ExpectedEvents) == 0 {
+			t.Errorf("%s has no expected_events", id)
+		}
+		sentinel := tech.SIEMCoverage["sentinel"]
+		if len(sentinel) == 0 {
+			t.Errorf("%s has no siem_coverage.sentinel entries", id)
+		}
+		if invalidTactics[tech.Tactic] {
+			t.Errorf("%s uses non-MITRE tactic %q — must use standard MITRE tactic name", id, tech.Tactic)
+		}
+		if tech.Phase != "attack" {
+			t.Errorf("%s phase should be 'attack', got %q", id, tech.Phase)
+		}
+	}
+
+	// Verify specific HIGH confidence rule names
+	if tech, ok := reg.Techniques["AZURE_kerberoasting"]; ok {
+		found := false
+		for _, name := range tech.SIEMCoverage["sentinel"] {
+			if name == "Potential Kerberoasting" {
+				found = true
+			}
+		}
+		if !found {
+			t.Error("AZURE_kerberoasting sentinel should contain 'Potential Kerberoasting'")
+		}
+	}
+	if tech, ok := reg.Techniques["AZURE_dcsync"]; ok {
+		found := false
+		for _, name := range tech.SIEMCoverage["sentinel"] {
+			if name == "Non Domain Controller Active Directory Replication" {
+				found = true
+			}
+		}
+		if !found {
+			t.Error("AZURE_dcsync sentinel should contain 'Non Domain Controller Active Directory Replication'")
 		}
 	}
 }
