@@ -7,7 +7,7 @@ Milestone 1 — Verified & Expanded: Make LogNoJutsu trustworthy for professiona
 ## Phases
 
 - [x] **Phase 1: Events Manifest & Verification Engine** - Add expected Event IDs per technique and post-run pass/fail verification against local Windows Event Log (completed 2026-03-24)
-- [ ] **Phase 2: Code Structure & Test Coverage** - Refactor package-level globals to a struct, split into packages, add unit tests for engine, handlers, and verification logic
+- [x] **Phase 2: Code Structure & Test Coverage** - Refactor package-level globals to a struct, split into packages, add unit tests for engine, handlers, and verification logic (completed 2026-03-25)
 - [ ] **Phase 3: Additional Techniques** - Add 5+ new MITRE ATT&CK techniques and 3+ Exabeam UEBA scenarios, all with events manifest entries
 - [ ] **Phase 4: CrowdStrike SIEM Coverage** - Add CrowdStrike Falcon detection mappings and Falcon-sensor-specific techniques to the events manifest and HTML report
 - [ ] **Phase 5: Microsoft Sentinel Coverage** - Add Microsoft Sentinel / Azure AD detection mappings and Azure-specific techniques to the events manifest and HTML report
@@ -40,11 +40,11 @@ Plans:
   3. `go test ./... -race` passes with no failures or race conditions
   4. HTTP handler tests use httptest.NewRecorder — no global state required for test setup
   5. Engine state machine transitions covered by unit tests
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 02-01-PLAN.md — Fix vet warning, Server struct refactor (QUAL-01), RunnerFunc injection on Engine
-- [ ] 02-02-PLAN.md — Engine unit tests (QUAL-03), verifier D-11 named tests (QUAL-05)
-- [ ] 02-03-PLAN.md — HTTP handler tests with httptest (QUAL-04), full suite validation
+- [x] 02-02-PLAN.md — Engine unit tests (QUAL-03), verifier D-11 named tests (QUAL-05)
+- [x] 02-03-PLAN.md — HTTP handler tests with httptest (QUAL-04), full suite validation
 
 ### Phase 3: Additional Techniques
 **Goal**: Expand technique library with at least 5 new ATT&CK techniques and 3 new Exabeam UEBA scenarios. All new techniques include events manifest entries.
