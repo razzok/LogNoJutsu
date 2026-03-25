@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 05
-last_updated: "2026-03-25T20:27:44.247Z"
+last_updated: "2026-03-25T20:33:37.616Z"
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 15
-  completed_plans: 13
+  completed_plans: 15
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 **Active phase:** 02-code-structure-test-coverage
 **Last action:** Completed 02-code-structure-test-coverage/02-03-PLAN.md
 **Next step:** Phase 02 complete — all 3 plans done
-**Last session:** 2026-03-25T20:27:44.241Z
+**Last session:** 2026-03-25T20:33:37.610Z
 
 ## Phase Progress
 
@@ -70,6 +70,8 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 - [Phase 05-microsoft-sentinel-coverage]: siem_coverage.sentinel added as sibling key to crowdstrike using existing map[string][]string design — no schema changes
 - [Phase 05-microsoft-sentinel-coverage]: AZURE_ldap_recon uses Anomalous LDAP Activity with MEDIUM confidence — community hunting query only, no built-in Sentinel rule for EID 1644
 - [Phase 05-microsoft-sentinel-coverage]: AZURE_dcsync uses LDAP ACL enumeration of DS-Replication GUIDs (not repadmin) to trigger EID 4662 Sentinel rule pattern
+- [Phase 05-microsoft-sentinel-coverage]: Sentinel CSS classes (ms-badge/ms-na/ms-list) use #0078D4 as badge background — mirrors cs-badge pattern with vendor-accurate Microsoft blue
+- [Phase 05-microsoft-sentinel-coverage]: Column order: Verification | CrowdStrike | Sentinel | Benutzer — Sentinel inserted between CrowdStrike and Benutzer
 
 ## Performance Metrics
 
@@ -88,6 +90,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 | Phase 04-crowdstrike-siem-coverage P03 | 15min | 2 tasks | 2 files |
 | Phase 05-microsoft-sentinel-coverage P01 | 10min | 1 tasks | 6 files |
 | Phase 05-microsoft-sentinel-coverage P02 | 4min | 1 tasks | 4 files |
+| Phase 05-microsoft-sentinel-coverage P03 | 10min | 2 tasks | 3 files |
 
 ## Codebase Map
 

@@ -37,7 +37,7 @@
 
 - [x] **SENT-01**: Microsoft Sentinel detection rule mappings documented per technique in events manifest
 - [x] **SENT-02**: At least 3 techniques that target Azure AD / Microsoft Defender log sources
-- [ ] **SENT-03**: HTML report shows Sentinel-specific coverage column when Azure events are present
+- [x] **SENT-03**: HTML report shows Sentinel-specific coverage column when Azure events are present
 
 ## v2 Requirements
 
@@ -89,7 +89,7 @@
 | CROW-03 | Phase 4 | Complete |
 | SENT-01 | Phase 5 | Complete |
 | SENT-02 | Phase 5 | Complete |
-| SENT-03 | Phase 5 | Pending |
+| SENT-03 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 19 total

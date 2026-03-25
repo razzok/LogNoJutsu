@@ -10,7 +10,7 @@ Milestone 1 — Verified & Expanded: Make LogNoJutsu trustworthy for professiona
 - [x] **Phase 2: Code Structure & Test Coverage** - Refactor package-level globals to a struct, split into packages, add unit tests for engine, handlers, and verification logic (completed 2026-03-25)
 - [x] **Phase 3: Additional Techniques** - Add 5+ new MITRE ATT&CK techniques and 3+ Exabeam UEBA scenarios, all with events manifest entries (completed 2026-03-25)
 - [x] **Phase 4: CrowdStrike SIEM Coverage** - Add CrowdStrike Falcon detection mappings and Falcon-sensor-specific techniques to the events manifest and HTML report (completed 2026-03-25)
-- [ ] **Phase 5: Microsoft Sentinel Coverage** - Add Microsoft Sentinel / Azure AD detection mappings and Azure-specific techniques to the events manifest and HTML report
+- [x] **Phase 5: Microsoft Sentinel Coverage** - Add Microsoft Sentinel / Azure AD detection mappings and Azure-specific techniques to the events manifest and HTML report (completed 2026-03-25)
 
 ## Phase Details
 
@@ -85,8 +85,8 @@ Plans:
   2. At least 3 techniques target Azure AD / Microsoft Defender / Sentinel log sources
   3. HTML report shows a Sentinel coverage column listing mapped analytic rule names per technique
   4. Documentation covers Sentinel-specific prerequisites and setup
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
-- [ ] 05-01-PLAN.md — Sentinel detection mappings on 5 existing technique YAMLs + TestSentinelCoverage
+- [x] 05-01-PLAN.md — Sentinel detection mappings on 5 existing technique YAMLs + TestSentinelCoverage
 - [x] 05-02-PLAN.md — 3 new AZURE_ technique YAML files (kerberoasting, LDAP recon, DCSync)
-- [ ] 05-03-PLAN.md — Conditional Sentinel column in HTML report + README documentation
+- [x] 05-03-PLAN.md — Conditional Sentinel column in HTML report + README documentation
