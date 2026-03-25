@@ -1,0 +1,68 @@
+id: UEBA-ACCOUNT-TAKEOVER
+name: UEBA -- Account Takeover Chain
+description: "Exabeam UEBA scenario: generates failed logon attempts followed by post-authentication enumeration at unusual hours. Triggers Exabeam account compromise chain and abnormal authentication pattern use cases."
+tactic: ueba-scenario
+technique_id: T1078
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - event_id: 4625
+    channel: "Security"
+    description: "Failed logon x5 — rapid succession (Exabeam: brute force precursor)"
+  - event_id: 4624
+    channel: "Security"
+    description: "Logon event — existing session (Exabeam: new session after failures)"
+  - event_id: 4688
+    channel: "Security"
+    description: "Post-auth enumeration burst — whoami, ipconfig, net user (Exabeam: recon after compromise)"
+tags:
+  - ueba
+  - exabeam
+  - account-compromise
+  - brute-force
+executor:
+  type: powershell
+  command: |
+    Write-Host "[UEBA] Account Takeover Chain — Simulating failed logins + post-auth enumeration"
+    Write-Host "Step 1: Generating 5 failed authentication attempts (brute force precursor)..."
+    Add-Type -AssemblyName System.DirectoryServices.AccountManagement
+    $failCount = 0
+    for ($i = 1; $i -le 5; $i++) {
+        try {
+            $ctx = New-Object System.DirectoryServices.AccountManagement.PrincipalContext([System.DirectoryServices.AccountManagement.ContextType]::Machine)
+            $ctx.ValidateCredentials("takeover_test_user", "WrongPass$i!") | Out-Null
+        } catch {}
+        $failCount++
+        Write-Host "  ... attempt $i/5 failed (Event 4625)"
+        Start-Sleep -Milliseconds 200
+    }
+    Write-Host "  Failed attempts generated: $failCount"
+    Write-Host ""
+    Write-Host "Step 2: Logging session context (existing authenticated session)..."
+    $now = Get-Date
+    $hour = $now.Hour
+    Write-Host "  Current time: $($now.ToString('yyyy-MM-dd HH:mm:ss')) (Hour: $hour)"
+    if ($hour -lt 8 -or $hour -gt 18) {
+        Write-Host "  OUTSIDE business hours — activity matches Exabeam off-hours takeover pattern!"
+    } else {
+        Write-Host "  Within business hours. Note: Exabeam baselines the hour of first activity per user."
+    }
+    Write-Host ""
+    Write-Host "Step 3: Post-authentication enumeration burst (rapid recon after account access)..."
+    Write-Host "  [+] whoami /all"
+    whoami /all 2>$null | Out-Null
+    Write-Host "  [+] ipconfig /all"
+    ipconfig /all 2>$null | Out-Null
+    Write-Host "  [+] net user"
+    net user 2>$null | Out-Null
+    Write-Host "  [+] net localgroup administrators"
+    net localgroup administrators 2>$null | Out-Null
+    Write-Host "  Enumeration burst complete (4x EID 4688 in rapid succession)"
+    Write-Host ""
+    Write-Host "UEBA DETECTION EXPECTED:"
+    Write-Host "  - Exabeam: Account compromise — failed logins + success + enumeration burst"
+    Write-Host "  - Exabeam: Brute force precursor (multiple 4625 events in short window)"
+    Write-Host "  - Exabeam: Post-compromise recon (rapid command execution after auth)"
+    Write-Host "  - Rule: >3 failed logins followed by successful session + immediate enumeration"
+cleanup: ""

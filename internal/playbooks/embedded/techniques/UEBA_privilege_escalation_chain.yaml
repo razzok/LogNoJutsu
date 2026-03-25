@@ -1,0 +1,64 @@
+id: UEBA-PRIV-ESC
+name: UEBA -- Privilege Escalation Chain
+description: "Exabeam UEBA scenario: simulates a normal user checking privileges, enumerating admin groups, and attempting privilege-related operations. Triggers Exabeam abnormal privilege use and privilege escalation attempt use cases."
+tactic: ueba-scenario
+technique_id: T1134.001
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - event_id: 4688
+    channel: "Security"
+    description: "whoami.exe /priv — privilege enumeration (Exabeam: abnormal admin tool use)"
+    contains: "/priv"
+  - event_id: 4688
+    channel: "Security"
+    description: "net.exe localgroup administrators — admin group check"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock — WindowsIdentity privilege check via .NET API"
+  - event_id: 4672
+    channel: "Security"
+    description: "Special privileges assigned to new logon (if elevated)"
+tags:
+  - ueba
+  - exabeam
+  - privilege-escalation
+executor:
+  type: powershell
+  command: |
+    Write-Host "[UEBA] Privilege Escalation Chain — Simulating abnormal privilege enumeration"
+    Write-Host "Step 1: Enumerating current privileges (EID 4688 — whoami /priv)..."
+    Write-Host "  [+] whoami /priv"
+    whoami /priv 2>$null
+    Write-Host ""
+    Write-Host "Step 2: Checking group memberships (EID 4688 — whoami /groups)..."
+    Write-Host "  [+] whoami /groups"
+    whoami /groups 2>$null | Out-Null
+    Write-Host ""
+    Write-Host "Step 3: Enumerating local administrators group (EID 4688 — net localgroup)..."
+    Write-Host "  [+] net localgroup administrators"
+    net localgroup administrators 2>$null
+    Write-Host ""
+    Write-Host "Step 4: .NET API privilege check (EID 4104 — WindowsIdentity)..."
+    $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
+    $isAdmin = $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+    $groups = $identity.Groups | ForEach-Object {
+        try { $_.Translate([System.Security.Principal.NTAccount]).Value } catch { $_.Value }
+    }
+    Write-Host "  Current user: $($identity.Name)"
+    Write-Host "  Is Administrator: $isAdmin"
+    Write-Host "  Group count: $($groups.Count)"
+    if ($isAdmin) {
+        Write-Host "  ELEVATED TOKEN DETECTED — EID 4672 (Special privileges assigned) expected in Security log"
+    } else {
+        Write-Host "  Standard user token — no EID 4672 expected (normal user running admin-check tools)"
+    }
+    Write-Host ""
+    Write-Host "UEBA DETECTION EXPECTED:"
+    Write-Host "  - Exabeam: Abnormal privilege use — normal user running admin tools and token checks"
+    Write-Host "  - Exabeam: Privilege enumeration burst — whoami /priv + net localgroup in sequence"
+    Write-Host "  - Exabeam: First-time use of privilege-checking commands for this account"
+    Write-Host "  - Rule: Non-admin account executing privilege enumeration chain"
+cleanup: ""

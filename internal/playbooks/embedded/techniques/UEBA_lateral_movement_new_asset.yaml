@@ -1,0 +1,57 @@
+id: UEBA-LATERAL-NEW-ASSET
+name: UEBA -- Lateral Movement + New Asset Access
+description: "Exabeam UEBA scenario: simulates first-time access to a new internal host via SMB share enumeration and RDP port probing. Triggers Exabeam new asset access and lateral movement use cases."
+tactic: ueba-scenario
+technique_id: T1021.002
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - event_id: 5140
+    channel: "Security"
+    description: "Network share object accessed — SMB share access attempt (Exabeam: new asset access)"
+  - event_id: 4688
+    channel: "Security"
+    description: "net.exe use/view — share enumeration on target host"
+  - event_id: 3
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "Sysmon NetworkConnect — port 445 SMB connection attempt"
+  - event_id: 4624
+    channel: "Security"
+    description: "Logon event — network logon type 3 if share access succeeds"
+tags:
+  - ueba
+  - exabeam
+  - lateral-movement
+executor:
+  type: powershell
+  command: |
+    Write-Host "[UEBA] Lateral Movement + New Asset Access — Simulating first-time SMB/RDP asset access"
+    Write-Host "Step 1: SMB admin share access attempt (EID 5140 + Sysmon EID 3 on port 445)..."
+    Write-Host "  [+] net use \\127.0.0.1\C$"
+    net use \\127.0.0.1\C$ 2>&1 | Write-Host
+    Write-Host ""
+    Write-Host "Step 2: Enumerating shares on target host (EID 4688 — net view)..."
+    Write-Host "  [+] net view \\127.0.0.1"
+    net view \\127.0.0.1 2>&1 | Write-Host
+    Write-Host ""
+    Write-Host "Step 3: Checking active sessions (EID 4688 — net session)..."
+    Write-Host "  [+] net session"
+    net session 2>&1 | Write-Host
+    Write-Host ""
+    Write-Host "Step 4: SMB port probe — port 445 (Sysmon EID 3 — network connection)..."
+    Write-Host "  [+] Test-NetConnection 127.0.0.1:445"
+    $smb = Test-NetConnection -ComputerName 127.0.0.1 -Port 445 -InformationLevel Quiet -WarningAction SilentlyContinue 2>$null
+    Write-Host "  SMB port 445 reachable: $smb"
+    Write-Host ""
+    Write-Host "Step 5: RDP port probe — port 3389 (Sysmon EID 3 — lateral movement via RDP)..."
+    Write-Host "  [+] Test-NetConnection 127.0.0.1:3389"
+    $rdp = Test-NetConnection -ComputerName 127.0.0.1 -Port 3389 -InformationLevel Quiet -WarningAction SilentlyContinue 2>$null
+    Write-Host "  RDP port 3389 reachable: $rdp"
+    Write-Host ""
+    Write-Host "UEBA DETECTION EXPECTED:"
+    Write-Host "  - Exabeam: First-time access to new asset + lateral movement via SMB/RDP"
+    Write-Host "  - Exabeam: New asset accessed by this user (first-time-seen-on-host use case)"
+    Write-Host "  - Exabeam: SMB admin share access attempt (EID 5140 — C$ share)"
+    Write-Host "  - Rule: User accessing internal host not seen in their 30-day baseline"
+cleanup: 'net use \\127.0.0.1\C$ /delete 2>$null; Write-Host "Cleanup: SMB connection removed."'
