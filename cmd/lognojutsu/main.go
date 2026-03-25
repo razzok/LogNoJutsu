@@ -25,7 +25,7 @@ func main() {
 	password := flag.String("password", "", "Optional UI password (empty = no auth)")
 	flag.Parse()
 
-	fmt.Println(banner)
+	fmt.Print(banner)
 
 	cfg := server.Config{
 		Host:     *host,

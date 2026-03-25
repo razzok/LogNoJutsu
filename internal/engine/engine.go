@@ -100,12 +100,18 @@ type Engine struct {
 	// resolved user profiles with decrypted passwords for this run
 	resolvedProfiles   []resolvedProfile
 	rotationIndex      int
+	runner             RunnerFunc // nil = real executor
 }
 
 type resolvedProfile struct {
 	profile  *userstore.UserProfile
 	password string
 }
+
+// RunnerFunc abstracts technique execution for testability.
+// Mirrors the QueryFn pattern in the verifier package (D-06).
+// nil means use the real executor (production path unchanged).
+type RunnerFunc func(t *playbooks.Technique, profile *userstore.UserProfile, password string) playbooks.ExecutionResult
 
 func New(registry *playbooks.Registry, users *userstore.Store) *Engine {
 	return &Engine{
@@ -119,6 +125,12 @@ func New(registry *playbooks.Registry, users *userstore.Store) *Engine {
 		},
 		stopCh: make(chan struct{}, 1),
 	}
+}
+
+// SetRunner injects a custom execution function for testing.
+// Pass nil to restore the default (real executor).
+func (e *Engine) SetRunner(fn RunnerFunc) {
+	e.runner = fn
 }
 
 func (e *Engine) Start(cfg Config) error {
@@ -449,6 +461,14 @@ func (e *Engine) runTechnique(t *playbooks.Technique) {
 			VerificationStatus: playbooks.VerifNotRun,
 		}
 		simlog.Info(fmt.Sprintf("[WhatIf] Would run: %s — %s (as %s)", t.ID, t.Name, userLabel))
+	} else if e.runner != nil {
+		// Injected runner for testing (D-05)
+		result = e.runner(t, profile, password)
+		if t.Cleanup != "" && !e.cfg.RunCleanup {
+			e.mu.Lock()
+			e.executedTechniques = append(e.executedTechniques, t)
+			e.mu.Unlock()
+		}
 	} else if e.cfg.RunCleanup {
 		result = executor.RunWithCleanup(t, profile, password)
 	} else {
