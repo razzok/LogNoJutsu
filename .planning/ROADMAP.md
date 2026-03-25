@@ -85,4 +85,8 @@ Plans:
   2. At least 3 techniques target Azure AD / Microsoft Defender / Sentinel log sources
   3. HTML report shows a Sentinel coverage column listing mapped analytic rule names per technique
   4. Documentation covers Sentinel-specific prerequisites and setup
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 05-01-PLAN.md — Sentinel detection mappings on 5 existing technique YAMLs + TestSentinelCoverage
+- [ ] 05-02-PLAN.md — 3 new AZURE_ technique YAML files (kerberoasting, LDAP recon, DCSync)
+- [ ] 05-03-PLAN.md — Conditional Sentinel column in HTML report + README documentation
