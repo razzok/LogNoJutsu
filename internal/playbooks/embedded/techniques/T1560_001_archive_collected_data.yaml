@@ -1,0 +1,50 @@
+id: T1560.001
+name: Archive Collected Data — Archive via Utility
+description: Simulates attacker archival of staged files prior to exfiltration — creates synthetic staged files, compresses them using PowerShell Compress-Archive (generates EID 4104 ScriptBlock + Sysmon EID 11 FileCreate for .zip), then uses compact.exe NTFS compression as an alternative method (EID 4688). Attackers archive collected files to reduce size and evade DLP controls. The combination of PowerShell archive creation + file creation event is a tier-2 DLP/EDR detection rule.
+tactic: collection
+technique_id: T1560.001
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4104 (PowerShell ScriptBlock — Compress-Archive creating zip from staged files)"
+  - "4688 (compact.exe — NTFS compression on staged directory)"
+  - "Sysmon 11 (FileCreate — archive file .zip creation in TEMP)"
+tags:
+  - collection
+  - no-prereqs
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[T1560.001] Archive Collected Data — archive simulation"
+
+    # Method 1: Create staging directory with synthetic files if not exists
+    Write-Host "--- Method 1: Create staging directory with synthetic files ---"
+    $stageDir = "$env:TEMP\lnj_stage"
+    New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
+    [System.IO.File]::WriteAllText("$stageDir\report_q1.txt", "LOGNOJUTSU_SIMULATION Q1 report data")
+    [System.IO.File]::WriteAllText("$stageDir\contacts.txt", "LOGNOJUTSU_SIMULATION contacts list")
+    [System.IO.File]::WriteAllText("$stageDir\notes.txt", "LOGNOJUTSU_SIMULATION internal notes")
+    [System.IO.File]::WriteAllText("$stageDir\config_backup.txt", "LOGNOJUTSU_SIMULATION config backup")
+    [System.IO.File]::WriteAllText("$stageDir\creds_sample.txt", "LOGNOJUTSU_SIMULATION credential placeholder")
+    Write-Host "Staging directory ready: $stageDir ($(( Get-ChildItem $stageDir ).Count) files)"
+
+    # Method 2: Compress-Archive — PowerShell archival (EID 4104 + Sysmon EID 11 FileCreate)
+    Write-Host "--- Method 2: Compress-Archive (EID 4104 + Sysmon EID 11) ---"
+    $archivePath = "$env:TEMP\lnj_archive.zip"
+    Compress-Archive -Path "$stageDir\*" -DestinationPath $archivePath -Force
+    Write-Host "Archive created: $archivePath"
+
+    # Method 3: compact.exe NTFS compression alternative (EID 4688 for compact.exe)
+    Write-Host "--- Method 3: compact.exe NTFS compression (EID 4688) ---"
+    compact.exe /C "$stageDir" 2>&1 | Select-Object -First 5 | Write-Host
+
+    # Method 4: Verify archive was created
+    Write-Host "--- Method 4: Verify archive ---"
+    Get-Item $archivePath | Select-Object Name, Length, CreationTime | Format-Table -AutoSize
+
+    Write-Host "[T1560.001] Complete. EID 4104 + 4688 + Sysmon 11 generated."
+cleanup: |-
+  Remove-Item "$env:TEMP\lnj_archive.zip" -Force -ErrorAction Ignore
+  Remove-Item "$env:TEMP\lnj_stage" -Recurse -Force -ErrorAction Ignore
+  Write-Host "Cleanup: Archive and staging artifacts removed."
