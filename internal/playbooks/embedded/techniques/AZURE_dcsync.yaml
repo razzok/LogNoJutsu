@@ -1,0 +1,95 @@
+id: AZURE_dcsync
+name: Sentinel - Potential DCSync Replication Access
+description: >
+  Sentinel-optimized DCSync simulation. Focuses on LDAP access to domain
+  object's DS-Replication extended rights (GUIDs 1131f6aa, 1131f6ad) to generate
+  EID 4662 — the primary event the Sentinel "Non Domain Controller Active
+  Directory Replication" rule queries. Unlike T1003.006 which uses repadmin
+  /syncall, this variant uses direct LDAP ACL access and DS-Replication attribute
+  enumeration to trigger the specific EID 4662 pattern Sentinel correlates.
+  Zero Azure connectivity required — generates local Windows Security Events.
+tactic: credential-access
+technique_id: T1003.006
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - event_id: 4662
+    channel: "Security"
+    description: "DS object access - Properties contain DS-Replication-Get-Changes GUIDs (1131f6aa, 1131f6ad)"
+  - event_id: 4688
+    channel: "Security"
+    description: "PowerShell process creation for LDAP replication queries"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - DS-Replication GUID enumeration"
+tags:
+  - credential-access
+  - active-directory
+  - sentinel-targeted
+siem_coverage:
+  sentinel:
+    # Official Sentinel rule: "Non Domain Controller Active Directory Replication"
+    # Source: Azure/Azure-Sentinel GitHub — NonDCActiveDirectoryReplication.yaml
+    - "Non Domain Controller Active Directory Replication"
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[AZURE_dcsync] Sentinel DCSync Detection — Replication Rights Enumeration"
+    Write-Host "Targets Sentinel 'Non Domain Controller Active Directory Replication' rule"
+
+    # DS-Replication extended right GUIDs (canonical DCSync indicators)
+    $replGetChanges    = "1131f6aa-9c07-11d1-f79f-00c04fc2dcd2"
+    $replGetChangesAll = "1131f6ad-9c07-11d1-f79f-00c04fc2dcd2"
+    Write-Host "DS-Replication-Get-Changes GUID: $replGetChanges"
+    Write-Host "DS-Replication-Get-Changes-All GUID: $replGetChangesAll"
+
+    # Method 1: Domain object ACL access — check for replication extended rights
+    # This LDAP access triggers EID 4662 on the DC with the replication GUIDs
+    Write-Host "--- Method 1: Domain object ACL — DS-Replication rights check ---"
+    try {
+        $root = [ADSI]"LDAP://RootDSE"
+        $domainDN = $root.defaultNamingContext
+        Write-Host "Domain DN: $domainDN"
+        $domainObj = [ADSI]"LDAP://$domainDN"
+        $acl = $domainObj.ObjectSecurity
+        $replAces = $acl.Access | Where-Object {
+            $_.ObjectType -eq $replGetChanges -or $_.ObjectType -eq $replGetChangesAll
+        }
+        Write-Host "DS-Replication ACEs found: $($replAces.Count)"
+        $replAces | ForEach-Object {
+            Write-Host "  Identity: $($_.IdentityReference) Right: $($_.ActiveDirectoryRights) GUID: $($_.ObjectType)"
+        }
+    } catch { Write-Host "ACL check: $_" }
+
+    # Method 2: Enumerate all ExtendedRight ACEs on domain object
+    Write-Host "--- Method 2: All ExtendedRight ACEs on domain root ---"
+    try {
+        $extRights = $acl.Access | Where-Object { $_.ActiveDirectoryRights -match "ExtendedRight" }
+        Write-Host "Total ExtendedRight ACEs: $($extRights.Count)"
+        $extRights | Select-Object -First 10 | ForEach-Object {
+            Write-Host "  $($_.IdentityReference) -> $($_.ObjectType)"
+        }
+    } catch { Write-Host "ExtendedRight enum: $_" }
+
+    # Method 3: Query replication metadata via LDAP
+    Write-Host "--- Method 3: Replication metadata query ---"
+    try {
+        $searcher = New-Object System.DirectoryServices.DirectorySearcher
+        $searcher.SearchRoot = [ADSI]"LDAP://$domainDN"
+        $searcher.Filter = "(objectClass=domain)"
+        $searcher.PropertiesToLoad.AddRange(@("msDS-ReplAttributeMetaData","msDS-ReplValueMetaData","whenChanged"))
+        $domResult = $searcher.FindOne()
+        if ($domResult) {
+            Write-Host "Domain replication metadata accessed (EID 4662 on DC)"
+            $whenChanged = $domResult.Properties["whenchanged"]
+            Write-Host "  Domain lastChanged: $whenChanged"
+        }
+    } catch { Write-Host "Repl metadata: $_" }
+
+    # Method 4: nltest DC enumeration (supporting reconnaissance)
+    Write-Host "--- Method 4: nltest DC enumeration ---"
+    nltest /dclist:$env:USERDOMAIN 2>&1 | Write-Host
+
+    Write-Host "[AZURE_dcsync] Complete. Check EID 4662 with GUIDs 1131f6aa/1131f6ad on DC."
+cleanup: ""

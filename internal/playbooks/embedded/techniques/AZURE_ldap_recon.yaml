@@ -1,0 +1,96 @@
+id: AZURE_ldap_recon
+name: Sentinel - LDAP Directory Reconnaissance
+description: >
+  LDAP directory enumeration targeting Active Directory. Uses DirectorySearcher
+  with broad filters and tool-based exports (ldifde, dsquery) to simulate
+  attacker reconnaissance. Primary events: EID 4688 (LDAP tool process creation)
+  and EID 4104 (PowerShell ScriptBlock). Secondary: EID 1644 (expensive LDAP query)
+  fires only if NTDS diagnostic logging is configured on the DC
+  (HKLM\SYSTEM\CurrentControlSet\Services\NTDS\Diagnostics value 15 >= 5).
+  Sentinel coverage is via community hunting queries — no dedicated built-in
+  SecurityEvent analytic rule for EID 1644 exists. MDI handles LDAP recon via
+  IdentityQueryEvents table. Zero Azure connectivity required.
+tactic: discovery
+technique_id: T1087.002
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - event_id: 4688
+    channel: "Security"
+    description: "ldifde.exe / dsquery.exe process creation — LDAP tool execution"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock - DirectorySearcher LDAP enumeration"
+  - event_id: 4662
+    channel: "Security"
+    description: "DS object access — directory read operations during enumeration"
+tags:
+  - discovery
+  - active-directory
+  - sentinel-targeted
+siem_coverage:
+  sentinel:
+    - "Anomalous LDAP Activity"  # MEDIUM confidence — community hunting query, not built-in Sentinel rule. Verify in portal.
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[AZURE_ldap_recon] LDAP Directory Reconnaissance — Sentinel Detection"
+    Write-Host "Targets AD enumeration patterns visible to Sentinel via SecurityEvent table"
+
+    # Method 1: Broad DirectorySearcher — expensive query (EID 1644 on DC if diagnostics enabled)
+    Write-Host "--- Method 1: Broad DirectorySearcher (objectClass=*) ---"
+    $searcher = New-Object System.DirectoryServices.DirectorySearcher
+    $searcher.Filter = "(objectClass=*)"
+    $searcher.PageSize = 0
+    $searcher.SizeLimit = 1000
+    try {
+        $count = ($searcher.FindAll()).Count
+        Write-Host "Broad LDAP query returned $count objects (EID 1644 fires if NTDS diagnostic logging >= 5)"
+    } catch { Write-Host "Broad query: $_" }
+
+    # Method 2: User enumeration with attributes (EID 4104)
+    Write-Host "--- Method 2: User attribute enumeration ---"
+    $userSearcher = New-Object System.DirectoryServices.DirectorySearcher
+    $userSearcher.Filter = "(&(objectClass=user)(objectCategory=person))"
+    $userSearcher.PropertiesToLoad.AddRange(@("sAMAccountName","memberOf","adminCount","lastLogon","pwdLastSet"))
+    $userSearcher.SizeLimit = 100
+    try {
+        $users = $userSearcher.FindAll()
+        Write-Host "User objects found: $($users.Count)"
+        $users | Select-Object -First 5 | ForEach-Object {
+            $sam = $_.Properties["samaccountname"]
+            $admin = $_.Properties["admincount"]
+            Write-Host "  User: $sam (adminCount: $admin)"
+        }
+    } catch { Write-Host "User enum: $_" }
+
+    # Method 3: ldifde export (EID 4688 for ldifde.exe)
+    Write-Host "--- Method 3: ldifde LDAP export (EID 4688) ---"
+    $ldifPath = "$env:TEMP\lognojutsu_ldap_export.ldf"
+    ldifde -f $ldifPath -r "(objectClass=user)" -l "sAMAccountName,memberOf" -p subtree 2>&1 | Write-Host
+    if (Test-Path $ldifPath) {
+        $lines = (Get-Content $ldifPath | Measure-Object).Count
+        Write-Host "LDIF export: $lines lines"
+        Remove-Item $ldifPath -Force
+    }
+
+    # Method 4: dsquery for privileged accounts (EID 4688 for dsquery.exe)
+    Write-Host "--- Method 4: dsquery privileged accounts (EID 4688) ---"
+    dsquery * -filter "(&(objectClass=user)(adminCount=1))" -attr sAMAccountName description 2>&1 | Select-Object -First 10 | Write-Host
+
+    # Method 5: Computer enumeration
+    Write-Host "--- Method 5: Computer object enumeration ---"
+    $compSearcher = New-Object System.DirectoryServices.DirectorySearcher
+    $compSearcher.Filter = "(objectClass=computer)"
+    $compSearcher.PropertiesToLoad.AddRange(@("cn","operatingSystem","dNSHostName"))
+    $compSearcher.SizeLimit = 50
+    try {
+        $comps = $compSearcher.FindAll()
+        Write-Host "Computer objects: $($comps.Count)"
+    } catch { Write-Host "Computer enum: $_" }
+
+    Write-Host "[AZURE_ldap_recon] Complete. Check EID 4688 (ldifde/dsquery), EID 4104 (ScriptBlock)."
+cleanup: |-
+  Remove-Item "$env:TEMP\lognojutsu_ldap_export.ldf" -ErrorAction SilentlyContinue
+  Write-Host "Cleanup: LDIF export removed."
