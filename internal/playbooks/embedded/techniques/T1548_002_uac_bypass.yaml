@@ -22,6 +22,9 @@ expected_events:
 tags:
   - privilege-escalation
   - no-prereqs
+siem_coverage:
+  crowdstrike:
+    - "Windows Logon Bypass (Sticky Keys)"
 executor:
   type: powershell
   command: |-

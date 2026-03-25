@@ -23,6 +23,9 @@ tags:
   - execution
   - no-prereqs
   - lolbin
+siem_coverage:
+  crowdstrike:
+    - "Suspicious Scripts and Commands"
 executor:
   type: powershell
   command: |-

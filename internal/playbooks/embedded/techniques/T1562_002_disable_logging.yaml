@@ -19,6 +19,9 @@ expected_events:
 tags:
   - defense-evasion
   - requires-elevation
+siem_coverage:
+  crowdstrike:
+    - "Suspicious Scripts and Commands"
 executor:
   type: powershell
   command: |-

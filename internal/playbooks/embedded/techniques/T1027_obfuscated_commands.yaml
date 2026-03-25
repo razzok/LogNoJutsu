@@ -24,6 +24,10 @@ tags:
   - no-prereqs
   - obfuscation
   - ueba-anomaly
+siem_coverage:
+  crowdstrike:
+    - "Suspicious Scripts and Commands"
+    - "Script-Based Execution Monitoring"
 executor:
   type: powershell
   command: |-

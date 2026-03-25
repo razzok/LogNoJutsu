@@ -27,6 +27,9 @@ tags:
   - lsass
   - requires-elevation
   - ueba-credential-dumping
+siem_coverage:
+  crowdstrike:
+    - "Credential Dumping"
 executor:
   type: powershell
   command: |-

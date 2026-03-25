@@ -28,6 +28,9 @@ tags:
   - privilege-escalation
   - token
   - no-prereqs
+siem_coverage:
+  crowdstrike:
+    - "Code Injection"
 executor:
   type: powershell
   command: |-

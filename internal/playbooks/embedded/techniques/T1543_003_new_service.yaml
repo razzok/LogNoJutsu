@@ -22,6 +22,9 @@ expected_events:
 tags:
   - persistence
   - requires-elevation
+siem_coverage:
+  crowdstrike:
+    - "Suspicious Registry Operations"
 executor:
   type: powershell
   command: |-

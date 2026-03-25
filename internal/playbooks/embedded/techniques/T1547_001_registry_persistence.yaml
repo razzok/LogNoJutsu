@@ -16,6 +16,9 @@ expected_events:
 tags:
   - persistence
   - no-prereqs
+siem_coverage:
+  crowdstrike:
+    - "Suspicious Registry Operations"
 executor:
   type: powershell
   command: |-

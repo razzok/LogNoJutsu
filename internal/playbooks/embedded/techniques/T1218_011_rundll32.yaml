@@ -20,6 +20,9 @@ tags:
   - defense-evasion
   - lolbin
   - no-prereqs
+siem_coverage:
+  crowdstrike:
+    - "Javascript via Rundll32"
 executor:
   type: powershell
   command: |-
