@@ -70,10 +70,10 @@ Plans:
   2. At least 3 techniques specifically target and generate Falcon sensor events
   3. HTML report shows a CrowdStrike coverage column listing mapped detection rules per technique
   4. Documentation covers CrowdStrike-specific prerequisites and setup
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 Plans:
 - [x] 04-01-PLAN.md — SIEMCoverage field on Technique/ExecutionResult, engine propagation, 10 existing YAML CrowdStrike mappings
-- [ ] 04-02-PLAN.md — 3 new FALCON_ technique YAML files (process injection, LSASS access, lateral movement)
+- [x] 04-02-PLAN.md — 3 new FALCON_ technique YAML files (process injection, LSASS access, lateral movement)
 - [ ] 04-03-PLAN.md — Conditional CrowdStrike column in HTML report with CS badge and N/A styling
 
 ### Phase 5: Microsoft Sentinel Coverage
