@@ -1,0 +1,73 @@
+id: FALCON_lateral_movement_psexec
+name: Falcon Sensor - Lateral Movement PsExec Detection
+description: >
+  Simulates PsExec-style lateral movement patterns that trigger CrowdStrike
+  Falcon's lateral movement behavioral detections. Uses sc.exe remote service
+  creation and WMI process creation targeting localhost - the same API patterns
+  PsExec uses internally. Generates EID 7045 (service install) and WMI events
+  that Falcon correlates as lateral movement indicators.
+tactic: lateral-movement
+technique_id: T1021.002
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - event_id: 7045
+    channel: "System"
+    description: "New service installed - PsExec service creation pattern"
+  - event_id: 4688
+    channel: "Security"
+    description: "Process creation - sc.exe with create/start commands"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "Process Create - sc.exe service manipulation"
+  - event_id: 4697
+    channel: "Security"
+    description: "Service installed - audit event for new service"
+tags:
+  - lateral-movement
+  - psexec
+  - falcon-targeted
+siem_coverage:
+  crowdstrike:
+    - "Lateral Movement (PsExec)"
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[FALCON_lateral_movement_psexec] PsExec-Style Lateral Movement Simulation"
+    Write-Host "Targets CrowdStrike Falcon lateral movement behavioral detection"
+
+    # Method 1: sc.exe remote service creation pattern (core PsExec mechanism)
+    # PsExec works by: connect to ADMIN$ -> copy exe -> sc create -> sc start -> sc delete
+    # We simulate the service lifecycle without actual remote connection
+    Write-Host "--- Method 1: sc.exe service create/start/delete (PsExec pattern) ---"
+    $svcName = "LNJFalconTest"
+    sc.exe create $svcName binPath= "cmd.exe /c echo LogNoJutsu lateral movement test" type= own start= demand 2>&1 | Write-Host
+    Write-Host "Service created - EID 7045 (System) and EID 4697 (Security) fired"
+    Start-Sleep -Seconds 1
+    sc.exe start $svcName 2>&1 | Out-Null
+    Write-Host "Service start attempted (expected failure - binary is cmd echo)"
+    sc.exe delete $svcName 2>&1 | Write-Host
+    Write-Host "Service deleted - cleanup complete"
+
+    # Method 2: WMI process creation on localhost (WMI lateral movement pattern)
+    Write-Host "--- Method 2: WMI Process Create on localhost (lateral movement indicator) ---"
+    $result = Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList "cmd.exe /c echo LogNoJutsu_FALCON_lateral 2>&1 > $env:TEMP\lnj_falcon_lat.tmp" 2>&1
+    Write-Host "WMI Process Create result: $result"
+    Start-Sleep -Seconds 1
+    Remove-Item "$env:TEMP\lnj_falcon_lat.tmp" -ErrorAction SilentlyContinue
+
+    # Method 3: Named pipe pattern (PsExec communication channel)
+    Write-Host "--- Method 3: Named pipe creation (PsExec PSEXESVC pattern) ---"
+    $pipeName = "LNJFalconPipe"
+    $pipe = [System.IO.Pipes.NamedPipeServerStream]::new($pipeName, [System.IO.Pipes.PipeDirection]::InOut, 1)
+    Write-Host "Named pipe \\.\pipe\$pipeName created - lateral tool communication channel"
+    Start-Sleep -Milliseconds 500
+    $pipe.Dispose()
+    Write-Host "Pipe disposed"
+
+    Write-Host "[FALCON_lateral_movement_psexec] Complete. Check EID 7045 (new service), EID 4697 (service audit), EID 4688 (sc.exe)."
+cleanup: |-
+  sc.exe delete LNJFalconTest 2>&1 | Out-Null
+  Remove-Item "$env:TEMP\lnj_falcon_lat.tmp" -ErrorAction Ignore
+  Write-Host "Cleanup: test service and temp files removed."

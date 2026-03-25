@@ -1,0 +1,86 @@
+id: FALCON_process_injection
+name: Falcon Sensor - Process Injection Detection
+description: >
+  Simulates process injection patterns that trigger CrowdStrike Falcon's
+  Code Injection behavioral detection. Uses CreateRemoteThread, VirtualAllocEx,
+  and WriteProcessMemory API calls targeting a benign process (notepad.exe).
+  No malicious payload injected - simulation writes a NOP sled to demonstrate
+  the API call pattern that Falcon monitors.
+tactic: defense-evasion
+technique_id: T1055.001
+platform: windows
+phase: attack
+elevation_required: true
+expected_events:
+  - event_id: 8
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "CreateRemoteThread - cross-process thread creation"
+  - event_id: 10
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "ProcessAccess - SourceImage targeting notepad.exe with injection access mask"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "Process Create - notepad.exe spawned as injection target"
+  - event_id: 4688
+    channel: "Security"
+    description: "Process Creation - powershell.exe spawning notepad.exe"
+tags:
+  - defense-evasion
+  - process-injection
+  - requires-elevation
+  - falcon-targeted
+siem_coverage:
+  crowdstrike:
+    - "Code Injection"
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[FALCON_process_injection] Process Injection Pattern Simulation"
+    Write-Host "Targets CrowdStrike Falcon 'Code Injection' prevention policy"
+
+    # Start a benign target process
+    Write-Host "--- Starting target process (notepad.exe) ---"
+    $target = Start-Process notepad.exe -PassThru
+    Start-Sleep -Seconds 1
+    Write-Host "Target PID: $($target.Id)"
+
+    # Method 1: OpenProcess + VirtualAllocEx + WriteProcessMemory + CreateRemoteThread
+    # This is the classic injection pattern Falcon's Code Injection policy detects
+    Write-Host "--- Method 1: Classic DLL injection API pattern ---"
+    $sig = '[DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint a, bool b, int c); [DllImport("kernel32.dll")] public static extern IntPtr VirtualAllocEx(IntPtr h, IntPtr a, uint s, uint t, uint p); [DllImport("kernel32.dll")] public static extern bool WriteProcessMemory(IntPtr h, IntPtr a, byte[] b, uint s, out int w); [DllImport("kernel32.dll")] public static extern IntPtr CreateRemoteThread(IntPtr h, IntPtr a, uint s, IntPtr f, IntPtr p, uint c, IntPtr t); [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);'
+    Add-Type -MemberDefinition $sig -Name LNJInject -Namespace LNJ04
+
+    $hProc = [LNJ04.LNJInject]::OpenProcess(0x1F0FFF, $false, $target.Id)
+    if ($hProc -ne [IntPtr]::Zero) {
+        Write-Host "OpenProcess(PROCESS_ALL_ACCESS) on target - Sysmon EID 10 generated"
+        $addr = [LNJ04.LNJInject]::VirtualAllocEx($hProc, [IntPtr]::Zero, 64, 0x3000, 0x40)
+        if ($addr -ne [IntPtr]::Zero) {
+            Write-Host "VirtualAllocEx allocated 64 bytes RWX in target - memory allocation logged"
+            $nops = [byte[]]::new(64)  # NOP sled - no malicious payload
+            $written = 0
+            [LNJ04.LNJInject]::WriteProcessMemory($hProc, $addr, $nops, 64, [ref]$written) | Out-Null
+            Write-Host "WriteProcessMemory wrote $written bytes (NOP sled) - Sysmon EID 8 pending"
+            $thread = [LNJ04.LNJInject]::CreateRemoteThread($hProc, [IntPtr]::Zero, 0, $addr, [IntPtr]::Zero, 0, [IntPtr]::Zero)
+            if ($thread -ne [IntPtr]::Zero) {
+                Write-Host "CreateRemoteThread succeeded - Sysmon EID 8 fired (cross-process thread)"
+                [LNJ04.LNJInject]::CloseHandle($thread) | Out-Null
+            } else {
+                Write-Host "CreateRemoteThread failed (expected if AV/EDR blocked)"
+            }
+        }
+        [LNJ04.LNJInject]::CloseHandle($hProc) | Out-Null
+    } else {
+        Write-Host "OpenProcess failed (requires elevation)"
+    }
+
+    # Method 2: QueueUserAPC injection pattern (alternative vector)
+    Write-Host "--- Method 2: QueueUserAPC pattern (alertable thread injection) ---"
+    Write-Host "Skipped in simulation - Method 1 already generates all required Sysmon events"
+
+    # Cleanup target
+    Start-Sleep -Seconds 1
+    Stop-Process -Id $target.Id -Force -ErrorAction SilentlyContinue
+    Write-Host "[FALCON_process_injection] Complete. Check Sysmon EID 8 (CreateRemoteThread) and EID 10 (ProcessAccess)."
+cleanup: |-
+  Stop-Process -Name notepad -Force -ErrorAction SilentlyContinue
+  Write-Host "Cleanup: notepad.exe terminated."
