@@ -1,0 +1,53 @@
+id: T1119
+name: Automated Collection
+description: Simulates automated attacker data collection using PowerShell scripting loops — enumerates file metadata from the user profile using ForEach-Object automation (EID 4104), inventories disk resources via Get-WmiObject Win32_LogicalDisk (EID 4104), and writes an indexed collection manifest to disk. Attackers use scripted automation to rapidly enumerate and catalog target files across the filesystem before exfiltration. The scripting loop pattern combined with WMI queries is a high-signal SIEM detection opportunity.
+tactic: collection
+technique_id: T1119
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4104 (PowerShell ScriptBlock — ForEach-Object automated file metadata collection loop)"
+  - "4104 (PowerShell ScriptBlock — Get-WmiObject Win32_LogicalDisk automated disk inventory)"
+  - "Sysmon 1 (PowerShell executing automated collection script with WMI queries)"
+tags:
+  - collection
+  - no-prereqs
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[T1119] Automated Collection — scripted enumeration simulation"
+
+    # Method 1: Automated file metadata collection loop (EID 4104 ScriptBlock)
+    Write-Host "--- Method 1: ForEach-Object automated file metadata collection (EID 4104) ---"
+    $collected = @()
+    Get-ChildItem $env:USERPROFILE -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+        $collected += [PSCustomObject]@{
+            Name      = $_.Name
+            Size      = $_.Length
+            LastWrite = $_.LastWriteTime
+            Path      = $_.FullName
+        }
+    }
+    Write-Host "Indexed $($collected.Count) items from user profile"
+
+    # Method 2: Get-WmiObject Win32_LogicalDisk — automated disk inventory (EID 4104)
+    Write-Host "--- Method 2: Get-WmiObject Win32_LogicalDisk disk inventory (EID 4104) ---"
+    Get-WmiObject Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace, DriveType | Format-Table -AutoSize
+
+    # Method 3: Write collected metadata index to disk — simulates attacker staging index file
+    Write-Host "--- Method 3: Write collection index to disk ---"
+    $indexPath = "$env:TEMP\lnj_collection_index.txt"
+    $collected | Select-Object -First 100 | ForEach-Object {
+        "$($_.Name)`t$($_.Size)`t$($_.LastWrite)`t$($_.Path)"
+    } | Out-File -FilePath $indexPath -Encoding UTF8
+    Write-Host "Collection index written: $indexPath ($(( Get-Item $indexPath ).Length) bytes)"
+
+    # Method 4: Output collection summary
+    Write-Host "--- Method 4: Collection summary ---"
+    $totalSize = ($collected | Measure-Object -Property Size -Sum).Sum
+    Write-Host "Total items indexed: $($collected.Count)"
+    Write-Host "Total size (bytes): $totalSize"
+
+    Write-Host "[T1119] Complete. EID 4104 + Sysmon 1 generated."
+cleanup: Remove-Item "$env:TEMP\lnj_collection_index.txt" -Force -ErrorAction Ignore

@@ -1,0 +1,44 @@
+id: T1005
+name: Data from Local System
+description: Simulates attacker file enumeration and staging from the local system — enumerates Documents via cmd.exe dir, uses PowerShell Get-ChildItem to locate sensitive file types (PDF, DOCX, XLSX, KDBX), then stages copies with robocopy to a temp directory. Generates EID 4688 for cmd.exe and robocopy.exe process creation, EID 4104 for PowerShell ScriptBlock logging the Get-ChildItem recursive search, and Sysmon EID 1 for robocopy.exe staging. Attackers enumerate local files to identify credentials, documents, and configuration files worth exfiltrating.
+tactic: collection
+technique_id: T1005
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "4688 (cmd.exe — dir /s /b on USERPROFILE Documents path)"
+  - "4104 (PowerShell ScriptBlock — Get-ChildItem recursive search for *.pdf, *.docx, *.xlsx, *.kdbx)"
+  - "Sysmon 1 (robocopy.exe — staging copy to TEMP directory)"
+tags:
+  - collection
+  - no-prereqs
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[T1005] Data from Local System — file enumeration and staging simulation"
+
+    # Method 1: cmd.exe dir /s /b — enumerate Documents (EID 4688 for cmd.exe)
+    Write-Host "--- Method 1: cmd.exe dir enumeration (EID 4688) ---"
+    cmd /c "dir /s /b $env:USERPROFILE\Documents" 2>&1 | Select-Object -First 20 | Write-Host
+
+    # Method 2: PowerShell Get-ChildItem — recursive search for sensitive file types (EID 4104)
+    Write-Host "--- Method 2: Get-ChildItem sensitive file search (EID 4104) ---"
+    $sensitiveFiles = Get-ChildItem $env:USERPROFILE -Recurse -Include *.pdf,*.docx,*.xlsx,*.kdbx -ErrorAction SilentlyContinue | Select-Object -First 20
+    Write-Host "Sensitive files found: $($sensitiveFiles.Count)"
+    $sensitiveFiles | Select-Object Name, DirectoryName, Length | Format-Table -AutoSize
+
+    # Method 3: Create staging directory and synthetic test file
+    Write-Host "--- Method 3: Create staging directory with synthetic data ---"
+    $stageDir = "$env:TEMP\lnj_stage"
+    New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
+    [System.IO.File]::WriteAllText("$stageDir\sensitive_data.txt", "LOGNOJUTSU_SIMULATION`r`nUser: $env:USERNAME`r`nHost: $env:COMPUTERNAME`r`nThis is synthetic test data for SIEM validation.")
+    Write-Host "Staging directory created: $stageDir"
+
+    # Method 4: robocopy staging copy — generates Sysmon EID 1 for robocopy.exe process creation
+    Write-Host "--- Method 4: robocopy staging to TEMP (Sysmon EID 1) ---"
+    robocopy "$env:USERPROFILE\Desktop" "$stageDir" /e /xl /xj /r:0 /w:0 2>&1 | Select-Object -First 10 | Write-Host
+    Write-Host "Robocopy staging attempt complete — Sysmon EID 1 generated for robocopy.exe"
+
+    Write-Host "[T1005] Complete. EID 4688 + 4104 + Sysmon 1 generated."
+cleanup: Remove-Item "$env:TEMP\lnj_stage" -Recurse -Force -ErrorAction Ignore
