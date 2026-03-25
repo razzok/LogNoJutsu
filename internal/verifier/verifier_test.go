@@ -137,6 +137,59 @@ func TestQueryCountMock(t *testing.T) {
 	}
 }
 
+// TestVerifier_pass (D-11): Verify returns VerifPass when all matching events are found.
+func TestVerifier_pass(t *testing.T) {
+	since := time.Now().Add(-1 * time.Minute)
+	status, verified := Verify(
+		specs(4688, 4624),
+		since, true,
+		mockQueryFn(map[int]int{4688: 1, 4624: 1}),
+	)
+	if status != playbooks.VerifPass {
+		t.Errorf("expected VerifPass, got %q", status)
+	}
+	if len(verified) != 2 {
+		t.Fatalf("expected 2 verified, got %d", len(verified))
+	}
+	for _, v := range verified {
+		if !v.Found {
+			t.Errorf("event %d: expected Found=true", v.EventID)
+		}
+	}
+}
+
+// TestVerifier_fail (D-11): Verify returns VerifFail when one or more events are missing.
+func TestVerifier_fail(t *testing.T) {
+	since := time.Now().Add(-1 * time.Minute)
+	status, verified := Verify(
+		specs(4688, 9999),
+		since, true,
+		mockQueryFn(map[int]int{4688: 1}),
+	)
+	if status != playbooks.VerifFail {
+		t.Errorf("expected VerifFail, got %q", status)
+	}
+	// 9999 should be not found
+	for _, v := range verified {
+		if v.EventID == 9999 && v.Found {
+			t.Errorf("event 9999 should not be found")
+		}
+	}
+}
+
+// TestVerifier_notRun_WhatIf (D-11): Verify returns VerifNotRun when no specs are provided (WhatIf mode).
+func TestVerifier_notRun_WhatIf(t *testing.T) {
+	since := time.Now().Add(-1 * time.Minute)
+	// WhatIf mode: technique was not really executed, so specs are empty
+	status, verified := Verify(nil, since, true, mockQueryFn(map[int]int{}))
+	if status != playbooks.VerifNotRun {
+		t.Errorf("expected VerifNotRun, got %q", status)
+	}
+	if verified != nil {
+		t.Errorf("expected nil verified, got %v", verified)
+	}
+}
+
 // Ensure QueryFn type is usable (compile-time check).
 var _ QueryFn = func(channel string, eventID int, since time.Time) (int, error) {
 	return 0, errors.New("unused")
