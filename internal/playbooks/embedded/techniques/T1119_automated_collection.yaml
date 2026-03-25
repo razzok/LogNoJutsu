@@ -7,9 +7,15 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4104 (PowerShell ScriptBlock — ForEach-Object automated file metadata collection loop)"
-  - "4104 (PowerShell ScriptBlock — Get-WmiObject Win32_LogicalDisk automated disk inventory)"
-  - "Sysmon 1 (PowerShell executing automated collection script with WMI queries)"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock — ForEach-Object automated file metadata collection loop"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock — Get-WmiObject Win32_LogicalDisk automated disk inventory"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "PowerShell executing automated collection script with WMI queries"
 tags:
   - collection
   - no-prereqs

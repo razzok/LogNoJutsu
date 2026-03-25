@@ -7,9 +7,15 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4104 (PowerShell ScriptBlock — Compress-Archive creating zip from staged files)"
-  - "4688 (compact.exe — NTFS compression on staged directory)"
-  - "Sysmon 11 (FileCreate — archive file .zip creation in TEMP)"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock — Compress-Archive creating zip from staged files"
+  - event_id: 4688
+    channel: "Security"
+    description: "compact.exe — NTFS compression on staged directory"
+  - event_id: 11
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "FileCreate — archive file .zip creation in TEMP"
 tags:
   - collection
   - no-prereqs

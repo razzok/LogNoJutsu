@@ -7,9 +7,15 @@ platform: windows
 phase: attack
 elevation_required: false
 expected_events:
-  - "4688 (cmd.exe — dir /s /b on USERPROFILE Documents path)"
-  - "4104 (PowerShell ScriptBlock — Get-ChildItem recursive search for *.pdf, *.docx, *.xlsx, *.kdbx)"
-  - "Sysmon 1 (robocopy.exe — staging copy to TEMP directory)"
+  - event_id: 4688
+    channel: "Security"
+    description: "cmd.exe — dir /s /b on USERPROFILE Documents path"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "PowerShell ScriptBlock — Get-ChildItem recursive search for *.pdf, *.docx, *.xlsx, *.kdbx"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "robocopy.exe — staging copy to TEMP directory"
 tags:
   - collection
   - no-prereqs
