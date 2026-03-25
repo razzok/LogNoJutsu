@@ -19,13 +19,44 @@ func TestNewTechniqueCount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadEmbedded() failed: %v", err)
 	}
-	if len(reg.Techniques) < 48 {
-		t.Errorf("expected at least 48 techniques, got %d", len(reg.Techniques))
+	if len(reg.Techniques) < 51 {
+		t.Errorf("expected at least 51 techniques, got %d", len(reg.Techniques))
 	}
-	required := []string{"T1005", "T1560.001", "T1119", "T1071.001", "T1071.004"}
+	required := []string{"T1005", "T1560.001", "T1119", "T1071.001", "T1071.004", "FALCON_process_injection", "FALCON_lsass_access", "FALCON_lateral_movement_psexec"}
 	for _, id := range required {
 		if _, ok := reg.Techniques[id]; !ok {
 			t.Errorf("missing required new ATT&CK technique: %s", id)
+		}
+	}
+}
+
+func TestFalconTechniques(t *testing.T) {
+	reg, err := LoadEmbedded()
+	if err != nil {
+		t.Fatalf("LoadEmbedded() failed: %v", err)
+	}
+
+	falconIDs := []string{"FALCON_process_injection", "FALCON_lsass_access", "FALCON_lateral_movement_psexec"}
+	invalidTactics := map[string]bool{"crowdstrike-falcon": true, "falcon": true, "crowdstrike": true}
+
+	for _, id := range falconIDs {
+		tech, ok := reg.Techniques[id]
+		if !ok {
+			t.Errorf("missing FALCON technique: %s", id)
+			continue
+		}
+		if len(tech.ExpectedEvents) == 0 {
+			t.Errorf("%s has no expected_events", id)
+		}
+		cs := tech.SIEMCoverage["crowdstrike"]
+		if len(cs) == 0 {
+			t.Errorf("%s has no siem_coverage.crowdstrike entries", id)
+		}
+		if invalidTactics[tech.Tactic] {
+			t.Errorf("%s uses non-MITRE tactic %q — must use standard MITRE tactic name", id, tech.Tactic)
+		}
+		if tech.Phase != "attack" {
+			t.Errorf("%s phase should be 'attack', got %q", id, tech.Phase)
 		}
 	}
 }

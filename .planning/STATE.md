@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 04
-last_updated: "2026-03-25T18:42:57.682Z"
+last_updated: "2026-03-25T19:01:27.912Z"
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 12
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 **Active phase:** 02-code-structure-test-coverage
 **Last action:** Completed 02-code-structure-test-coverage/02-03-PLAN.md
 **Next step:** Phase 02 complete — all 3 plans done
-**Last session:** 2026-03-25T18:42:57.676Z
+**Last session:** 2026-03-25T19:01:27.906Z
 
 ## Phase Progress
 
@@ -61,6 +61,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 - [Phase 03-additional-techniques]: ATT&CK sections inserted at end of Phase 2: Attack block, UEBA sections at end of UEBA-Szenarien — preserves section organization
 - [Phase 04-crowdstrike-siem-coverage]: Single result.SIEMCoverage = t.SIEMCoverage line after if/else block in runTechnique covers all four code paths with one line
 - [Phase 04-crowdstrike-siem-coverage]: Discovery/UEBA techniques excluded from siem_coverage — benign enumeration does not trigger Falcon prevention policies
+- [Phase 04-crowdstrike-siem-coverage]: FALCON_ technique YAML commands use single-line Add-Type signatures (not here-strings) to avoid YAML @' parse errors
+- [Phase 04-crowdstrike-siem-coverage]: FALCON_lsass_access uses GrantedAccess 0x0410 vs T1003.001's 0x1010 — different access mask triggers distinct Falcon ML detection path
+- [Phase 04-crowdstrike-siem-coverage]: CSS classes for CrowdStrike (cs-badge/cs-na/cs-list) rendered inside {{if .HasCrowdStrike}} conditional — ensures absent HTML has zero vendor-specific markup
+- [Phase 04-crowdstrike-siem-coverage]: siemCoverage funcMap helper used for nil-safe map access in templates, avoiding nil map panic when SIEMCoverage is nil on ExecutionResult
 
 ## Performance Metrics
 
@@ -75,6 +79,8 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 | Phase 03-additional-techniques P02 | 10min | 2 tasks | 5 files |
 | Phase 03-additional-techniques P03 | 3min | 2 tasks | 1 files |
 | Phase 04-crowdstrike-siem-coverage P01 | 3min | 2 tasks | 13 files |
+| Phase 04-crowdstrike-siem-coverage P02 | 4min | 2 tasks | 4 files |
+| Phase 04-crowdstrike-siem-coverage P03 | 15min | 2 tasks | 2 files |
 
 ## Codebase Map
 
