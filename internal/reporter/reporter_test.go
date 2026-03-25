@@ -172,6 +172,65 @@ func TestHTMLCrowdStrikeColumn(t *testing.T) {
 	})
 }
 
+// TestHTMLSentinelColumn checks that a Microsoft Sentinel coverage column renders
+// conditionally based on whether any result has siem_coverage.sentinel populated.
+func TestHTMLSentinelColumn(t *testing.T) {
+	t.Run("present", func(t *testing.T) {
+		result := makeResult(playbooks.VerifPass, nil)
+		result.SIEMCoverage = map[string][]string{
+			"sentinel": {"Potential Kerberoasting", "Non Domain Controller Active Directory Replication"},
+		}
+		html := saveHTMLToDir(t, []playbooks.ExecutionResult{result})
+
+		checks := []string{
+			"Microsoft Sentinel",
+			"ms-badge",
+			"MS",
+			"Potential Kerberoasting",
+			"Non Domain Controller Active Directory Replication",
+		}
+		for _, want := range checks {
+			if !strings.Contains(html, want) {
+				t.Errorf("expected HTML to contain %q", want)
+			}
+		}
+	})
+
+	t.Run("absent", func(t *testing.T) {
+		result := makeResult(playbooks.VerifPass, nil)
+		html := saveHTMLToDir(t, []playbooks.ExecutionResult{result})
+
+		unwanted := []string{"Microsoft Sentinel", "ms-badge"}
+		for _, bad := range unwanted {
+			if strings.Contains(html, bad) {
+				t.Errorf("HTML should NOT contain %q when no Sentinel coverage", bad)
+			}
+		}
+	})
+
+	t.Run("na_cell", func(t *testing.T) {
+		withSentinel := makeResult(playbooks.VerifPass, nil)
+		withSentinel.TechniqueID = "AZURE_kerberoasting"
+		withSentinel.SIEMCoverage = map[string][]string{
+			"sentinel": {"Potential Kerberoasting"},
+		}
+		withoutSentinel := makeResult(playbooks.VerifPass, nil)
+		withoutSentinel.TechniqueID = "T1016"
+
+		html := saveHTMLToDir(t, []playbooks.ExecutionResult{withSentinel, withoutSentinel})
+
+		if !strings.Contains(html, "ms-badge") {
+			t.Error("expected ms-badge for technique with Sentinel mapping")
+		}
+		if !strings.Contains(html, "ms-na") {
+			t.Error("expected ms-na class for technique without Sentinel mapping")
+		}
+		if !strings.Contains(html, "N/A") {
+			t.Error("expected N/A text for technique without Sentinel mapping")
+		}
+	})
+}
+
 // TestHTMLVerificationEventList checks per-event checkmark/X rendering.
 func TestHTMLVerificationEventList(t *testing.T) {
 	results := []playbooks.ExecutionResult{
