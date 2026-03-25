@@ -23,6 +23,10 @@ tags:
   - execution
   - no-prereqs
   - ueba-anomaly
+siem_coverage:
+  crowdstrike:
+    - "Suspicious Scripts and Commands"
+    - "Interpreter-Only"
 executor:
   type: powershell
   command: |-
