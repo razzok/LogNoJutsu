@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-last_updated: "2026-03-25T07:56:56.399Z"
+status: Executing Phase 03
+last_updated: "2026-03-25T14:19:07.963Z"
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 9
+  completed_plans: 8
 ---
 
 # Project State
@@ -19,7 +19,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 02 — code-structure-test-coverage
+**Current focus:** Phase 03 — additional-techniques
 
 ## Current Status
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 **Active phase:** 02-code-structure-test-coverage
 **Last action:** Completed 02-code-structure-test-coverage/02-03-PLAN.md
 **Next step:** Phase 02 complete — all 3 plans done
-**Last session:** 2026-03-25T08:50:00.000Z
+**Last session:** 2026-03-25T14:19:07.956Z
 
 ## Phase Progress
 
@@ -54,6 +54,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 - [Phase 02-03]: package server (white-box) test enables direct Server struct instantiation without exported constructor
 - [Phase 02-03]: TestHandleStatus_running uses slow RunnerFunc + 50ms sleep to verify phase transitions without real execution
 - [Phase 02-03]: Race detector requires CGO/gcc absent on this Windows dev machine — tests pass without -race flag
+- [Phase 03-additional-techniques]: Used plain string format for expected_events ([]string in types.go) consistent with all 43 existing techniques
+- [Phase 03-additional-techniques]: C2 techniques use .invalid TLD (RFC 2606) and 127.0.0.1 loopback only — no real outbound C2 traffic
+- [Phase 03-additional-techniques]: TestNewTechniqueCount committed in RED state (partially failing) because plan 03-01's ATT&CK files are Wave 1 parallel — test passes at wave-end when all 9 files are present
+- [Phase 03-additional-techniques]: UEBA-LATERAL-NEW-ASSET covers network-based first-time asset access (SMB+RDP probe), distinct from UEBA-LATERAL-CHAIN which covers enumeration speed burst
 
 ## Performance Metrics
 
@@ -64,6 +68,8 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 | Phase 02-code-structure-test-coverage P01 | 2min | 2 tasks | 3 files |
 | Phase 02-code-structure-test-coverage P02 | 5min | 2 tasks | 2 files |
 | Phase 02-code-structure-test-coverage P03 | 3min | 2 tasks | 1 file |
+| Phase 03-additional-techniques P01 | 3min | 2 tasks | 5 files |
+| Phase 03-additional-techniques P02 | 10min | 2 tasks | 5 files |
 
 ## Codebase Map
 

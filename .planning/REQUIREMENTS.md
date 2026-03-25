@@ -23,9 +23,9 @@
 
 ### Techniques
 
-- [ ] **TECH-01**: At least 5 additional MITRE ATT&CK techniques added (Discovery or Attack phase)
-- [ ] **TECH-02**: At least 3 additional Exabeam UEBA scenarios added
-- [ ] **TECH-03**: All existing and new techniques have events manifest entries (VERIF-01 coverage)
+- [x] **TECH-01**: At least 5 additional MITRE ATT&CK techniques added (Discovery or Attack phase)
+- [x] **TECH-02**: At least 3 additional Exabeam UEBA scenarios added
+- [x] **TECH-03**: All existing and new techniques have events manifest entries (VERIF-01 coverage)
 
 ### CrowdStrike Coverage
 
@@ -81,9 +81,9 @@
 | QUAL-03 | Phase 2 | Complete |
 | QUAL-04 | Phase 2 | Pending |
 | QUAL-05 | Phase 2 | Complete |
-| TECH-01 | Phase 3 | Pending |
-| TECH-02 | Phase 3 | Pending |
-| TECH-03 | Phase 3 | Pending |
+| TECH-01 | Phase 3 | Complete |
+| TECH-02 | Phase 3 | Complete |
+| TECH-03 | Phase 3 | Complete |
 | CROW-01 | Phase 4 | Pending |
 | CROW-02 | Phase 4 | Pending |
 | CROW-03 | Phase 4 | Pending |
