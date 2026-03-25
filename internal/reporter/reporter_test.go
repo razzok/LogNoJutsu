@@ -111,6 +111,67 @@ func TestHTMLVerificationNotExecuted(t *testing.T) {
 	}
 }
 
+// TestHTMLCrowdStrikeColumn checks that a CrowdStrike coverage column renders
+// conditionally based on whether any result has siem_coverage.crowdstrike populated.
+func TestHTMLCrowdStrikeColumn(t *testing.T) {
+	t.Run("present", func(t *testing.T) {
+		result := makeResult(playbooks.VerifPass, nil)
+		result.SIEMCoverage = map[string][]string{
+			"crowdstrike": {"Credential Dumping", "Suspicious LSASS Access"},
+		}
+		html := saveHTMLToDir(t, []playbooks.ExecutionResult{result})
+
+		checks := []string{
+			"CrowdStrike",           // column header
+			"cs-badge",              // badge CSS class
+			"CS",                    // badge text
+			"Credential Dumping",    // detection rule name
+			"Suspicious LSASS Access",
+		}
+		for _, want := range checks {
+			if !strings.Contains(html, want) {
+				t.Errorf("expected HTML to contain %q", want)
+			}
+		}
+	})
+
+	t.Run("absent", func(t *testing.T) {
+		result := makeResult(playbooks.VerifPass, nil)
+		// No SIEMCoverage set
+		html := saveHTMLToDir(t, []playbooks.ExecutionResult{result})
+
+		unwanted := []string{"CrowdStrike", "cs-badge"}
+		for _, bad := range unwanted {
+			if strings.Contains(html, bad) {
+				t.Errorf("HTML should NOT contain %q when no CrowdStrike coverage", bad)
+			}
+		}
+	})
+
+	t.Run("na_cell", func(t *testing.T) {
+		withCS := makeResult(playbooks.VerifPass, nil)
+		withCS.TechniqueID = "FALCON_lsass"
+		withCS.SIEMCoverage = map[string][]string{
+			"crowdstrike": {"Credential Dumping"},
+		}
+		withoutCS := makeResult(playbooks.VerifPass, nil)
+		withoutCS.TechniqueID = "T1016"
+		// No SIEMCoverage
+
+		html := saveHTMLToDir(t, []playbooks.ExecutionResult{withCS, withoutCS})
+
+		if !strings.Contains(html, "cs-badge") {
+			t.Error("expected cs-badge for technique with CrowdStrike mapping")
+		}
+		if !strings.Contains(html, "cs-na") {
+			t.Error("expected cs-na class for technique without CrowdStrike mapping")
+		}
+		if !strings.Contains(html, "N/A") {
+			t.Error("expected N/A text for technique without CrowdStrike mapping")
+		}
+	})
+}
+
 // TestHTMLVerificationEventList checks per-event checkmark/X rendering.
 func TestHTMLVerificationEventList(t *testing.T) {
 	results := []playbooks.ExecutionResult{
