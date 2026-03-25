@@ -93,6 +93,7 @@ type htmlData struct {
 	VerifPassed    int
 	VerifFailed    int
 	HasCrowdStrike bool
+	HasSentinel    bool
 }
 
 func fmtTime(s string) string {
@@ -160,6 +161,14 @@ func saveHTML(r Report, filename string) error {
 		}
 	}
 
+	hasSentinel := false
+	for _, res := range r.Results {
+		if len(res.SIEMCoverage["sentinel"]) > 0 {
+			hasSentinel = true
+			break
+		}
+	}
+
 	data := htmlData{
 		GeneratedAt:    fmtTime(r.GeneratedAt),
 		LogFile:        r.LogFile,
@@ -173,6 +182,7 @@ func saveHTML(r Report, filename string) error {
 		VerifPassed:    verifPassed,
 		VerifFailed:    verifFailed,
 		HasCrowdStrike: hasCrowdStrike,
+		HasSentinel:    hasSentinel,
 	}
 
 	funcMap := template.FuncMap{
@@ -270,6 +280,10 @@ tr:hover td{background:#161b22}
 .cs-na{color:#8b949e;font-size:11px}
 .cs-list{font-size:11px;margin-top:4px;padding-left:0;list-style:none}
 .cs-list li{margin:1px 0;color:#e6edf3}{{end}}
+{{if .HasSentinel}}.ms-badge{background:#0078D4;color:#fff;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;display:inline-block}
+.ms-na{color:#8b949e;font-size:11px}
+.ms-list{font-size:11px;margin-top:4px;padding-left:0;list-style:none}
+.ms-list li{margin:1px 0;color:#e6edf3}{{end}}
 @media print{.hdr{background:#fff;color:#000}.body{background:#fff}}
 </style>
 </head>
@@ -312,6 +326,7 @@ tr:hover td{background:#161b22}
         <th>Status</th>
         <th>Verifikation</th>
         {{if .HasCrowdStrike}}<th>CrowdStrike</th>{{end}}
+        {{if .HasSentinel}}<th>Microsoft Sentinel</th>{{end}}
         <th>Benutzer</th>
       </tr>
     </thead>
@@ -355,6 +370,19 @@ tr:hover td{background:#161b22}
           </ul>
         {{else}}
           <span class="cs-na">N/A</span>
+        {{end}}
+      </td>
+      {{end}}
+      {{if $.HasSentinel}}
+      <td>
+        {{$ms := siemCoverage .SIEMCoverage "sentinel"}}
+        {{if $ms}}
+          <span class="ms-badge">MS</span>
+          <ul class="ms-list">
+            {{range $ms}}<li>{{.}}</li>{{end}}
+          </ul>
+        {{else}}
+          <span class="ms-na">N/A</span>
         {{end}}
       </td>
       {{end}}
