@@ -81,17 +81,18 @@ type tacticStat struct {
 }
 
 type htmlData struct {
-	GeneratedAt  string
-	LogFile      string
-	TotalRun     int
-	Succeeded    int
-	Failed       int
-	SuccessRate  int
-	WhatIf       bool
-	TacticStats  []tacticStat
-	Results      []playbooks.ExecutionResult
-	VerifPassed  int
-	VerifFailed  int
+	GeneratedAt    string
+	LogFile        string
+	TotalRun       int
+	Succeeded      int
+	Failed         int
+	SuccessRate    int
+	WhatIf         bool
+	TacticStats    []tacticStat
+	Results        []playbooks.ExecutionResult
+	VerifPassed    int
+	VerifFailed    int
+	HasCrowdStrike bool
 }
 
 func fmtTime(s string) string {
@@ -151,23 +152,38 @@ func saveHTML(r Report, filename string) error {
 		}
 	}
 
+	hasCrowdStrike := false
+	for _, res := range r.Results {
+		if len(res.SIEMCoverage["crowdstrike"]) > 0 {
+			hasCrowdStrike = true
+			break
+		}
+	}
+
 	data := htmlData{
-		GeneratedAt: fmtTime(r.GeneratedAt),
-		LogFile:     r.LogFile,
-		TotalRun:    r.TotalRun,
-		Succeeded:   r.Succeeded,
-		Failed:      r.Failed,
-		SuccessRate: successRate,
-		WhatIf:      r.WhatIf,
-		TacticStats: tactics,
-		Results:     r.Results,
-		VerifPassed: verifPassed,
-		VerifFailed: verifFailed,
+		GeneratedAt:    fmtTime(r.GeneratedAt),
+		LogFile:        r.LogFile,
+		TotalRun:       r.TotalRun,
+		Succeeded:      r.Succeeded,
+		Failed:         r.Failed,
+		SuccessRate:    successRate,
+		WhatIf:         r.WhatIf,
+		TacticStats:    tactics,
+		Results:        r.Results,
+		VerifPassed:    verifPassed,
+		VerifFailed:    verifFailed,
+		HasCrowdStrike: hasCrowdStrike,
 	}
 
 	funcMap := template.FuncMap{
 		"fmtTime": fmtTime,
 		"verifStr": func(v playbooks.VerificationStatus) string { return string(v) },
+		"siemCoverage": func(m map[string][]string, key string) []string {
+			if m == nil {
+				return nil
+			}
+			return m[key]
+		},
 		"truncate": func(s string, n int) string {
 			s = strings.ReplaceAll(s, "\r\n", "\n")
 			if len(s) > n {
@@ -250,6 +266,10 @@ tr:hover td{background:#161b22}
 .verif-list{font-size:11px;margin-top:4px;padding-left:0;list-style:none}
 .verif-list li{margin:1px 0}
 .footer{text-align:center;color:#8b949e;font-size:12px;padding:24px;border-top:1px solid #30363d;margin-top:32px}
+{{if .HasCrowdStrike}}.cs-badge{background:#e01b22;color:#fff;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;display:inline-block}
+.cs-na{color:#8b949e;font-size:11px}
+.cs-list{font-size:11px;margin-top:4px;padding-left:0;list-style:none}
+.cs-list li{margin:1px 0;color:#e6edf3}{{end}}
 @media print{.hdr{background:#fff;color:#000}.body{background:#fff}}
 </style>
 </head>
@@ -291,6 +311,7 @@ tr:hover td{background:#161b22}
         <th>Taktik</th>
         <th>Status</th>
         <th>Verifikation</th>
+        {{if .HasCrowdStrike}}<th>CrowdStrike</th>{{end}}
         <th>Benutzer</th>
       </tr>
     </thead>
@@ -324,6 +345,19 @@ tr:hover td{background:#161b22}
         </ul>
         {{end}}
       </td>
+      {{if $.HasCrowdStrike}}
+      <td>
+        {{$cs := siemCoverage .SIEMCoverage "crowdstrike"}}
+        {{if $cs}}
+          <span class="cs-badge">CS</span>
+          <ul class="cs-list">
+            {{range $cs}}<li>{{.}}</li>{{end}}
+          </ul>
+        {{else}}
+          <span class="cs-na">N/A</span>
+        {{end}}
+      </td>
+      {{end}}
       <td style="color:#bc8cff;font-size:12px;">{{.RunAsUser}}</td>
     </tr>
     {{end}}
