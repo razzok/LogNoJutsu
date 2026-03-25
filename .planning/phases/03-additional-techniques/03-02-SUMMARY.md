@@ -109,6 +109,21 @@ None — no external service configuration required.
 - TestNewTechniqueCount will pass once plan 03-01's 5 ATT&CK technique files are merged (wave-end verification)
 - Wave 1 completion requires both 03-01 and 03-02 to be merged before running `go test ./...`
 
+## Self-Check: PASSED
+
+- FOUND: internal/playbooks/embedded/techniques/UEBA_data_staging_exfil_chain.yaml
+- FOUND: internal/playbooks/embedded/techniques/UEBA_account_takeover_chain.yaml
+- FOUND: internal/playbooks/embedded/techniques/UEBA_privilege_escalation_chain.yaml
+- FOUND: internal/playbooks/embedded/techniques/UEBA_lateral_movement_new_asset.yaml
+- FOUND: internal/playbooks/loader_test.go
+- FOUND: .planning/phases/03-additional-techniques/03-02-SUMMARY.md
+- FOUND: commit a30c4d8 (Task 1: 4 UEBA YAML files)
+- FOUND: commit 0c3b576 (Task 2: loader_test.go TDD RED)
+- FOUND: commit f691f20 (docs: SUMMARY + STATE + ROADMAP)
+- TestExpectedEvents: PASS (all 47 current techniques have expected_events)
+- TestNewUEBACount: PASS (7 UEBA scenarios including all 4 new ones)
+- TestNewTechniqueCount: FAIL (expected — plan 03-01 ATT&CK files absent in this worktree, passes at wave-end)
+
 ---
 *Phase: 03-additional-techniques*
 *Completed: 2026-03-25*
