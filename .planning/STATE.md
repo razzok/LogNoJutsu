@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-last_updated: "2026-03-25T19:07:50.677Z"
+status: Executing Phase 05
+last_updated: "2026-03-25T20:27:44.247Z"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 15
+  completed_plans: 13
 ---
 
 # Project State
@@ -19,7 +19,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 04 — crowdstrike-siem-coverage
+**Current focus:** Phase 05 — microsoft-sentinel-coverage
 
 ## Current Status
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 **Active phase:** 02-code-structure-test-coverage
 **Last action:** Completed 02-code-structure-test-coverage/02-03-PLAN.md
 **Next step:** Phase 02 complete — all 3 plans done
-**Last session:** 2026-03-25T19:01:27.906Z
+**Last session:** 2026-03-25T20:27:44.241Z
 
 ## Phase Progress
 
@@ -65,6 +65,11 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 - [Phase 04-crowdstrike-siem-coverage]: FALCON_lsass_access uses GrantedAccess 0x0410 vs T1003.001's 0x1010 — different access mask triggers distinct Falcon ML detection path
 - [Phase 04-crowdstrike-siem-coverage]: CSS classes for CrowdStrike (cs-badge/cs-na/cs-list) rendered inside {{if .HasCrowdStrike}} conditional — ensures absent HTML has zero vendor-specific markup
 - [Phase 04-crowdstrike-siem-coverage]: siemCoverage funcMap helper used for nil-safe map access in templates, avoiding nil map panic when SIEMCoverage is nil on ExecutionResult
+- [Phase 05-microsoft-sentinel-coverage]: T1003.006 uses verified GitHub name 'Non Domain Controller Active Directory Replication' (not shorthand 'Potential DCSync Attack')
+- [Phase 05-microsoft-sentinel-coverage]: MEDIUM confidence Sentinel rule names (T1059.001, T1136.001) annotated with inline YAML comments for portal verification
+- [Phase 05-microsoft-sentinel-coverage]: siem_coverage.sentinel added as sibling key to crowdstrike using existing map[string][]string design — no schema changes
+- [Phase 05-microsoft-sentinel-coverage]: AZURE_ldap_recon uses Anomalous LDAP Activity with MEDIUM confidence — community hunting query only, no built-in Sentinel rule for EID 1644
+- [Phase 05-microsoft-sentinel-coverage]: AZURE_dcsync uses LDAP ACL enumeration of DS-Replication GUIDs (not repadmin) to trigger EID 4662 Sentinel rule pattern
 
 ## Performance Metrics
 
@@ -81,6 +86,8 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 | Phase 04-crowdstrike-siem-coverage P01 | 3min | 2 tasks | 13 files |
 | Phase 04-crowdstrike-siem-coverage P02 | 4min | 2 tasks | 4 files |
 | Phase 04-crowdstrike-siem-coverage P03 | 15min | 2 tasks | 2 files |
+| Phase 05-microsoft-sentinel-coverage P01 | 10min | 1 tasks | 6 files |
+| Phase 05-microsoft-sentinel-coverage P02 | 4min | 1 tasks | 4 files |
 
 ## Codebase Map
 
