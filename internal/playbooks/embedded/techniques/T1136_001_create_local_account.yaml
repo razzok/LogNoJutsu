@@ -22,6 +22,9 @@ expected_events:
 tags:
   - persistence
   - requires-elevation
+siem_coverage:
+  sentinel:
+    - "User Created and Added to Built-in Administrators"  # MEDIUM confidence — verify rule name in Sentinel portal
 executor:
   type: powershell
   command: |-

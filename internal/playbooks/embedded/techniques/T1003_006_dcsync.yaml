@@ -74,4 +74,7 @@ executor:
         Write-Host "ACL check: $_"
     }
     Write-Host "[T1003.006] Complete. Check EID 4662 on DC (GUIDs 1131f6aa/1131f6ad) and EID 4928-4933."
+siem_coverage:
+  sentinel:
+    - "Non Domain Controller Active Directory Replication"
 cleanup: ""
