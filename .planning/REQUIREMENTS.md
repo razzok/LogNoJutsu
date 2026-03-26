@@ -54,8 +54,8 @@
 
 ### UI Polish
 
-- [ ] **UI-01**: All German strings in Web UI replaced with English equivalents (Scheduler tab, PoC mode configuration)
-- [ ] **UI-02**: Preparation tab uses inline styled error panels instead of browser `alert()` for step failures
+- [x] **UI-01**: All German strings in Web UI replaced with English equivalents (Scheduler tab, PoC mode configuration)
+- [x] **UI-02**: Preparation tab uses inline styled error panels instead of browser `alert()` for step failures
 - [x] **UI-03**: Dashboard displays total technique library count loaded from `/api/techniques` (currently 57)
 - [ ] **UI-04**: Tactic badges render correct colours for `command-and-control` and `ueba-scenario` tactics (currently grey due to missing funcMap entries)
 
@@ -115,8 +115,8 @@
 | VER-01 | Phase 8 | Complete |
 | VER-02 | Phase 8 | Complete |
 | VER-03 | Phase 9 | Complete |
-| UI-01 | Phase 9 | Pending |
-| UI-02 | Phase 9 | Pending |
+| UI-01 | Phase 9 | Complete |
+| UI-02 | Phase 9 | Complete |
 | UI-03 | Phase 9 | Complete |
 | UI-04 | Phase 9 | Pending |
 

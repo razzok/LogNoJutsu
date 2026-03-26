@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Bug Fixes & UI Polish
-status: executing
-stopped_at: Completed 09-ui-polish 09-01-PLAN.md
-last_updated: "2026-03-26T20:33:05Z"
+status: complete
+stopped_at: Completed 09-ui-polish 09-03-PLAN.md
+last_updated: "2026-03-26"
 last_activity: 2026-03-26
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
-  percent: 80
+  completed_plans: 5
+  percent: 100
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 ## Current Status
 
-**Milestone:** v1.0 — Verified & Expanded — COMPLETE (2026-03-26)
-**Next step:** `/gsd:new-milestone` to define v1.1 scope
-**All phases:** 7/7 complete, 17/17 plans complete
+**Milestone:** v1.1 — Bug Fixes & UI Polish — COMPLETE (2026-03-26)
+**Next step:** `/gsd:new-milestone` to define v1.2 scope
+**All phases (v1.1):** 2/2 complete, 5/5 plans complete
 
 ## Phase Progress
 
@@ -41,6 +41,8 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 | 5 | Microsoft Sentinel Coverage | Complete | 2026-03-25 |
 | 6 | Documentation Consistency | Complete | 2026-03-26 |
 | 7 | Nyquist Validation | Complete | 2026-03-26 |
+| 8 | Backend Correctness | Complete | 2026-03-26 |
+| 9 | UI Polish | Complete | 2026-03-26 |
 
 ## Decisions (v1.0)
 
@@ -53,9 +55,17 @@ Key decisions carried forward:
 - Server struct with method receivers — all handlers testable via httptest
 - Race detector requires CGO/gcc — tests pass without -race, documented in VALIDATION.md
 
+## Decisions (v1.1)
+
+- Audit policy commands use GUID format to avoid locale-dependent subcategory name parsing
+- /api/info endpoint returns build-time version injected via ldflags (VER-03)
+- confirm() for deleteUser preserved — destructive action safeguard, not a disruptive alert
+- Inline feedback: showInlineSuccess auto-dismisses after 5s; showInlineError persists until next action
+
 ## Known Technical Debt
 
 - Windows Defender quarantine of playbooks.test.exe — add `%LOCALAPPDATA%\Temp\go-build*` exclusion before running playbooks tests
+- HTML report tactic colors (UI-04): funcMap fix shipped (09-01), but could not be visually verified during UAT — no report was available at verification time
 
 ## Quick Tasks Completed
 
@@ -66,3 +76,4 @@ Key decisions carried forward:
 ---
 *Initialized: 2026-03-24*
 *v1.0 complete: 2026-03-26*
+*v1.1 complete: 2026-03-26*
