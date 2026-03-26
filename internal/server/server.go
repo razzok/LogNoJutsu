@@ -25,6 +25,7 @@ type Config struct {
 	Host     string
 	Port     int
 	Password string
+	Version  string
 }
 
 // Server holds all dependencies for the HTTP layer.
@@ -72,6 +73,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Static UI
 	staticFS, _ := fs.Sub(staticFiles, "static")
 	mux.Handle("/", http.FileServer(http.FS(staticFS)))
+
+	// Version info — public, no auth required (per D-10)
+	mux.HandleFunc("/api/info", s.handleInfo)
 
 	// Simulation API
 	mux.HandleFunc("/api/status", s.authMiddleware(s.handleStatus))
@@ -197,6 +201,12 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 		entries = []simlog.Entry{}
 	}
 	writeJSON(w, entries)
+}
+
+func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	writeJSON(w, map[string]string{"version": s.cfg.Version})
 }
 
 // ── Preparation ───────────────────────────────────────────────────────────────

@@ -9,15 +9,16 @@ import (
 	"lognojutsu/internal/server"
 )
 
-const banner = `
+var version = "dev"
+
+const bannerArt = `
  _                    _   _       _       _
 | |    ___   __ _  _ | \ | | ___ | |_   _| |_ ___ _   _
 | |   / _ \ / _` + "`" + ` ||  _||  \| |/ _ \| | | | | __/ __| | | |
 | |__| (_) | (_| || |  | |\  | (_) | | |_| | |_\__ \ |_| |
 |_____\___/ \__, ||_|  |_| \_|\___/| |\__,_|\__|___/\__,_|
             |___/                  |_|
-  SIEM Validation & ATT&CK Simulation Tool  v0.1.0
-`
+  SIEM Validation & ATT&CK Simulation Tool  `
 
 func main() {
 	host := flag.String("host", "127.0.0.1", "Bind address (use 0.0.0.0 for network access)")
@@ -25,12 +26,13 @@ func main() {
 	password := flag.String("password", "", "Optional UI password (empty = no auth)")
 	flag.Parse()
 
-	fmt.Print(banner)
+	fmt.Printf("%s%s\n", bannerArt, version)
 
 	cfg := server.Config{
 		Host:     *host,
 		Port:     *port,
 		Password: *password,
+		Version:  version,
 	}
 
 	log.Printf("Starting LogNoJutsu on http://%s:%d", cfg.Host, cfg.Port)
