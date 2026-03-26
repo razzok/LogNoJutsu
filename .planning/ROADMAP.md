@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Verified & Expanded** — Phases 1-7 (shipped 2026-03-26)
-- 🚧 **v1.1 Bug Fixes & UI Polish** — Phases 8-9 (in progress)
+- ✅ **v1.1 Bug Fixes & UI Polish** — Phases 8-9 (shipped 2026-03-26)
 
 ## Phases
 
@@ -22,6 +22,16 @@ Full details: `.planning/milestones/v1.0-ROADMAP.md`
 
 </details>
 
+<details>
+<summary>✅ v1.1 Bug Fixes & UI Polish (Phases 8-9) — SHIPPED 2026-03-26</summary>
+
+- [x] Phase 8: Backend Correctness (2/2 plans) — completed 2026-03-26
+- [x] Phase 9: UI Polish (3/3 plans) — completed 2026-03-26
+
+Full details: `.planning/milestones/v1.1-ROADMAP.md`
+
+</details>
+
 ## Progress
 
 | Phase | Title | Milestone | Plans Complete | Status | Completed |
@@ -34,4 +44,4 @@ Full details: `.planning/milestones/v1.0-ROADMAP.md`
 | 6 | Documentation Consistency | v1.0 | 1/1 | Complete | 2026-03-26 |
 | 7 | Nyquist Validation | v1.0 | 1/1 | Complete | 2026-03-26 |
 | 8 | Backend Correctness | v1.1 | 2/2 | Complete | 2026-03-26 |
-| 9 | UI Polish | v1.1 | 2/3 | In Progress | - |
+| 9 | UI Polish | v1.1 | 3/3 | Complete | 2026-03-26 |

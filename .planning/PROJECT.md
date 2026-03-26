@@ -57,6 +57,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - Requires local admin for Attack phase techniques; normal user for Discovery
 - README written in German (target user base), translated to English in v1.0
 - **v1.0 shipped 2026-03-26:** 57 techniques (43 base + 5 ATT&CK + 4 UEBA + 3 Falcon + 3 Azure), 38k LOC Go, 17 plans across 7 phases
+- **v1.1 shipped 2026-03-26:** Locale-independent audit policy (GUID migration), build-time version injection, full English UI, inline error panels, tactic badge colors — 5 plans across 2 phases, 33 commits
 - **Codebase packages:** cmd/lognojutsu, internal/{engine,executor,playbooks,preparation,reporter,server,simlog,userstore,verifier}
 - **Test coverage:** 14 test functions across engine_test, server_test, verifier_test, reporter_test, loader_test; playbooks blocked by Windows Defender quarantine
 - **Tactic badge colors:** `command-and-control` → red (#f85149), `ueba-scenario` → purple (#bc8cff) — fixed in Phase 09
@@ -82,16 +83,26 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | Race detector skip (no CGO/gcc) | TestEngineRace validates mutex discipline structurally; -race requires CGO | ✓ Acceptable — documented in STATE.md and Phase 2 VALIDATION.md |
 | EventSpec format for expected_events | Typed struct (Channel+ID+Description) over plain strings | ✓ Good — enables per-event pass/fail reporting in HTML |
 
-## Current Milestone: v1.1 Bug Fixes & UI Polish
+## Current State: v1.1 Shipped
 
-**Goal:** Fix locale-dependent Windows Audit Policy failure and modernise the Web UI with dynamic versioning and visual polish.
+**Latest release:** v1.1 Bug Fixes & UI Polish (2026-03-26)
 
-**Target features:**
+**Shipped in v1.1:**
 - Windows Audit Policy: locale-independent GUID-based subcategory lookup (fixes German/non-English Windows)
-- Dynamic build-time version via ldflags (replaces hardcoded v0.1.0)
-- Preparation tab: clear, actionable error messages surfaced to user
-- UI labels, placeholder text, and technique counts updated throughout
-- Layout and spacing polish across all tabs
+- Dynamic build-time version via `-ldflags "-X main.version=v1.1.0"` + `GET /api/info` endpoint
+- Preparation tab: clear, actionable inline error panels (no more alert() dialogs)
+- Full English UI — zero German strings in index.html
+- Dashboard "Techniques Available" stat box wired to live /api/techniques count
+- Tactic badge colors fixed for command-and-control (red) and ueba-scenario (purple)
+
+**Known tech debt:**
+- `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
+- German strings remain in `reporter.go` htmlTemplate (HTML reports)
+- Two audit GUIDs need on-machine validation on non-English Windows
+
+## Next Milestone
+
+Run `/gsd:new-milestone` to define v1.2 scope.
 
 ## Evolution
 
@@ -111,4 +122,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-26 — Phase 09 complete: UI fully in English, inline error panels, live version badge, technique count stat box, tactic badge colors fixed. Milestone v1.1 complete.*
+*Last updated: 2026-03-26 — v1.1 archived. Milestone complete: phases 8-9, 5 plans, 9 requirements satisfied.*

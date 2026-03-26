@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Bug Fixes & UI Polish
-status: Milestone complete
+status: Archived
 last_updated: "2026-03-26T21:06:22.526Z"
 progress:
   total_phases: 2
@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 ## Current Status
 
-**Milestone:** v1.1 — Bug Fixes & UI Polish — COMPLETE (2026-03-26)
+**Milestone:** v1.1 — Bug Fixes & UI Polish — ARCHIVED (2026-03-26)
 **Next step:** `/gsd:new-milestone` to define v1.2 scope
 **All phases (v1.1):** 2/2 complete, 5/5 plans complete
 
