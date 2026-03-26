@@ -11,8 +11,6 @@ Milestone 1 — Verified & Expanded: Make LogNoJutsu trustworthy for professiona
 - [x] **Phase 3: Additional Techniques** - Add 5+ new MITRE ATT&CK techniques and 3+ Exabeam UEBA scenarios, all with events manifest entries (completed 2026-03-25)
 - [x] **Phase 4: CrowdStrike SIEM Coverage** - Add CrowdStrike Falcon detection mappings and Falcon-sensor-specific techniques to the events manifest and HTML report (completed 2026-03-25)
 - [x] **Phase 5: Microsoft Sentinel Coverage** - Add Microsoft Sentinel / Azure AD detection mappings and Azure-specific techniques to the events manifest and HTML report (completed 2026-03-25)
-- [ ] **Phase 6: Documentation Consistency** - Fix stale planning artifacts from v1.0 audit: traceability table, ROADMAP checkbox, SUMMARY frontmatter, and inaccurate summary text
-- [ ] **Phase 7: Nyquist Validation** - Execute validation strategies for all 5 phases, fill test coverage gaps identified by Nyquist analysis
 
 ## Phase Details
 
@@ -29,7 +27,7 @@ Milestone 1 — Verified & Expanded: Make LogNoJutsu trustworthy for professiona
 **Plans:** 3/3 plans complete
 Plans:
 - [x] 01-01-PLAN.md — Core types (EventSpec, VerificationStatus, VerifiedEvent), verifier package, engine integration
-- [ ] 01-02-PLAN.md — Migrate all 43 technique YAML files to structured EventSpec format
+- [x] 01-02-PLAN.md — Migrate all 43 technique YAML files to structured EventSpec format
 - [x] 01-03-PLAN.md — HTML report verification column with pass/fail badges and per-event breakdown
 
 ### Phase 2: Code Structure & Test Coverage
@@ -101,10 +99,10 @@ Plans:
   1. REQUIREMENTS.md traceability table row for QUAL-04 shows "Complete" (not "Pending")
   2. ROADMAP.md Phase 1 plans section shows `[x]` for 01-02-PLAN.md
   3. `03-01-SUMMARY.md` frontmatter describes EventSpec format (not "plain string format")
-  4. All 15 SUMMARY.md files have `requirements_completed` frontmatter populated (or explicitly `[]` where none apply)
+  4. All 15 SUMMARY.md files have `requirements-completed` frontmatter populated (or explicitly `[]` where none apply)
 **Plans:** 1 plan
 Plans:
-- [ ] 06-01-PLAN.md -- Fix traceability table, ROADMAP checkbox, SUMMARY frontmatter, and stale EventSpec text
+- [x] 06-01-PLAN.md -- Fix traceability table, ROADMAP checkbox, SUMMARY frontmatter, and stale EventSpec text
 
 ### Phase 7: Nyquist Validation
 **Goal**: Execute the Nyquist validation strategy for all 5 phases. Each VALIDATION.md moves from `draft` to `nyquist_compliant: true` (or `false` with a remediation plan).

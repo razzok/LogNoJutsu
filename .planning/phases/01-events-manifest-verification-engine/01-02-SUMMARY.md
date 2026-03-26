@@ -60,6 +60,7 @@ decisions:
   - "Removed non-queryable entries (proxy/firewall logs, Exabeam behavioral labels) — EventSpec requires a real Windows channel"
   - "T1490 retains contains field on bcdedit entry per RESEARCH.md Pitfall 4 guidance"
   - "T1057 keeps two 4688 entries with different descriptions for wmic vs tasklist distinction"
+requirements-completed: []
 metrics:
   duration: 20min
   completed: 2026-03-24

@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Milestone complete
-last_updated: "2026-03-25T21:37:50.588Z"
+last_updated: "2026-03-26T12:49:02.575Z"
 progress:
-  total_phases: 5
+  total_phases: 7
   completed_phases: 5
   total_plans: 15
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 **Active phase:** 02-code-structure-test-coverage
 **Last action:** Completed 02-code-structure-test-coverage/02-03-PLAN.md
 **Next step:** Phase 02 complete — all 3 plans done
-**Last session:** 2026-03-25T21:37:50.573Z
+**Last session:** 2026-03-26T12:49:02.568Z
 
 ## Phase Progress
 
@@ -72,6 +72,8 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 - [Phase 05-microsoft-sentinel-coverage]: AZURE_dcsync uses LDAP ACL enumeration of DS-Replication GUIDs (not repadmin) to trigger EID 4662 Sentinel rule pattern
 - [Phase 05-microsoft-sentinel-coverage]: Sentinel CSS classes (ms-badge/ms-na/ms-list) use #0078D4 as badge background — mirrors cs-badge pattern with vendor-accurate Microsoft blue
 - [Phase 05-microsoft-sentinel-coverage]: Column order: Verification | CrowdStrike | Sentinel | Benutzer — Sentinel inserted between CrowdStrike and Benutzer
+- [Phase 06-documentation-consistency]: requirements-completed key uses hyphens (not underscores) — consistent with 10 existing SUMMARY files
+- [Phase 06-documentation-consistency]: VERIF-04 assigned to 01-03-SUMMARY (HTML report verification column), not 01-02 (YAML migration)
 
 ## Performance Metrics
 
@@ -91,6 +93,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 | Phase 05-microsoft-sentinel-coverage P01 | 10min | 1 tasks | 6 files |
 | Phase 05-microsoft-sentinel-coverage P02 | 4min | 1 tasks | 4 files |
 | Phase 05-microsoft-sentinel-coverage P03 | 10min | 2 tasks | 3 files |
+| Phase 06-documentation-consistency P01 | 8min | 2 tasks | 8 files |
 
 ## Codebase Map
 

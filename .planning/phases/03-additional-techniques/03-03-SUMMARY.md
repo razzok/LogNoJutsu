@@ -35,6 +35,8 @@ key-decisions:
   - "Inserted UEBA sections at end of UEBA-Szenarien block (after UEBA-LATERAL-CHAIN) before Kampagnen section — maintains section order"
   - "UEBA-Erkennungslogik paragraphs written with umlauts spelled out (ue/oe/ae) for cross-platform compatibility, matching plan specification"
 
+requirements-completed: []
+
 # Metrics
 duration: 3min
 completed: 2026-03-25
