@@ -11,6 +11,8 @@ Milestone 1 — Verified & Expanded: Make LogNoJutsu trustworthy for professiona
 - [x] **Phase 3: Additional Techniques** - Add 5+ new MITRE ATT&CK techniques and 3+ Exabeam UEBA scenarios, all with events manifest entries (completed 2026-03-25)
 - [x] **Phase 4: CrowdStrike SIEM Coverage** - Add CrowdStrike Falcon detection mappings and Falcon-sensor-specific techniques to the events manifest and HTML report (completed 2026-03-25)
 - [x] **Phase 5: Microsoft Sentinel Coverage** - Add Microsoft Sentinel / Azure AD detection mappings and Azure-specific techniques to the events manifest and HTML report (completed 2026-03-25)
+- [ ] **Phase 6: Documentation Consistency** - Fix stale planning artifacts from v1.0 audit: traceability table, ROADMAP checkbox, SUMMARY frontmatter, and inaccurate summary text
+- [ ] **Phase 7: Nyquist Validation** - Execute validation strategies for all 5 phases, fill test coverage gaps identified by Nyquist analysis
 
 ## Phase Details
 
@@ -90,3 +92,24 @@ Plans:
 - [x] 05-01-PLAN.md — Sentinel detection mappings on 5 existing technique YAMLs + TestSentinelCoverage
 - [x] 05-02-PLAN.md — 3 new AZURE_ technique YAML files (kerberoasting, LDAP recon, DCSync)
 - [x] 05-03-PLAN.md — Conditional Sentinel column in HTML report + README documentation
+
+### Phase 6: Documentation Consistency
+**Goal**: Fix all stale planning artifacts identified by the v1.0 milestone audit. All documentation should accurately reflect the implemented code.
+**Depends on**: Phase 5
+**Gap Closure**: Closes tech debt items from v1.0-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. REQUIREMENTS.md traceability table row for QUAL-04 shows "Complete" (not "Pending")
+  2. ROADMAP.md Phase 1 plans section shows `[x]` for 01-02-PLAN.md
+  3. `03-01-SUMMARY.md` frontmatter describes EventSpec format (not "plain string format")
+  4. All 15 SUMMARY.md files have `requirements_completed` frontmatter populated (or explicitly `[]` where none apply)
+**Plans:** 0/1 plans
+
+### Phase 7: Nyquist Validation
+**Goal**: Execute the Nyquist validation strategy for all 5 phases. Each VALIDATION.md moves from `draft` to `nyquist_compliant: true` (or `false` with a remediation plan).
+**Depends on**: Phase 6
+**Gap Closure**: Closes Nyquist compliance gaps from v1.0-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. All 5 VALIDATION.md files have `status: complete` (not `draft`)
+  2. Each phase has `nyquist_compliant: true` or documents specific failing tests with remediation tasks
+  3. Any test gaps identified produce corresponding test files or justified deferral notes
+**Plans:** 0/1 plans
