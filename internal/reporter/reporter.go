@@ -213,6 +213,8 @@ func saveHTML(r Report, filename string) error {
 				"execution":          "#58a6ff",
 				"impact":             "#f85149",
 				"collection":         "#bc8cff",
+			"command-and-control": "#f85149",
+			"ueba-scenario":       "#bc8cff",
 			}
 			if c, ok := colors[strings.ToLower(tactic)]; ok {
 				return c
