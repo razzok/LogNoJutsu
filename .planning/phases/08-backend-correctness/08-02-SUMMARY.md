@@ -99,6 +99,15 @@ None - no external service configuration required.
 - ldflags injection verified: `go build -ldflags "-X main.version=v1.1.0" ./cmd/lognojutsu/` compiles cleanly
 - All existing tests continue to pass (9/9 server tests, no regressions)
 
+## Self-Check: PASSED
+
+- FOUND: cmd/lognojutsu/main.go
+- FOUND: internal/server/server.go
+- FOUND: internal/server/server_test.go
+- FOUND: commit 7a39e9d (feat: version injection)
+- FOUND: commit 6e375f9 (test: /api/info tests)
+- All 9 server tests pass; ldflags build verified
+
 ---
 *Phase: 08-backend-correctness*
 *Completed: 2026-03-26*
