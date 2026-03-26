@@ -291,7 +291,7 @@
       <button class="btn btn-primary" onclick="runAllPrep()">🚀 Configure All (Recommended)</button>
     </div>
 
-    <div class="prep-step">
+    <div class="prep-step" id="prep-row-powershell">
       <div class="prep-step-info">
         <h3>PowerShell ScriptBlock Logging</h3>
         <p>Enables Event 4104 (ScriptBlock), 4103 (Module), and Transcription logging.</p>
@@ -303,7 +303,7 @@
       </div>
     </div>
 
-    <div class="prep-step">
+    <div class="prep-step" id="prep-row-auditpol">
       <div class="prep-step-info">
         <h3>Windows Audit Policy (Best Practice)</h3>
         <p>Enables 12 audit subcategories: Logon (4624/4625), Process Creation (4688 + cmdline), Account Management (4720/4728), Privilege Use (4672), Scheduled Tasks (4698), Audit Policy Changes (4719).</p>
@@ -314,7 +314,7 @@
       </div>
     </div>
 
-    <div class="prep-step">
+    <div class="prep-step" id="prep-row-sysmon">
       <div class="prep-step-info">
         <h3>Sysmon Installation</h3>
         <p>Downloads and installs Sysmon with LogNoJutsu recommended config. Generates: Process (1), Network (3), Registry (12/13), LSASS Access (10), DNS (22).</p>
@@ -539,6 +539,7 @@
         <button class="btn btn-primary" id="btnStart" onclick="startSimulation()">▶ Start Simulation</button>
         <button class="btn btn-danger" id="btnStopSched" onclick="stopSimulation()" disabled>⏹ Stop &amp; Cleanup</button>
       </div>
+      <div id="schedulerFeedback" style="display:none;padding:10px 14px;border-radius:6px;font-size:13px;margin-top:8px;"></div>
     </div>
 
     <div class="card" id="liveCard" style="display:none;">
@@ -569,6 +570,7 @@
 
     <div class="card">
       <h2>👥 Simulation User Profiles</h2>
+      <div id="userFeedback" style="display:none;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:12px;"></div>
       <p style="color:var(--muted); margin-bottom:16px;">
         Add local or Active Directory users whose credentials LogNoJutsu will use to execute simulation techniques.
         Techniques run via <code>Start-Process -Credential</code>, generating Windows Event <strong>4648</strong> (explicit credential use) — a key Exabeam UEBA signal.
@@ -815,7 +817,7 @@ async function quickStart() {
     delay_before_discovery: 0, delay_before_attack: 10,
     run_cleanup: true, campaign_id: ''
   });
-  if (r.error) { alert('Error: ' + r.error); return; }
+  if (r.error) { showInlineError('schedulerFeedback', 'Quick start failed: ' + r.error); return; }
   startPolling();
 }
 
@@ -862,7 +864,7 @@ async function startSimulation() {
     };
   }
   const r = await api('/api/start', 'POST', cfg);
-  if (r.error) { alert('Error: ' + r.error); return; }
+  if (r.error) { showInlineError('schedulerFeedback', 'Simulation start failed: ' + r.error); return; }
   startPolling();
 }
 
@@ -1055,11 +1057,12 @@ async function runAllPrep() {
 }
 
 async function runPrepStep(step) {
+  showPrepError(step, null);
   setPrepStatus(step, 'running', '⏳...');
   const r = await api('/api/prepare/step', 'POST', { step });
   setPrepStatus(step, r.success ? 'ok' : 'fail', r.success ? '✓ OK' : '✗ Failed');
   document.getElementById('status-' + step).title = r.message || '';
-  if (!r.success) alert('Step failed:\n' + r.message);
+  if (!r.success) showPrepError(step, r.message);
 }
 
 function setPrepStatus(id, state, text) {
@@ -1215,7 +1218,7 @@ function toggleUserSelection() {
 
 async function addUser() {
   const username = document.getElementById('newUsername').value.trim();
-  if (!username) { alert('Username is required.'); return; }
+  if (!username) { showInlineError('userFeedback', 'Username cannot be empty'); return; }
   const req = {
     username,
     domain: document.getElementById('newDomain').value.trim(),
@@ -1224,7 +1227,7 @@ async function addUser() {
     display_name: document.getElementById('newDisplayName').value.trim()
   };
   const r = await api('/api/users', 'POST', req);
-  if (r.error) { alert('Error: ' + r.error); return; }
+  if (r.error) { showInlineError('userFeedback', 'Failed to add user: ' + r.error); return; }
   hideAddUserForm();
   await loadUsers();
 }
@@ -1232,14 +1235,18 @@ async function addUser() {
 async function deleteUser(id, name) {
   if (!confirm(`Delete user profile "${name}"?`)) return;
   const r = await api('/api/users/delete', 'POST', { id });
-  if (r.error) { alert('Error: ' + r.error); return; }
+  if (r.error) { showInlineError('userFeedback', 'Failed to delete user: ' + r.error); return; }
   await loadUsers();
 }
 
 async function testUser(id) {
   const r = await api('/api/users/test', 'POST', { id });
-  if (r.error) { alert('Error: ' + r.error); return; }
-  alert(r.success ? `✓ ${r.message}` : `✗ ${r.message}`);
+  if (r.error) { showInlineError('userFeedback', 'Error: ' + r.error); return; }
+  if (r.success) {
+    showInlineSuccess('userFeedback', r.message);
+  } else {
+    showInlineError('userFeedback', r.message);
+  }
   await loadUsers();
 }
 
@@ -1333,6 +1340,40 @@ async function loadTechniqueCount() {
       if (el) el.textContent = techniques.length;
     }
   } catch (_) {}
+}
+
+// ── Inline feedback helpers ─────────────────────────────────────
+function showInlineError(elementId, message) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.style.display = 'block';
+  el.style.background = 'rgba(248,81,73,0.1)';
+  el.style.border = '1px solid rgba(248,81,73,0.3)';
+  el.style.color = 'var(--red)';
+  el.textContent = message;
+}
+
+function showInlineSuccess(elementId, message) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.style.display = 'block';
+  el.style.background = 'rgba(63,185,80,0.1)';
+  el.style.border = '1px solid rgba(63,185,80,0.3)';
+  el.style.color = 'var(--green)';
+  el.textContent = message;
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+function showPrepError(step, message) {
+  const existing = document.getElementById('prep-error-' + step);
+  if (existing) existing.remove();
+  if (!message) return;
+
+  const panel = document.createElement('div');
+  panel.id = 'prep-error-' + step;
+  panel.style.cssText = 'margin-top:6px;padding:10px 14px;border-radius:6px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);color:var(--red);font-size:13px;';
+  panel.textContent = message;
+  document.getElementById('prep-row-' + step).insertAdjacentElement('afterend', panel);
 }
 
 // Init
