@@ -55,8 +55,11 @@ Plans:
   3. When a preparation step fails, an inline styled error panel appears in the Preparation tab — no browser `alert()` dialogs fire
   4. The Dashboard technique count stat box displays the live count loaded from `/api/techniques` (currently 57)
   5. Tactic badges for `command-and-control` and `ueba-scenario` render with correct colours — not grey
-**Plans**: TBD
-**UI hint**: yes
+**Plans:** 3 plans
+Plans:
+- [ ] 09-01-PLAN.md — Tactic color entries for command-and-control + ueba-scenario in reporter (UI-04)
+- [ ] 09-02-PLAN.md — Version badge wire-up + technique count stat box (VER-03, UI-03)
+- [ ] 09-03-PLAN.md — German-to-English translation + alert() replacement (UI-01, UI-02)
 
 ## Progress
 
@@ -70,4 +73,4 @@ Plans:
 | 6 | Documentation Consistency | v1.0 | 1/1 | Complete | 2026-03-26 |
 | 7 | Nyquist Validation | v1.0 | 1/1 | Complete | 2026-03-26 |
 | 8 | Backend Correctness | v1.1 | 2/2 | Complete | 2026-03-26 |
-| 9 | UI Polish | v1.1 | 0/? | Not started | - |
+| 9 | UI Polish | v1.1 | 0/3 | Not started | - |
