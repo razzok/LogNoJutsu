@@ -29,7 +29,7 @@ func testServer(t *testing.T, password string) *Server {
 		eng:      eng,
 		registry: reg,
 		users:    us,
-		cfg:      Config{Password: password},
+		cfg:      Config{Password: password, Version: "test-v0.0.0"},
 	}
 }
 
@@ -144,6 +144,64 @@ func TestHandleTechniques(t *testing.T) {
 	body := rec.Body.String()
 	if !strings.Contains(body, "T0001") || !strings.Contains(body, "T0002") {
 		t.Errorf("expected both techniques in response: %s", body)
+	}
+}
+
+// TestHandleInfo_returnsVersion verifies GET /api/info returns 200 with JSON containing version.
+func TestHandleInfo_returnsVersion(t *testing.T) {
+	s := testServer(t, "")
+	s.cfg.Version = "test-v1.2.3"
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/info", nil)
+	s.handleInfo(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `"version":"test-v1.2.3"`) {
+		t.Errorf("expected version in body: %s", body)
+	}
+}
+
+// TestHandleInfo_noAuthRequired verifies GET /api/info succeeds without credentials.
+func TestHandleInfo_noAuthRequired(t *testing.T) {
+	s := testServer(t, "secret-password")
+	s.cfg.Version = "test-v2.0.0"
+
+	// Call handleInfo directly (not through authMiddleware)
+	// This proves the route handler works without credentials
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/info", nil)
+	// Do NOT set BasicAuth — simulates unauthenticated request
+	s.handleInfo(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 without auth, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `"version":"test-v2.0.0"`) {
+		t.Errorf("expected version in body: %s", body)
+	}
+}
+
+// TestRegisterRoutes_infoNoAuth verifies /api/info is registered without authMiddleware in the mux.
+func TestRegisterRoutes_infoNoAuth(t *testing.T) {
+	s := testServer(t, "secret-password")
+	s.cfg.Version = "route-test"
+	mux := http.NewServeMux()
+	s.registerRoutes(mux)
+
+	// Hit /api/info through the mux WITHOUT credentials
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/info", nil)
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 via mux without auth, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), `"version":"route-test"`) {
+		t.Errorf("expected version in mux response: %s", rec.Body.String())
 	}
 }
 
