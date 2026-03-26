@@ -378,12 +378,12 @@
             <span style="color:var(--orange);" id="diag-t1-label">5s</span>
             <span>──▶</span>
             <span style="background:rgba(88,166,255,0.15); border:1px solid var(--accent); border-radius:4px; padding:4px 10px; color:var(--accent);">🔍 Phase 1: Discovery</span>
-            <span style="color:var(--muted); font-size:11px;">(~</span><span id="diag-disc-count" style="color:var(--accent); font-size:11px;">?</span><span style="color:var(--muted); font-size:11px;"> Techniken)</span>
+            <span style="color:var(--muted); font-size:11px;">(~</span><span id="diag-disc-count" style="color:var(--accent); font-size:11px;">?</span><span style="color:var(--muted); font-size:11px;"> techniques)</span>
             <span>──</span>
             <span style="color:var(--orange);" id="diag-t2-label">30s</span>
             <span>──▶</span>
             <span style="background:rgba(248,81,73,0.15); border:1px solid var(--red); border-radius:4px; padding:4px 10px; color:var(--red);">⚔️ Phase 2: Attack</span>
-            <span style="color:var(--muted); font-size:11px;">(~</span><span id="diag-atk-count" style="color:var(--red); font-size:11px;">?</span><span style="color:var(--muted); font-size:11px;"> Techniken)</span>
+            <span style="color:var(--muted); font-size:11px;">(~</span><span id="diag-atk-count" style="color:var(--red); font-size:11px;">?</span><span style="color:var(--muted); font-size:11px;"> techniques)</span>
             <span>──▶</span>
             <span style="background:rgba(63,185,80,0.15); border:1px solid var(--green); border-radius:4px; padding:4px 10px; color:var(--green);">✓ Done + Cleanup</span>
           </div>
@@ -940,17 +940,17 @@ async function loadCampaignSelect() {
   const opts = ['<option value="">All Techniques (all Discovery + all Attack techniques)</option>'];
   sorted.forEach(c => {
     const steps = (c.steps||[]).length;
-    opts.push(`<option value="${c.id}" ${selectedCampaign===c.id?'selected':''}>${c.name} [${c.industry}] — ${steps} Techniken</option>`);
+    opts.push(`<option value="${c.id}" ${selectedCampaign===c.id?'selected':''}>${c.name} [${c.industry}] — ${steps} techniques</option>`);
   });
   sel.innerHTML = opts.join('');
 
   // Populate PoC Phase 2 campaign dropdown
   const pocSel = document.getElementById('pocP2Campaign');
   if (pocSel) {
-    const pocOpts = ['<option value="">Alle Attack-Techniken</option>'];
+    const pocOpts = ['<option value="">All Attack Techniques</option>'];
     sorted.forEach(c => {
       const steps = (c.steps||[]).length;
-      pocOpts.push(`<option value="${c.id}">${c.name} [${c.industry}] — ${steps} Techniken</option>`);
+      pocOpts.push(`<option value="${c.id}">${c.name} [${c.industry}] — ${steps} techniques</option>`);
     });
     pocSel.innerHTML = pocOpts.join('');
   }
