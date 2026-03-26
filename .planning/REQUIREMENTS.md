@@ -110,11 +110,20 @@
 | SENT-01 | Phase 5 | Complete |
 | SENT-02 | Phase 5 | Complete |
 | SENT-03 | Phase 5 | Complete |
+| BUG-01 | Phase 8 | Pending |
+| BUG-02 | Phase 8 | Pending |
+| VER-01 | Phase 8 | Pending |
+| VER-02 | Phase 8 | Pending |
+| VER-03 | Phase 9 | Pending |
+| UI-01 | Phase 9 | Pending |
+| UI-02 | Phase 9 | Pending |
+| UI-03 | Phase 9 | Pending |
+| UI-04 | Phase 9 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total — all mapped ✓
-- v1.1 requirements: 9 total — roadmap pending
+- v1.1 requirements: 9 total — all mapped ✓ (Phase 8: 4, Phase 9: 5)
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-03-26 — v1.1 requirements added (BUG-01/02, VER-01/02/03, UI-01/02/03/04)*
+*Last updated: 2026-03-26 — v1.1 traceability added (BUG-01/02 → Phase 8, VER-01/02 → Phase 8, VER-03/UI-01/02/03/04 → Phase 9)*
