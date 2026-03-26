@@ -231,6 +231,30 @@ func TestHTMLSentinelColumn(t *testing.T) {
 	})
 }
 
+// TestTacticColor verifies that the tacticColor funcMap returns correct hex colors.
+// command-and-control → #f85149, ueba-scenario → #bc8cff, unknown → #8b949e (fallback)
+func TestTacticColor(t *testing.T) {
+	tests := []struct {
+		name      string
+		tacticID  string
+		wantColor string
+	}{
+		{"command-and-control", "command-and-control", "#f85149"},
+		{"ueba-scenario", "ueba-scenario", "#bc8cff"},
+		{"unknown-fallback", "nonexistent-tactic", "#8b949e"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := makeResult(playbooks.VerifPass, nil)
+			result.TacticID = tt.tacticID
+			html := saveHTMLToDir(t, []playbooks.ExecutionResult{result})
+			if !strings.Contains(html, tt.wantColor) {
+				t.Errorf("expected HTML to contain color %q for tactic %q", tt.wantColor, tt.tacticID)
+			}
+		})
+	}
+}
+
 // TestHTMLVerificationEventList checks per-event checkmark/X rendering.
 func TestHTMLVerificationEventList(t *testing.T) {
 	results := []playbooks.ExecutionResult{
