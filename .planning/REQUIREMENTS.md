@@ -50,13 +50,13 @@
 
 - [x] **VER-01**: Version string declared as injectable Go `var` in main.go, overridable at build time via `-ldflags "-X main.version=v1.1.0"` — defaults to `"dev"` when built without ldflags
 - [x] **VER-02**: Server exposes `GET /api/info` endpoint returning `{"version": "..."}` JSON
-- [ ] **VER-03**: Web UI version badge fetches version from `/api/info` on page load — no more hardcoded `v0.1.0`
+- [x] **VER-03**: Web UI version badge fetches version from `/api/info` on page load — no more hardcoded `v0.1.0`
 
 ### UI Polish
 
 - [ ] **UI-01**: All German strings in Web UI replaced with English equivalents (Scheduler tab, PoC mode configuration)
 - [ ] **UI-02**: Preparation tab uses inline styled error panels instead of browser `alert()` for step failures
-- [ ] **UI-03**: Dashboard displays total technique library count loaded from `/api/techniques` (currently 57)
+- [x] **UI-03**: Dashboard displays total technique library count loaded from `/api/techniques` (currently 57)
 - [ ] **UI-04**: Tactic badges render correct colours for `command-and-control` and `ueba-scenario` tactics (currently grey due to missing funcMap entries)
 
 ## v2 Requirements
@@ -114,10 +114,10 @@
 | BUG-02 | Phase 8 | Complete |
 | VER-01 | Phase 8 | Complete |
 | VER-02 | Phase 8 | Complete |
-| VER-03 | Phase 9 | Pending |
+| VER-03 | Phase 9 | Complete |
 | UI-01 | Phase 9 | Pending |
 | UI-02 | Phase 9 | Pending |
-| UI-03 | Phase 9 | Pending |
+| UI-03 | Phase 9 | Complete |
 | UI-04 | Phase 9 | Pending |
 
 **Coverage:**
