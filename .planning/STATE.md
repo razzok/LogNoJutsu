@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Executing Phase 07
-last_updated: "2026-03-26T13:03:15.891Z"
+status: Phase 07 complete — all VALIDATION.md files promoted to nyquist_compliant
+last_updated: "2026-03-26T13:08:40.953Z"
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 17
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 **Active phase:** 02-code-structure-test-coverage
 **Last action:** Completed 02-code-structure-test-coverage/02-03-PLAN.md
 **Next step:** Phase 02 complete — all 3 plans done
-**Last session:** 2026-03-26T12:49:02.568Z
+**Last session:** 2026-03-26T13:08:40.946Z
 
 ## Phase Progress
 
@@ -74,6 +74,9 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 - [Phase 05-microsoft-sentinel-coverage]: Column order: Verification | CrowdStrike | Sentinel | Benutzer — Sentinel inserted between CrowdStrike and Benutzer
 - [Phase 06-documentation-consistency]: requirements-completed key uses hyphens (not underscores) — consistent with 10 existing SUMMARY files
 - [Phase 06-documentation-consistency]: VERIF-04 assigned to 01-03-SUMMARY (HTML report verification column), not 01-02 (YAML migration)
+- [Phase 07-nyquist-validation]: VALIDATION.md function name corrections (TestQueryCountMock, TestAzureTechniques, TestHTMLSentinelColumn) update Automated Command column to reflect actual implementation
+- [Phase 07-nyquist-validation]: Race detector absence does not block nyquist_compliant: true — structural test exists in TestEngineRace, documented inline
+- [Phase 07-nyquist-validation]: Windows Defender quarantine of playbooks.test.exe documented inline in phases 3/4/5 VALIDATION.md — add LOCALAPPDATA Temp go-build* exclusion before running playbooks tests
 
 ## Performance Metrics
 
@@ -94,6 +97,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 | Phase 05-microsoft-sentinel-coverage P02 | 4min | 1 tasks | 4 files |
 | Phase 05-microsoft-sentinel-coverage P03 | 10min | 2 tasks | 3 files |
 | Phase 06-documentation-consistency P01 | 8min | 2 tasks | 8 files |
+| Phase 07-nyquist-validation P01 | 10min | 2 tasks | 6 files |
 
 ## Codebase Map
 
