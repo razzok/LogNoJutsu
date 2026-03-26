@@ -52,6 +52,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - Phase 3 complete: 52 total techniques (5 new ATT&CK Collection+C2 + 4 UEBA scenarios), all with EventSpec entries, 6 loader tests green
 - Phase 4 complete: SIEMCoverage data model on Technique/ExecutionResult, 10 YAML Falcon mappings, 3 FALCON_ techniques, conditional CS column in HTML report
 - Phase 5 complete: siem_coverage.sentinel on 5 existing techniques, 3 AZURE_ techniques (kerberoasting/LDAP recon/DCSync), conditional MS badge column in HTML report, German README Sentinel section — 57 total techniques
+- Phase 6 complete: All stale planning artifacts fixed — QUAL-04 traceability corrected, ROADMAP.md checkboxes reconciled, all 15 SUMMARY.md files have requirements-completed frontmatter
 - Codebase map available at `.planning/codebase/`
 
 ## Constraints
