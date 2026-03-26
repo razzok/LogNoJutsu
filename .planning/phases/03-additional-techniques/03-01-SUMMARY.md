@@ -21,7 +21,7 @@ affects: [03-additional-techniques, 03-02, 03-03, 04-crowdstrike, 05-sentinel]
 # Tech tracking
 tech-stack:
   added: []
-  patterns: [plain-string expected_events matching existing 43-technique convention, .invalid TLD for safe C2 simulation, lnj_ prefix for all temp artifacts, multi-variant 3-5 command blocks per technique]
+  patterns: [EventSpec structured expected_events (event_id/channel/description), .invalid TLD for safe C2 simulation, lnj_ prefix for all temp artifacts, multi-variant 3-5 command blocks per technique]
 
 key-files:
   created:
@@ -33,13 +33,13 @@ key-files:
   modified: []
 
 key-decisions:
-  - "Used plain string format for expected_events (consistent with all 43 existing techniques) — types.go ExpectedEvents is []string, not []EventSpec"
+  - "Used EventSpec format for expected_events (event_id/channel/description) consistent with Phase 01-02 YAML migration — types.go ExpectedEvents is []EventSpec"
   - "C2 techniques use .invalid TLD (RFC 2606 reserved) and 127.0.0.1 loopback only — zero real outbound C2 traffic"
   - "All temp artifacts use lnj_ prefix (lnj_stage, lnj_archive.zip, lnj_collection_index.txt) — cleanup blocks remove all"
   - "T1119 selected as 5th technique (Automated Collection) — pairs with T1005/T1560 Collection tactic cluster"
 
 patterns-established:
-  - "expected_events as plain strings: '4688 (cmd.exe — description)' or 'Sysmon 1 (...)'"
+  - "expected_events as EventSpec structs: {event_id: 4688, channel: 'Security', description: '...'}"
   - "C2 safe simulation: .invalid TLD for DNS failure, 127.0.0.1:9999 for loopback (no listener)"
   - "All techniques: platform: windows, executor.type: powershell, lnj_ prefix on temp files"
 

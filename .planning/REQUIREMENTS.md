@@ -79,7 +79,7 @@
 | QUAL-01 | Phase 2 | Complete |
 | QUAL-02 | Phase 2 | Complete |
 | QUAL-03 | Phase 2 | Complete |
-| QUAL-04 | Phase 2 | Pending |
+| QUAL-04 | Phase 2 | Complete |
 | QUAL-05 | Phase 2 | Complete |
 | TECH-01 | Phase 3 | Complete |
 | TECH-02 | Phase 3 | Complete |
