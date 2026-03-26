@@ -114,4 +114,6 @@ Plans:
   1. All 5 VALIDATION.md files have `status: complete` (not `draft`)
   2. Each phase has `nyquist_compliant: true` or documents specific failing tests with remediation tasks
   3. Any test gaps identified produce corresponding test files or justified deferral notes
-**Plans:** 0/1 plans
+**Plans:** 1 plan
+Plans:
+- [ ] 07-01-PLAN.md — Promote all 5 phase VALIDATION.md files from draft to nyquist_compliant: true
