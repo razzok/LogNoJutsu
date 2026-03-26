@@ -40,7 +40,10 @@ Full details: `.planning/milestones/v1.0-ROADMAP.md`
   2. When a preparation step fails, the error message includes the human-readable subcategory name alongside the raw exit code
   3. Building with `-ldflags "-X main.version=v1.1.0"` produces a binary whose banner prints `v1.1.0`; building without ldflags prints `dev`
   4. `GET /api/info` returns `{"version":"v1.1.0"}` (or `"dev"`) matching the injected build value
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 08-01-PLAN.md — GUID-based audit policy migration + error message fix (BUG-01, BUG-02)
+- [ ] 08-02-PLAN.md — Build-time version injection + /api/info endpoint (VER-01, VER-02)
 
 ### Phase 9: UI Polish
 **Goal**: The Web UI displays accurate, English-only content with a live version badge and inline error feedback
@@ -66,5 +69,5 @@ Full details: `.planning/milestones/v1.0-ROADMAP.md`
 | 5 | Microsoft Sentinel Coverage | v1.0 | 3/3 | Complete | 2026-03-25 |
 | 6 | Documentation Consistency | v1.0 | 1/1 | Complete | 2026-03-26 |
 | 7 | Nyquist Validation | v1.0 | 1/1 | Complete | 2026-03-26 |
-| 8 | Backend Correctness | v1.1 | 0/? | Not started | - |
+| 8 | Backend Correctness | v1.1 | 0/2 | Planning complete | - |
 | 9 | UI Polish | v1.1 | 0/? | Not started | - |
