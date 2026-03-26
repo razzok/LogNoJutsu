@@ -188,6 +188,10 @@
     <div class="card">
       <h2>📊 Simulation Status</h2>
       <div class="stat-grid">
+        <div class="stat-box stat-total">
+          <div class="val" id="dashAvailable">&mdash;</div>
+          <div class="lbl">Techniques Available</div>
+        </div>
         <div class="stat-box stat-phase">
           <div class="val" id="dashPhase">IDLE</div>
           <div class="lbl">Current Phase</div>
@@ -1312,10 +1316,31 @@ function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+async function loadVersionBadge() {
+  try {
+    const r = await api('/api/info');
+    if (r && r.version) {
+      document.querySelector('.version-badge').textContent = r.version;
+    }
+  } catch (_) {}
+}
+
+async function loadTechniqueCount() {
+  try {
+    const techniques = await api('/api/techniques');
+    if (Array.isArray(techniques)) {
+      const el = document.getElementById('dashAvailable');
+      if (el) el.textContent = techniques.length;
+    }
+  } catch (_) {}
+}
+
 // Init
 pollStatus();
 setInterval(pollStatus, 3000);
 loadUsers();
+loadVersionBadge();
+loadTechniqueCount();
 </script>
 </body>
 </html>
