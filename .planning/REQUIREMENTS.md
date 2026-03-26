@@ -43,8 +43,8 @@
 
 ### Bug Fixes
 
-- [ ] **BUG-01**: Windows Audit Policy subcategories use locale-independent GUIDs instead of English names — fixes failure on non-English (German) Windows installations
-- [ ] **BUG-02**: Preparation step failure messages include human-readable subcategory description alongside raw error detail (not just "exit status 87")
+- [x] **BUG-01**: Windows Audit Policy subcategories use locale-independent GUIDs instead of English names — fixes failure on non-English (German) Windows installations
+- [x] **BUG-02**: Preparation step failure messages include human-readable subcategory description alongside raw error detail (not just "exit status 87")
 
 ### Version
 
@@ -110,8 +110,8 @@
 | SENT-01 | Phase 5 | Complete |
 | SENT-02 | Phase 5 | Complete |
 | SENT-03 | Phase 5 | Complete |
-| BUG-01 | Phase 8 | Pending |
-| BUG-02 | Phase 8 | Pending |
+| BUG-01 | Phase 8 | Complete |
+| BUG-02 | Phase 8 | Complete |
 | VER-01 | Phase 8 | Complete |
 | VER-02 | Phase 8 | Complete |
 | VER-03 | Phase 9 | Pending |

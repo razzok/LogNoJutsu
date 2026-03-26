@@ -63,6 +63,12 @@ Phase 08 plan 02 decisions:
 - /api/info registered without authMiddleware — version not sensitive, Phase 9 badge loads before login
 - handleInfo sets CORS/Content-Type headers directly — not via middleware, consistent with D-11
 
+Phase 08 plan 01 decisions:
+- auditPolicies extracted to package-level var — enables test inspection of GUID entries
+- 11 entries after deduplication: Other Object Access Events + Scheduled Task share GUID 0CCE9227
+- Error format: "<description>: failed (exit status N)" — human-readable description first, not raw GUID
+- Two disputed GUIDs (Audit Policy Change, Object access/Scheduled Task) marked with VERIFY comments
+
 ### Pending Todos
 
 None.
@@ -76,7 +82,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-26
-Stopped at: Completed 08-02-PLAN.md — VER-01 (version injection) and VER-02 (/api/info) complete
+Stopped at: Completed 08-01-PLAN.md — BUG-01 (GUID audit policy) and BUG-02 (error messages) complete; Phase 8 all plans done
 Resume file: None
 
 ---
