@@ -39,6 +39,26 @@
 - [x] **SENT-02**: At least 3 techniques that target Azure AD / Microsoft Defender log sources
 - [x] **SENT-03**: HTML report shows Sentinel-specific coverage column when Azure events are present
 
+## v1.1 Requirements
+
+### Bug Fixes
+
+- [ ] **BUG-01**: Windows Audit Policy subcategories use locale-independent GUIDs instead of English names — fixes failure on non-English (German) Windows installations
+- [ ] **BUG-02**: Preparation step failure messages include human-readable subcategory description alongside raw error detail (not just "exit status 87")
+
+### Version
+
+- [ ] **VER-01**: Version string declared as injectable Go `var` in main.go, overridable at build time via `-ldflags "-X main.version=v1.1.0"` — defaults to `"dev"` when built without ldflags
+- [ ] **VER-02**: Server exposes `GET /api/info` endpoint returning `{"version": "..."}` JSON
+- [ ] **VER-03**: Web UI version badge fetches version from `/api/info` on page load — no more hardcoded `v0.1.0`
+
+### UI Polish
+
+- [ ] **UI-01**: All German strings in Web UI replaced with English equivalents (Scheduler tab, PoC mode configuration)
+- [ ] **UI-02**: Preparation tab uses inline styled error panels instead of browser `alert()` for step failures
+- [ ] **UI-03**: Dashboard displays total technique library count loaded from `/api/techniques` (currently 57)
+- [ ] **UI-04**: Tactic badges render correct colours for `command-and-control` and `ueba-scenario` tactics (currently grey due to missing funcMap entries)
+
 ## v2 Requirements
 
 ### Reporting
@@ -92,10 +112,9 @@
 | SENT-03 | Phase 5 | Complete |
 
 **Coverage:**
-- v1 requirements: 19 total
-- Mapped to phases: 19
-- Unmapped: 0 ✓
+- v1 requirements: 19 total — all mapped ✓
+- v1.1 requirements: 9 total — roadmap pending
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-03-24 after initial definition*
+*Last updated: 2026-03-26 — v1.1 requirements added (BUG-01/02, VER-01/02/03, UI-01/02/03/04)*
