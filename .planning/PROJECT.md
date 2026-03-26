@@ -36,7 +36,12 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 
 <!-- Current scope for next milestone. -->
 
-(None — define in /gsd:new-milestone)
+- [ ] Windows Audit Policy uses locale-independent GUIDs — fixes failure on non-English (e.g. German) Windows — v1.1
+- [ ] Version injected at build time via ldflags — replaces hardcoded v0.1.0 in HTML badge and Go banner — v1.1
+- [ ] Outdated/inconsistent UI labels and placeholder text updated throughout — v1.1
+- [ ] Preparation tab surfaces clear, actionable error messages (not raw exit codes) — v1.1
+- [ ] Layout and spacing polished across all UI tabs — v1.1
+- [ ] Dashboard technique count reflects current 57-technique library — v1.1
 
 ### Out of Scope
 
@@ -77,5 +82,33 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | Race detector skip (no CGO/gcc) | TestEngineRace validates mutex discipline structurally; -race requires CGO | ✓ Acceptable — documented in STATE.md and Phase 2 VALIDATION.md |
 | EventSpec format for expected_events | Typed struct (Channel+ID+Description) over plain strings | ✓ Good — enables per-event pass/fail reporting in HTML |
 
+## Current Milestone: v1.1 Bug Fixes & UI Polish
+
+**Goal:** Fix locale-dependent Windows Audit Policy failure and modernise the Web UI with dynamic versioning and visual polish.
+
+**Target features:**
+- Windows Audit Policy: locale-independent GUID-based subcategory lookup (fixes German/non-English Windows)
+- Dynamic build-time version via ldflags (replaces hardcoded v0.1.0)
+- Preparation tab: clear, actionable error messages surfaced to user
+- UI labels, placeholder text, and technique counts updated throughout
+- Layout and spacing polish across all tabs
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-26 after v1.0 milestone completion*
+*Last updated: 2026-03-26 — v1.1 milestone started*

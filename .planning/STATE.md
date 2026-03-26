@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Verified & Expanded
-status: v1.0 milestone complete — planning next milestone
-last_updated: "2026-03-26T14:00:00.000Z"
+milestone: v1.1
+milestone_name: Bug Fixes & UI Polish
+status: Defining requirements
+last_updated: "2026-03-26T15:00:00.000Z"
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 17
-  completed_plans: 17
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,13 +19,19 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Planning next milestone
+**Current focus:** Defining requirements for v1.1
+
+## Current Position
+
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-26 — Milestone v1.1 started
 
 ## Current Status
 
-**Milestone:** v1.0 — Verified & Expanded — COMPLETE (2026-03-26)
-**Next step:** `/gsd:new-milestone` to define v1.1 scope
-**All phases:** 7/7 complete, 17/17 plans complete
+**Milestone:** v1.1 — Bug Fixes & UI Polish — IN PROGRESS
+**Next step:** Define requirements and create roadmap
 
 ## Phase Progress
 
