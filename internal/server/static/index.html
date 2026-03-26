@@ -227,18 +227,18 @@
         <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:stretch;">
           <div class="stat-box" style="padding:12px 18px; min-width:130px;">
             <div class="val" id="pocDayDisplay" style="font-size:22px; color:var(--accent);">—</div>
-            <div class="lbl">PoC Tag</div>
+            <div class="lbl">PoC Day</div>
           </div>
           <div class="stat-box" style="padding:12px 18px; min-width:130px;">
             <div class="val" id="pocTotalDisplay" style="font-size:22px; color:var(--muted);">—</div>
-            <div class="lbl">Gesamttage</div>
+            <div class="lbl">Total Days</div>
           </div>
           <div class="stat-box" style="padding:12px 18px; min-width:200px; flex:1;">
             <div class="poc-countdown" id="pocCountdown">—</div>
-            <div class="lbl">Nächste Ausführung</div>
+            <div class="lbl">Next Execution</div>
           </div>
           <div class="stat-box" style="padding:12px 18px; min-width:180px; flex:1; text-align:left;">
-            <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Aktuelle Phase</div>
+            <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Current Phase</div>
             <div id="pocPhaseDesc" style="font-size:13px; color:var(--text);">—</div>
           </div>
         </div>
@@ -353,19 +353,19 @@
         <div class="form-group">
           <label>Campaign / Playbook</label>
           <select id="cfgCampaign" style="width:380px;">
-            <option value="">All Techniques (alle Discovery + alle Attack-Techniken)</option>
+            <option value="">All Techniques (all Discovery + all Attack techniques)</option>
           </select>
         </div>
       </div>
 
       <div class="separator"></div>
-      <h3 style="font-size:14px; margin-bottom:12px;">🎯 Simulations-Modus</h3>
+      <h3 style="font-size:14px; margin-bottom:12px;">🎯 Simulation Mode</h3>
       <div class="mode-tabs">
         <button class="mode-tab active" id="modeTabQuick" onclick="switchMode('quick')">
-          ⚡ Quick Mode<br><span style="font-size:11px; font-weight:normal; color:inherit; opacity:.8;">Einmalige Simulation (Minuten)</span>
+          ⚡ Quick Mode<br><span style="font-size:11px; font-weight:normal; color:inherit; opacity:.8;">One-time simulation (minutes)</span>
         </button>
         <button class="mode-tab" id="modeTabPoC" onclick="switchMode('poc')">
-          📅 PoC Multi-Day Mode<br><span style="font-size:11px; font-weight:normal; color:inherit; opacity:.8;">Mehrtägige Simulation für 4-Wochen PoC</span>
+          📅 PoC Multi-Day Mode<br><span style="font-size:11px; font-weight:normal; color:inherit; opacity:.8;">Multi-day simulation for 4-week PoC</span>
         </button>
       </div>
 
@@ -391,14 +391,14 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>T1 — Wartezeit vor Phase 1: Discovery (Sekunden)</label>
+            <label>T1 — Wait before Phase 1: Discovery (seconds)</label>
             <input type="number" id="cfgDelayDiscovery" value="5" min="0" max="7200" oninput="updateDiagram()" />
-            <span style="font-size:11px; color:var(--muted); margin-top:3px;">Zeit zwischen „Start" und dem ersten Discovery-Befehl. Für reale Tests: 600–1800s (10–30 Min.).</span>
+            <span style="font-size:11px; color:var(--muted); margin-top:3px;">Time between "Start" and the first Discovery command. For real tests: 600–1800s (10–30 min.).</span>
           </div>
           <div class="form-group">
-            <label>T2 — Pause zwischen Phase 1 und Phase 2 (Sekunden)</label>
+            <label>T2 — Pause between Phase 1 and Phase 2 (seconds)</label>
             <input type="number" id="cfgDelayAttack" value="30" min="0" max="7200" oninput="updateDiagram()" />
-            <span style="font-size:11px; color:var(--muted); margin-top:3px;">Zeit nach Ende von Phase 1 bis Start der Attack-Phase. UEBA-Tests: 60–300s.</span>
+            <span style="font-size:11px; color:var(--muted); margin-top:3px;">Time after end of Phase 1 until Attack phase starts. UEBA tests: 60–300s.</span>
           </div>
         </div>
       </div>
@@ -406,7 +406,7 @@
       <!-- ─── POC MULTI-DAY MODE ─────────────────────────────────────── -->
       <div id="pocModePanel" style="display:none;">
         <div class="alert alert-info" style="margin-bottom:14px;">
-          ℹ️ Im PoC-Modus läuft LogNoJutsu über Wochen. Phase 1 baut täglich ein paar Discovery-Events auf (Exabeam UEBA-Baseline), dann folgt eine Pause, dann Phase 2 mit täglichen vollen Angriffskampagnen.
+          ℹ️ In PoC mode, LogNoJutsu runs over weeks. Phase 1 builds a few Discovery events each day (Exabeam UEBA baseline), then a gap period, then Phase 2 with daily full attack campaigns.
         </div>
 
         <div class="poc-grid">
@@ -414,58 +414,58 @@
           <div class="poc-phase-panel">
             <h4 style="color:var(--accent);">🔍 Phase 1 — Discovery</h4>
             <div class="form-group">
-              <label>Dauer (Tage)</label>
+              <label>Duration (days)</label>
               <input type="number" id="pocP1Days" value="7" min="1" max="30" oninput="updatePoCSchedule()" />
-              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Empfehlung: 7–14 Tage. Exabeam braucht 2–3 Wochen für UEBA-Baseline.</span>
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Recommendation: 7–14 days. Exabeam needs 2–3 weeks to build a UEBA baseline.</span>
             </div>
             <div class="form-group">
-              <label>Techniken pro Tag</label>
+              <label>Techniques per day</label>
               <input type="number" id="pocP1TechsPerDay" value="3" min="1" max="15" oninput="updatePoCSchedule()" />
-              <span style="font-size:11px; color:var(--muted); margin-top:3px;">2–5 Discovery-Techniken/Tag für organisches Baseline-Muster.</span>
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">2–5 Discovery techniques/day for an organic baseline pattern.</span>
             </div>
             <div class="form-group">
-              <label>Uhrzeit (Stunde, 0–23)</label>
+              <label>Time (hour, 0–23)</label>
               <input type="number" id="pocP1Hour" value="9" min="0" max="23" oninput="updatePoCSchedule()" />
-              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Tageszeit für die tägliche Ausführung. Empfehlung: Bürozeit (8–10 Uhr).</span>
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Time of day for daily execution. Recommendation: business hours (8–10).</span>
             </div>
           </div>
 
           <!-- Gap -->
           <div class="poc-gap-panel">
             <div style="font-size:20px;">⏸</div>
-            <div style="font-size:12px; font-weight:600; color:var(--muted);">Pause</div>
+            <div style="font-size:12px; font-weight:600; color:var(--muted);">Gap</div>
             <input type="number" id="pocGapDays" value="3" min="0" max="14" oninput="updatePoCSchedule()" style="width:70px; text-align:center; font-size:15px; font-weight:bold;" />
-            <div style="font-size:11px; color:var(--muted);">Tage</div>
-            <div style="font-size:10px; color:var(--muted); margin-top:4px; line-height:1.4;">Stille Phase — keine Aktionen</div>
+            <div style="font-size:11px; color:var(--muted);">Days</div>
+            <div style="font-size:10px; color:var(--muted); margin-top:4px; line-height:1.4;">Silent phase — no actions</div>
           </div>
 
           <!-- Phase 2 -->
           <div class="poc-phase-panel">
             <h4 style="color:var(--red);">⚔️ Phase 2 — Attack</h4>
             <div class="form-group">
-              <label>Dauer (Tage)</label>
+              <label>Duration (days)</label>
               <input type="number" id="pocP2Days" value="7" min="1" max="30" oninput="updatePoCSchedule()" />
-              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Empfehlung: 7–14 Tage. Täglich eine volle Kampagne.</span>
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Recommendation: 7–14 days. One full campaign per day.</span>
             </div>
             <div class="form-group">
-              <label>Kampagne (täglich)</label>
+              <label>Campaign (daily)</label>
               <select id="pocP2Campaign" style="width:100%;" onchange="updatePoCSchedule()">
-                <option value="">Alle Attack-Techniken</option>
+                <option value="">All Attack Techniques</option>
               </select>
-              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Diese Kampagne wird jeden Tag von Phase 2 vollständig ausgeführt.</span>
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">This campaign is fully executed every day of Phase 2.</span>
             </div>
             <div class="form-group">
-              <label>Uhrzeit (Stunde, 0–23)</label>
+              <label>Time (hour, 0–23)</label>
               <input type="number" id="pocP2Hour" value="10" min="0" max="23" oninput="updatePoCSchedule()" />
-              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Empfehlung: kurz nach Phase-1-Zeit oder andere Bürozeit.</span>
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Recommendation: shortly after Phase 1 time or other business hour.</span>
             </div>
           </div>
         </div>
 
         <!-- Schedule preview -->
         <div class="poc-schedule" id="pocSchedulePreview">
-          <div style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px;">📅 Simulationsplan (ab heute)</div>
-          <div id="pocScheduleRows"><div style="color:var(--muted);">Lädt...</div></div>
+          <div style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px;">📅 Simulation Schedule (from today)</div>
+          <div id="pocScheduleRows"><div style="color:var(--muted);">Loading...</div></div>
         </div>
       </div>
 
@@ -473,9 +473,9 @@
         <div class="form-group">
           <div class="toggle-row">
             <input type="checkbox" id="cfgCleanup" checked />
-            <label for="cfgCleanup">Cleanup nach jeder Technik ausführen (angelegte Artefakte sofort entfernen)</label>
+            <label for="cfgCleanup">Run cleanup after each technique (remove created artifacts immediately)</label>
           </div>
-          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Deaktivieren = alle Artefakte bleiben bis Simulationsende bestehen (End-of-Sim-Cleanup). Sinnvoll um Persistence-Erkennungen über Zeit zu testen.</span>
+          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Disable = all artifacts remain until end of simulation (end-of-sim cleanup). Useful for testing persistence detections over time.</span>
         </div>
       </div>
 
@@ -483,26 +483,26 @@
         <div class="form-group">
           <div class="toggle-row">
             <input type="checkbox" id="cfgWhatIf" />
-            <label for="cfgWhatIf" style="color:var(--orange);">⚠ WhatIf-Modus (Vorschau — keine echte Ausführung)</label>
+            <label for="cfgWhatIf" style="color:var(--orange);">⚠ WhatIf Mode (Preview — no real execution)</label>
           </div>
-          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Zeigt welche Techniken ausgeführt würden, ohne Befehle wirklich auszuführen. Ideal für Planung, Demos oder erste Überprüfung.</span>
+          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Shows which techniques would run without actually executing commands. Ideal for planning, demos, or initial review.</span>
         </div>
         <div class="form-group">
-          <label>Pause zwischen Techniken (Sekunden)</label>
+          <label>Pause between techniques (seconds)</label>
           <input type="number" id="cfgDelayBetween" value="0" min="0" max="300" style="width:140px;" />
-          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Wartezeit nach jeder Technik. 0 = keine Pause. 5–30s empfohlen für operationelles Timing.</span>
+          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Wait time after each technique. 0 = no pause. 5–30s recommended for operational timing.</span>
         </div>
       </div>
 
       <div class="separator"></div>
-      <h3 style="font-size:14px; margin-bottom:10px;">🎯 Taktik-Filter (optional)</h3>
-      <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Nur ausgewählte Taktiken ausführen. Keine Auswahl = alle Taktiken. <strong>Ausschließen:</strong> abgewählte Taktiken werden übersprungen.</div>
+      <h3 style="font-size:14px; margin-bottom:10px;">🎯 Tactic Filter (optional)</h3>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Run only selected tactics. No selection = all tactics. <strong>Exclusions:</strong> deselected tactics are skipped.</div>
       <div id="tacticFilterDiv" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-        <span style="color:var(--muted); font-size:12px;">Wird geladen...</span>
+        <span style="color:var(--muted); font-size:12px;">Loading...</span>
       </div>
       <div style="display:flex; gap:8px; margin-bottom:4px;">
-        <button class="btn btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="selectAllTactics(true)">Alle auswählen</button>
-        <button class="btn btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="selectAllTactics(false)">Alle abwählen</button>
+        <button class="btn btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="selectAllTactics(true)">Select All</button>
+        <button class="btn btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="selectAllTactics(false)">Deselect All</button>
       </div>
 
       <div class="separator"></div>
@@ -512,31 +512,31 @@
         <div class="form-group">
           <label>User Rotation Mode</label>
           <select id="cfgRotation" onchange="toggleUserSelection()" style="width:280px;">
-            <option value="none">None — als aktueller Benutzer ausführen</option>
-            <option value="sequential">Sequential — Profile der Reihe nach durchlaufen</option>
-            <option value="random">Random — zufälliges Profil pro Technik</option>
+            <option value="none">None — run as current user</option>
+            <option value="sequential">Sequential — cycle through profiles in order</option>
+            <option value="random">Random — random profile per technique</option>
           </select>
-          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Techniken unter anderem Benutzerkontext ausführen → erzeugt Event 4648 (explicit credentials) für Exabeam UEBA.</span>
+          <span style="font-size:11px; color:var(--muted); margin-top:3px;">Run techniques under a different user context → generates Event 4648 (explicit credentials) for Exabeam UEBA.</span>
         </div>
       </div>
 
       <div id="userSelectionDiv" style="display:none;">
-        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Benutzerprofile auswählen (Ctrl/Cmd für Mehrfachauswahl)</label>
+        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Select user profiles (Ctrl/Cmd for multi-select)</label>
         <select id="cfgUserProfiles" multiple style="width:100%; height:120px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:6px; font-size:13px;">
         </select>
         <div style="font-size:11px; color:var(--muted); margin-top:4px;">
-          Jede Technik wird via <code>Start-Process -Credential</code> als ausgewählter Benutzer ausgeführt — erzeugt Event 4648.
+          Each technique runs via <code>Start-Process -Credential</code> as the selected user — generates Event 4648.
         </div>
       </div>
 
       <div class="separator"></div>
 
       <div class="alert alert-info" style="margin-top:0; margin-bottom:16px;">
-        ℹ️ Die Simulation startet <strong>erst nach Klick auf Start</strong>. Beim Öffnen des Tools läuft nichts automatisch.
+        ℹ️ The simulation only starts after clicking <strong>Start</strong>. Nothing runs automatically when the tool opens.
       </div>
 
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btn-primary" id="btnStart" onclick="startSimulation()">▶ Simulation starten</button>
+        <button class="btn btn-primary" id="btnStart" onclick="startSimulation()">▶ Start Simulation</button>
         <button class="btn btn-danger" id="btnStopSched" onclick="stopSimulation()" disabled>⏹ Stop &amp; Cleanup</button>
       </div>
     </div>
@@ -554,7 +554,7 @@
       <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
         <button class="btn btn-secondary" onclick="loadResults()">🔄 Refresh</button>
         <button class="btn btn-secondary" onclick="exportResults()">📤 Export JSON</button>
-        <button class="btn btn-success" id="btnHtmlReport" onclick="openHtmlReport()" style="display:none;">📊 HTML Report öffnen</button>
+        <button class="btn btn-success" id="btnHtmlReport" onclick="openHtmlReport()" style="display:none;">📊 Open HTML Report</button>
         <span id="resultsLogFile" style="font-size:12px; color:var(--muted);"></span>
       </div>
       <div id="resultsList"><div class="empty-state">No results yet.</div></div>
@@ -715,7 +715,7 @@ function updateDashboard(s) {
     pocPanel.style.display = 'block';
     document.getElementById('pocDayDisplay').textContent = s.poc_day || '—';
     document.getElementById('pocTotalDisplay').textContent = s.poc_total_days || '—';
-    const phaseDesc = { phase1: '🔍 Phase 1: Discovery-Events aufbauen', gap: '⏸ Pause (keine Aktionen)', phase2: '⚔️ Phase 2: Angriffskampagnen' };
+    const phaseDesc = { phase1: '🔍 Phase 1: Building discovery events', gap: '⏸ Gap (no actions)', phase2: '⚔️ Phase 2: Attack campaigns' };
     document.getElementById('pocPhaseDesc').textContent = phaseDesc[s.poc_phase] || s.poc_phase || '—';
     // Countdown
     if (s.next_scheduled_run) {
@@ -724,7 +724,7 @@ function updateDashboard(s) {
         const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000);
         document.getElementById('pocCountdown').textContent = `${h}h ${m}m`;
       } else {
-        document.getElementById('pocCountdown').textContent = 'Jetzt aktiv';
+        document.getElementById('pocCountdown').textContent = 'Active now';
       }
     }
   } else {
@@ -1015,28 +1015,28 @@ function updatePoCSchedule() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const fmt = d => d.toLocaleDateString('de-DE', { weekday: 'short', month: 'short', day: 'numeric' });
+  const fmt = d => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   // Phase 1 dates
   const p1Start = new Date(today); p1Start.setDate(today.getDate() + 1);
   const p1End = new Date(p1Start); p1End.setDate(p1Start.getDate() + p1Days - 1);
-  rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--accent)"></div><div style="min-width:120px;color:var(--accent);font-weight:500;">Phase 1 Discovery</div><div style="color:var(--text);">${fmt(p1Start)} – ${fmt(p1End)}</div><div style="margin-left:auto;color:var(--muted);">${p1Days} Tage • tägl. ${p1Hour}:00 Uhr</div></div>`);
+  rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--accent)"></div><div style="min-width:120px;color:var(--accent);font-weight:500;">Phase 1: Discovery</div><div style="color:var(--text);">${fmt(p1Start)} – ${fmt(p1End)}</div><div style="margin-left:auto;color:var(--muted);">${p1Days} days • daily ${p1Hour}:00</div></div>`);
 
   // Gap dates
   if (gapDays > 0) {
     const gStart = new Date(p1End); gStart.setDate(p1End.getDate() + 1);
     const gEnd = new Date(gStart); gEnd.setDate(gStart.getDate() + gapDays - 1);
-    rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--muted)"></div><div style="min-width:120px;color:var(--muted);font-weight:500;">Pause</div><div style="color:var(--muted);">${fmt(gStart)} – ${fmt(gEnd)}</div><div style="margin-left:auto;color:var(--muted);">${gapDays} Tage • keine Aktionen</div></div>`);
+    rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--muted)"></div><div style="min-width:120px;color:var(--muted);font-weight:500;">Gap (no actions)</div><div style="color:var(--muted);">${fmt(gStart)} – ${fmt(gEnd)}</div><div style="margin-left:auto;color:var(--muted);">${gapDays} days • no actions</div></div>`);
   }
 
   // Phase 2 dates
   const p2Start = new Date(p1End); p2Start.setDate(p1End.getDate() + gapDays + 1);
   const p2End = new Date(p2Start); p2End.setDate(p2Start.getDate() + p2Days - 1);
-  rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--red)"></div><div style="min-width:120px;color:var(--red);font-weight:500;">Phase 2 Attack</div><div style="color:var(--text);">${fmt(p2Start)} – ${fmt(p2End)}</div><div style="margin-left:auto;color:var(--muted);">${p2Days} Tage • tägl. ${p2Hour}:00 Uhr</div></div>`);
+  rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--red)"></div><div style="min-width:120px;color:var(--red);font-weight:500;">Phase 2: Attack</div><div style="color:var(--text);">${fmt(p2Start)} – ${fmt(p2End)}</div><div style="margin-left:auto;color:var(--muted);">${p2Days} days • daily ${p2Hour}:00</div></div>`);
 
   // Total
   const totalDays = p1Days + gapDays + p2Days;
-  rows.push(`<div class="poc-schedule-row" style="margin-top:4px;"><div class="poc-schedule-dot" style="background:var(--green)"></div><div style="min-width:120px;color:var(--green);font-weight:500;">Ende</div><div style="color:var(--text);">${fmt(p2End)}</div><div style="margin-left:auto;color:var(--muted);">Gesamt: ${totalDays} Tage</div></div>`);
+  rows.push(`<div class="poc-schedule-row" style="margin-top:4px;"><div class="poc-schedule-dot" style="background:var(--green)"></div><div style="min-width:120px;color:var(--green);font-weight:500;">End</div><div style="color:var(--text);">${fmt(p2End)}</div><div style="margin-left:auto;color:var(--muted);">Total: ${totalDays} days</div></div>`);
 
   const el = document.getElementById('pocScheduleRows');
   if (el) el.innerHTML = rows.join('');
