@@ -4,6 +4,8 @@
 
 LogNoJutsu is a SIEM validation tool that simulates MITRE ATT&CK techniques on Windows, generating the system artifacts (Windows Event Logs, Sysmon events, PowerShell logs) that SIEMs should detect. It is used by security consultants during SIEM onboarding and validation engagements with clients. When a technique runs and the SIEM does not alert, LogNoJutsu helps pinpoint whether the problem is technique execution, log forwarding, parsing, or rule configuration.
 
+The v1.0 release ships with automatic pass/fail verification against the local Windows Event Log, a 57-technique library covering MITRE ATT&CK + Exabeam UEBA + CrowdStrike Falcon + Microsoft Sentinel, and an HTML report with per-technique verification columns for each SIEM platform.
+
 ## Core Value
 
 Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
@@ -21,19 +23,20 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - ✓ HTML report generation — v0.3
 - ✓ Tactic filter (run only specific phases) — v0.3
 - ✓ Technique-level logging to .log file — v0.1
+- ✓ Events manifest: each technique declares expected Windows Event IDs / log sources — v1.0
+- ✓ Verification engine: after execution, query local Event Log and report pass/fail per technique — v1.0
+- ✓ Enhanced HTML report showing verification results (expected vs. observed events) — v1.0
+- ✓ Test coverage: Go unit and integration tests for engine, HTTP handlers, verification logic — v1.0
+- ✓ Code structure: refactor package-level globals to struct, split into packages — v1.0
+- ✓ Additional MITRE ATT&CK techniques and Exabeam UEBA scenarios — v1.0
+- ✓ CrowdStrike SIEM coverage: detection mappings + Falcon-sensor-specific techniques — v1.0
+- ✓ Microsoft Sentinel coverage: detection mappings + Azure AD / Sentinel-specific techniques — v1.0
 
 ### Active
 
-<!-- Current scope. Building toward these. -->
+<!-- Current scope for next milestone. -->
 
-- [ ] Events manifest: each technique declares expected Windows Event IDs / log sources
-- [ ] Verification engine: after execution, query local Event Log and report pass/fail per technique
-- [ ] Enhanced HTML report showing verification results (expected vs. observed events)
-- ✓ Test coverage: Go unit and integration tests for engine, HTTP handlers, verification logic — Phase 2
-- ✓ Code structure: refactor package-level globals to struct, split into packages — Phase 2
-- ✓ Additional MITRE ATT&CK techniques and Exabeam UEBA scenarios — Phase 3
-- ✓ CrowdStrike SIEM coverage: detection mappings + Falcon-sensor-specific techniques — Phase 4
-- ✓ Microsoft Sentinel coverage: detection mappings + Azure AD / Sentinel-specific techniques — Phase 5
+(None — define in /gsd:new-milestone)
 
 ### Out of Scope
 
@@ -47,12 +50,11 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - Single Go binary (~10 MB), no runtime dependencies, no internet required at runtime
 - Distributed to clients as a standalone .exe for use on Windows 10/11/Server 2016+
 - Requires local admin for Attack phase techniques; normal user for Discovery
-- README written in German (target user base)
-- Phase 2 complete: Server struct refactor done, 13 unit tests across engine/handlers/verifier, go test ./... green
-- Phase 3 complete: 52 total techniques (5 new ATT&CK Collection+C2 + 4 UEBA scenarios), all with EventSpec entries, 6 loader tests green
-- Phase 4 complete: SIEMCoverage data model on Technique/ExecutionResult, 10 YAML Falcon mappings, 3 FALCON_ techniques, conditional CS column in HTML report
-- Phase 5 complete: siem_coverage.sentinel on 5 existing techniques, 3 AZURE_ techniques (kerberoasting/LDAP recon/DCSync), conditional MS badge column in HTML report, German README Sentinel section — 57 total techniques
-- Phase 6 complete: All stale planning artifacts fixed — QUAL-04 traceability corrected, ROADMAP.md checkboxes reconciled, all 15 SUMMARY.md files have requirements-completed frontmatter
+- README written in German (target user base), translated to English in v1.0
+- **v1.0 shipped 2026-03-26:** 57 techniques (43 base + 5 ATT&CK + 4 UEBA + 3 Falcon + 3 Azure), 38k LOC Go, 17 plans across 7 phases
+- **Codebase packages:** cmd/lognojutsu, internal/{engine,executor,playbooks,preparation,reporter,server,simlog,userstore,verifier}
+- **Test coverage:** 14 test functions across engine_test, server_test, verifier_test, reporter_test, loader_test; playbooks blocked by Windows Defender quarantine
+- **Known cosmetic gap:** tacticColor funcMap missing entries for `command-and-control` and `ueba-scenario` — tactic badges render grey but data is correct
 - Codebase map available at `.planning/codebase/`
 
 ## Constraints
@@ -67,8 +69,13 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Go over PowerShell | Single binary distribution, no PS execution policy issues | ✓ Good |
-| Local event log verification (not SIEM API) | Keeps tool standalone; SIEM-agnostic approach | — Pending |
-| Server struct refactor | Replaced package-level globals with Server struct + method receivers | ✓ Done — handlers testable via httptest |
+| Local event log verification (not SIEM API) | Keeps tool standalone; SIEM-agnostic approach | ✓ Validated — consultants can run without SIEM API access |
+| Server struct refactor | Replaced package-level globals with Server struct + method receivers | ✓ Good — handlers testable via httptest |
+| QueryFn injection for verifier | Injectable func for testability without real PowerShell in tests | ✓ Good — all 3 D-11 verifier tests pass cleanly |
+| SIEMCoverage map[string][]string | Extensible data layer supporting multiple SIEM platforms per technique | ✓ Good — reused for both CrowdStrike and Sentinel with zero changes |
+| Conditional report columns | CS/Sentinel columns appear only when results carry mappings | ✓ Good — clean report for single-SIEM engagements |
+| Race detector skip (no CGO/gcc) | TestEngineRace validates mutex discipline structurally; -race requires CGO | ✓ Acceptable — documented in STATE.md and Phase 2 VALIDATION.md |
+| EventSpec format for expected_events | Typed struct (Channel+ID+Description) over plain strings | ✓ Good — enables per-event pass/fail reporting in HTML |
 
 ---
-*Last updated: 2026-03-25 after Phase 5 completion — Milestone 1 complete*
+*Last updated: 2026-03-26 after v1.0 milestone completion*
