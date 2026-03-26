@@ -937,7 +937,7 @@ async function loadCampaignSelect() {
 
   if (!Array.isArray(campaigns)) return;
   const sorted = campaigns.sort((a,b) => (a.industry||'').localeCompare(b.industry||''));
-  const opts = ['<option value="">Alle Techniken (alle Discovery + alle Attack-Techniken)</option>'];
+  const opts = ['<option value="">All Techniques (all Discovery + all Attack techniques)</option>'];
   sorted.forEach(c => {
     const steps = (c.steps||[]).length;
     opts.push(`<option value="${c.id}" ${selectedCampaign===c.id?'selected':''}>${c.name} [${c.industry}] — ${steps} Techniken</option>`);
