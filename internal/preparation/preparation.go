@@ -61,34 +61,36 @@ func EnablePowerShellLogging() Result {
 		Message: "ScriptBlock logging (4104), Module logging (4103), and Transcription enabled"}
 }
 
+// auditPolicies lists Windows audit subcategories to enable, identified by stable GUIDs.
+// GUIDs are locale-independent — English subcategory names fail on non-English Windows.
+// Reference: https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/
+var auditPolicies = []struct {
+	guid        string
+	description string
+}{
+	{"{0CCE9215-69AE-11D9-BED3-505054503030}", "Logon/Logoff events (4624, 4625, 4634)"},
+	{"{0CCE9216-69AE-11D9-BED3-505054503030}", "Logoff events"},
+	{"{0CCE9217-69AE-11D9-BED3-505054503030}", "Account lockout events (4740)"},
+	{"{0CCE922B-69AE-11D9-BED3-505054503030}", "Process creation events (4688)"},
+	{"{0CCE922F-69AE-11D9-BED3-505054503030}", "Audit policy changes (4719)"},           // VERIFY: run auditpol /list /subcategory:* /v — GUID disputed between research sources
+	{"{0CCE9237-69AE-11D9-BED3-505054503030}", "Group changes (4728, 4732)"},
+	{"{0CCE9235-69AE-11D9-BED3-505054503030}", "Account creation/changes (4720)"},
+	{"{0CCE9228-69AE-11D9-BED3-505054503030}", "Privilege use (4673, 4674)"},
+	{"{0CCE921B-69AE-11D9-BED3-505054503030}", "Special privilege logons (4672)"},
+	{"{0CCE9227-69AE-11D9-BED3-505054503030}", "Object access / Scheduled task events (4698)"}, // VERIFY: run auditpol /list /subcategory:* /v — GUID disputed between research sources. Deduplicated: covers both "Other Object Access Events" and "Scheduled Task"
+	{"{0CCE9226-69AE-11D9-BED3-505054503030}", "Network connection events"},
+}
+
 // ConfigureAuditPolicy sets Windows audit policy for SIEM-relevant events.
 func ConfigureAuditPolicy() Result {
-	policies := []struct {
-		subcategory string
-		description string
-	}{
-		{"Logon", "Logon/Logoff events (4624, 4625, 4634)"},
-		{"Logoff", "Logoff events"},
-		{"Account Lockout", "Account lockout events (4740)"},
-		{"Process Creation", "Process creation events (4688)"},
-		{"Audit Policy Change", "Audit policy changes (4719)"},
-		{"Security Group Management", "Group changes (4728, 4732)"},
-		{"User Account Management", "Account creation/changes (4720)"},
-		{"Sensitive Privilege Use", "Privilege use (4673, 4674)"},
-		{"Special Logon", "Special privilege logons (4672)"},
-		{"Other Object Access Events", "Object access events"},
-		{"Scheduled Task", "Scheduled task events (4698)"},
-		{"Filtering Platform Connection", "Network connection events"},
-	}
-
 	var failures []string
-	for _, p := range policies {
+	for _, p := range auditPolicies {
 		cmd := exec.Command("auditpol.exe", "/set",
-			"/subcategory:"+p.subcategory,
+			"/subcategory:"+p.guid,
 			"/success:enable",
 			"/failure:enable")
-		if out, err := cmd.CombinedOutput(); err != nil {
-			failures = append(failures, fmt.Sprintf("%s: %v (%s)", p.subcategory, err, strings.TrimSpace(string(out))))
+		if _, err := cmd.CombinedOutput(); err != nil {
+			failures = append(failures, fmt.Sprintf("%s: failed (%v)", p.description, err))
 		}
 	}
 
@@ -100,7 +102,7 @@ func ConfigureAuditPolicy() Result {
 			Message: fmt.Sprintf("Partial failure: %s", strings.Join(failures, "; "))}
 	}
 	return Result{Step: "Windows Audit Policy", Success: true,
-		Message: fmt.Sprintf("Configured %d audit subcategories + command line logging in 4688", len(policies))}
+		Message: fmt.Sprintf("Configured %d audit subcategories + command line logging in 4688", len(auditPolicies))}
 }
 
 // InstallSysmon downloads and installs Sysmon with a recommended config.
