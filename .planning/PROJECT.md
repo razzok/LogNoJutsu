@@ -36,8 +36,8 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 
 <!-- Current scope for next milestone. -->
 
-- [ ] Windows Audit Policy uses locale-independent GUIDs — fixes failure on non-English (e.g. German) Windows — v1.1
-- [ ] Version injected at build time via ldflags — replaces hardcoded v0.1.0 in HTML badge and Go banner — v1.1
+- ✓ Windows Audit Policy uses locale-independent GUIDs — fixes failure on non-English (e.g. German) Windows — v1.1 (Validated in Phase 08: backend-correctness)
+- ✓ Version injected at build time via ldflags — replaces hardcoded v0.1.0 in HTML badge and Go banner — v1.1 (Validated in Phase 08: backend-correctness)
 - [ ] Outdated/inconsistent UI labels and placeholder text updated throughout — v1.1
 - [ ] Preparation tab surfaces clear, actionable error messages (not raw exit codes) — v1.1
 - [ ] Layout and spacing polished across all UI tabs — v1.1
@@ -111,4 +111,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-26 — v1.1 milestone started*
+*Last updated: 2026-03-26 — Phase 08 complete: audit policy GUIDs and version injection shipped*
