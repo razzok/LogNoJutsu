@@ -1,14 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Verified & Expanded
-status: v1.0 milestone complete — planning next milestone
-last_updated: "2026-03-26T14:00:00.000Z"
+milestone: v1.1
+milestone_name: Bug Fixes & UI Polish
+status: executing
+stopped_at: Completed 09-ui-polish 09-01-PLAN.md
+last_updated: "2026-03-26T20:33:05Z"
+last_activity: 2026-03-26
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 17
-  completed_plans: 17
+  total_phases: 2
+  completed_phases: 1
+  total_plans: 5
+  completed_plans: 4
+  percent: 80
 ---
 
 # Project State
@@ -44,6 +47,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 See `.planning/milestones/v1.0-ROADMAP.md` for full decision log from all phases.
 
 Key decisions carried forward:
+
 - QueryFn injection pattern for verifier testability without real PowerShell
 - SIEMCoverage map[string][]string — extensible multi-SIEM data model, reuse for future platforms
 - Server struct with method receivers — all handlers testable via httptest
@@ -51,7 +55,6 @@ Key decisions carried forward:
 
 ## Known Technical Debt
 
-- tacticColor funcMap missing entries for `command-and-control` and `ueba-scenario` — grey tactic badges in HTML report (cosmetic, no data impact)
 - Windows Defender quarantine of playbooks.test.exe — add `%LOCALAPPDATA%\Temp\go-build*` exclusion before running playbooks tests
 
 ## Quick Tasks Completed
