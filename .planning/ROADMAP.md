@@ -43,7 +43,7 @@ Full details: `.planning/milestones/v1.0-ROADMAP.md`
 **Plans:** 2 plans
 Plans:
 - [ ] 08-01-PLAN.md — GUID-based audit policy migration + error message fix (BUG-01, BUG-02)
-- [ ] 08-02-PLAN.md — Build-time version injection + /api/info endpoint (VER-01, VER-02)
+- [x] 08-02-PLAN.md — Build-time version injection + /api/info endpoint (VER-01, VER-02) — completed 2026-03-26
 
 ### Phase 9: UI Polish
 **Goal**: The Web UI displays accurate, English-only content with a live version badge and inline error feedback
@@ -69,5 +69,5 @@ Plans:
 | 5 | Microsoft Sentinel Coverage | v1.0 | 3/3 | Complete | 2026-03-25 |
 | 6 | Documentation Consistency | v1.0 | 1/1 | Complete | 2026-03-26 |
 | 7 | Nyquist Validation | v1.0 | 1/1 | Complete | 2026-03-26 |
-| 8 | Backend Correctness | v1.1 | 0/2 | Planning complete | - |
+| 8 | Backend Correctness | v1.1 | 1/2 | In progress | - |
 | 9 | UI Polish | v1.1 | 0/? | Not started | - |

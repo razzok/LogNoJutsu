@@ -48,8 +48,8 @@
 
 ### Version
 
-- [ ] **VER-01**: Version string declared as injectable Go `var` in main.go, overridable at build time via `-ldflags "-X main.version=v1.1.0"` — defaults to `"dev"` when built without ldflags
-- [ ] **VER-02**: Server exposes `GET /api/info` endpoint returning `{"version": "..."}` JSON
+- [x] **VER-01**: Version string declared as injectable Go `var` in main.go, overridable at build time via `-ldflags "-X main.version=v1.1.0"` — defaults to `"dev"` when built without ldflags
+- [x] **VER-02**: Server exposes `GET /api/info` endpoint returning `{"version": "..."}` JSON
 - [ ] **VER-03**: Web UI version badge fetches version from `/api/info` on page load — no more hardcoded `v0.1.0`
 
 ### UI Polish
@@ -112,8 +112,8 @@
 | SENT-03 | Phase 5 | Complete |
 | BUG-01 | Phase 8 | Pending |
 | BUG-02 | Phase 8 | Pending |
-| VER-01 | Phase 8 | Pending |
-| VER-02 | Phase 8 | Pending |
+| VER-01 | Phase 8 | Complete |
+| VER-02 | Phase 8 | Complete |
 | VER-03 | Phase 9 | Pending |
 | UI-01 | Phase 9 | Pending |
 | UI-02 | Phase 9 | Pending |

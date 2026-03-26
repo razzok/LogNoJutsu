@@ -2,13 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Bug Fixes & UI Polish
-status: Ready to plan
-last_updated: "2026-03-26T15:00:00.000Z"
+status: executing
+stopped_at: Roadmap created for v1.1. Phase 8 and 9 defined. Ready to plan Phase 8.
+last_updated: "2026-03-26T16:55:00.000Z"
+last_activity: 2026-03-26 -- Phase 08 plan 02 complete (VER-01, VER-02)
 progress:
   total_phases: 2
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
+  percent: 100
 ---
 
 # Project State
@@ -18,20 +21,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
-**Current focus:** Phase 8 — Backend Correctness (v1.1 first phase)
+**Current focus:** Phase 08 — backend-correctness
 
 ## Current Position
 
-Phase: 8 of 9 (Backend Correctness)
-Plan: — of — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-03-26 — v1.1 roadmap created (Phases 8-9)
+Phase: 08 (backend-correctness) — COMPLETE
+Plan: 2 of 2 — COMPLETE
+Status: Phase 08 all plans complete — BUG-01, BUG-02, VER-01, VER-02 shipped
+Last activity: 2026-03-26 -- Phase 08 plan 01 complete (BUG-01, BUG-02)
 
-Progress: [░░░░░░░░░░] 0% (v1.1)
+Progress: [██████████] 100% (Phase 8 v1.1)
 
 ## Performance Metrics
 
 **Velocity (v1.0):**
+
 - Total plans completed: 17
 - Average duration: ~30 min
 - Total execution time: ~8.5 hours
@@ -49,9 +53,15 @@ Progress: [░░░░░░░░░░] 0% (v1.1)
 ### Decisions
 
 Key decisions carried forward from v1.0:
+
 - QueryFn injection for verifier testability (no real PowerShell in tests)
 - SIEMCoverage map[string][]string — extensible multi-SIEM data model
 - Server struct with method receivers — all handlers testable via httptest
+
+Phase 08 plan 02 decisions:
+- var version="dev" replaces const banner — package-level var enables ldflags injection at link time
+- /api/info registered without authMiddleware — version not sensitive, Phase 9 badge loads before login
+- handleInfo sets CORS/Content-Type headers directly — not via middleware, consistent with D-11
 
 ### Pending Todos
 
@@ -66,7 +76,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-26
-Stopped at: Roadmap created for v1.1. Phase 8 and 9 defined. Ready to plan Phase 8.
+Stopped at: Completed 08-02-PLAN.md — VER-01 (version injection) and VER-02 (/api/info) complete
 Resume file: None
 
 ---
