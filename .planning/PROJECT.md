@@ -38,10 +38,10 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 
 - ✓ Windows Audit Policy uses locale-independent GUIDs — fixes failure on non-English (e.g. German) Windows — v1.1 (Validated in Phase 08: backend-correctness)
 - ✓ Version injected at build time via ldflags — replaces hardcoded v0.1.0 in HTML badge and Go banner — v1.1 (Validated in Phase 08: backend-correctness)
-- [ ] Outdated/inconsistent UI labels and placeholder text updated throughout — v1.1
-- [ ] Preparation tab surfaces clear, actionable error messages (not raw exit codes) — v1.1
-- [ ] Layout and spacing polished across all UI tabs — v1.1
-- [ ] Dashboard technique count reflects current 57-technique library — v1.1
+- ✓ Outdated/inconsistent UI labels and placeholder text updated throughout — v1.1 (Validated in Phase 09: ui-polish)
+- ✓ Preparation tab surfaces clear, actionable error messages (not raw exit codes) — v1.1 (Validated in Phase 09: ui-polish)
+- ✓ Web UI fully in English — all German strings replaced — v1.1 (Validated in Phase 09: ui-polish)
+- ✓ Dashboard technique count reflects current 57-technique library — v1.1 (Validated in Phase 09: ui-polish)
 
 ### Out of Scope
 
@@ -59,7 +59,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - **v1.0 shipped 2026-03-26:** 57 techniques (43 base + 5 ATT&CK + 4 UEBA + 3 Falcon + 3 Azure), 38k LOC Go, 17 plans across 7 phases
 - **Codebase packages:** cmd/lognojutsu, internal/{engine,executor,playbooks,preparation,reporter,server,simlog,userstore,verifier}
 - **Test coverage:** 14 test functions across engine_test, server_test, verifier_test, reporter_test, loader_test; playbooks blocked by Windows Defender quarantine
-- **Known cosmetic gap:** tacticColor funcMap missing entries for `command-and-control` and `ueba-scenario` — tactic badges render grey but data is correct
+- **Tactic badge colors:** `command-and-control` → red (#f85149), `ueba-scenario` → purple (#bc8cff) — fixed in Phase 09
 - Codebase map available at `.planning/codebase/`
 
 ## Constraints
@@ -111,4 +111,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-26 — Phase 08 complete: audit policy GUIDs and version injection shipped*
+*Last updated: 2026-03-26 — Phase 09 complete: UI fully in English, inline error panels, live version badge, technique count stat box, tactic badge colors fixed. Milestone v1.1 complete.*
