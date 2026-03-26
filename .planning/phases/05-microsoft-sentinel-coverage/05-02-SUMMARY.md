@@ -22,6 +22,7 @@ decisions:
   - "AZURE_kerberoasting adds machine SPNs as fallback to ensure volume threshold is reachable in environments with few service accounts"
   - "AZURE_dcsync differs from T1003.006 by using LDAP ACL access to DS-Replication GUIDs rather than repadmin /syncall"
   - "TestNewTechniqueCount threshold updated from 51 to 54 to include 3 new AZURE_ techniques"
+requirements-completed: [SENT-02]
 metrics:
   duration: 4min
   completed: "2026-03-25T20:26:45Z"

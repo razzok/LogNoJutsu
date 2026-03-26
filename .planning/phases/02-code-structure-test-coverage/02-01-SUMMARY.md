@@ -21,6 +21,7 @@ decisions:
   - Start(c Config) remains package-level — main.go call site unchanged
   - writeJSON and writeError remain package-level helpers (no state dependency)
   - RunnerFunc nil-default pattern mirrors verifier QueryFn — no change to New() or production path
+requirements-completed: [QUAL-01, QUAL-02]
 metrics:
   duration: "2min"
   completed_date: "2026-03-25"

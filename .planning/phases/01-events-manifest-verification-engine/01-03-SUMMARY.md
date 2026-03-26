@@ -34,6 +34,8 @@ key-decisions:
   - "VerifPassed/VerifFailed counters added to htmlData for optional stat display"
   - "Tests use os.Chdir to temp dir so SaveResults writes to isolated location per test"
 
+requirements-completed: [VERIF-04]
+
 # Metrics
 duration: 10min
 completed: 2026-03-24
