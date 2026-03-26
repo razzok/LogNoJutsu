@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Bug Fixes & UI Polish
-status: executing
-stopped_at: Roadmap created for v1.1. Phase 8 and 9 defined. Ready to plan Phase 8.
-last_updated: "2026-03-26T16:55:00.000Z"
-last_activity: 2026-03-26 -- Phase 08 plan 02 complete (VER-01, VER-02)
+status: completed
+stopped_at: Completed 08-01-PLAN.md — BUG-01 (GUID audit policy) and BUG-02 (error messages) complete; Phase 8 all plans done
+last_updated: "2026-03-26T15:49:56.633Z"
+last_activity: 2026-03-26
 progress:
   total_phases: 2
   completed_phases: 1
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 ## Current Position
 
-Phase: 08 (backend-correctness) — COMPLETE
-Plan: 2 of 2 — COMPLETE
+Phase: 9
+Plan: Not started
 Status: Phase 08 all plans complete — BUG-01, BUG-02, VER-01, VER-02 shipped
-Last activity: 2026-03-26 -- Phase 08 plan 01 complete (BUG-01, BUG-02)
+Last activity: 2026-03-26
 
 Progress: [██████████] 100% (Phase 8 v1.1)
 
@@ -59,11 +59,13 @@ Key decisions carried forward from v1.0:
 - Server struct with method receivers — all handlers testable via httptest
 
 Phase 08 plan 02 decisions:
+
 - var version="dev" replaces const banner — package-level var enables ldflags injection at link time
 - /api/info registered without authMiddleware — version not sensitive, Phase 9 badge loads before login
 - handleInfo sets CORS/Content-Type headers directly — not via middleware, consistent with D-11
 
 Phase 08 plan 01 decisions:
+
 - auditPolicies extracted to package-level var — enables test inspection of GUID entries
 - 11 entries after deduplication: Other Object Access Events + Scheduled Task share GUID 0CCE9227
 - Error format: "<description>: failed (exit status N)" — human-readable description first, not raw GUID
