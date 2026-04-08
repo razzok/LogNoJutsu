@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Bug Fixes & UI Polish
-status: Archived
-last_updated: "2026-03-26T21:06:22.526Z"
+milestone: v1.2
+milestone_name: PoC Engine Fixes & Clock Injection
+status: In Progress
+last_updated: "2026-04-08T19:58:27Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 1
 ---
 
 # Project State
@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 ## Current Status
 
-**Milestone:** v1.1 — Bug Fixes & UI Polish — ARCHIVED (2026-03-26)
-**Next step:** `/gsd:new-milestone` to define v1.2 scope
-**All phases (v1.1):** 2/2 complete, 5/5 plans complete
+**Milestone:** v1.2 — PoC Engine Fixes & Clock Injection — In Progress (2026-04-08)
+**Current phase:** 10 — poc-engine-fixes-clock-injection
+**Current plan:** 10-02 (plan 01 complete)
 
 ## Phase Progress
 
@@ -40,6 +40,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 | 7 | Nyquist Validation | Complete | 2026-03-26 |
 | 8 | Backend Correctness | Complete | 2026-03-26 |
 | 9 | UI Polish | Complete | 2026-03-26 |
+| 10 | PoC Engine Fixes & Clock Injection | In Progress | — |
 
 ## Decisions (v1.0)
 
@@ -59,6 +60,12 @@ Key decisions carried forward:
 - confirm() for deleteUser preserved — destructive action safeguard, not a disruptive alert
 - Inline feedback: showInlineSuccess auto-dismisses after 5s; showInlineError persists until next action
 
+## Decisions (Phase 10)
+
+- Clock interface injected into Engine struct via unexported `clock` field; `realClock{}` default in `New()`; `e.clock.Now()`/`e.clock.After()` replaces `time.Now()`/`time.After()` in `runPoC`, `waitOrStop`, `setPhase`
+- `globalDay` counter increments monotonically across Phase1/Gap/Phase2 loops; `nextOccurrenceOfHour` accepts `now` parameter (pure function); `simlog.Phase()` at call sites not inside `setPhase()`
+- Clock interface defined inline in engine.go (not clock.go) — single file, minimal surface area
+
 ## Known Technical Debt
 
 - Windows Defender quarantine of playbooks.test.exe — add `%LOCALAPPDATA%\Temp\go-build*` exclusion before running playbooks tests
@@ -74,3 +81,4 @@ Key decisions carried forward:
 *Initialized: 2026-03-24*
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
+*Last session: 2026-04-08 — Stopped at: Completed 10-poc-engine-fixes-clock-injection/10-01-PLAN.md*
