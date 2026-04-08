@@ -1,0 +1,100 @@
+# Requirements: LogNoJutsu
+
+**Defined:** 2026-04-08
+**Core Value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
+
+## v1.2 Requirements
+
+Requirements for PoC Mode Fix & Overhaul. Each maps to roadmap phases.
+
+### Bug Fixes
+
+- [ ] **POCFIX-01**: PoC day counter updates correctly across all three phases (Phase1, Gap, Phase2) — showing global day N of total
+- [ ] **POCFIX-02**: All CurrentStep strings in runPoC() display in English (no German "Tag", "warte bis", "keine Aktionen")
+- [ ] **POCFIX-03**: Phase transitions in runPoC() produce simlog.Phase() separator entries visible in log viewer
+
+### Daily Tracking
+
+- [ ] **TRACK-01**: Engine records a DayDigest struct per PoC day containing: day number, phase, status, techniques executed, pass/fail counts, start/end timestamps
+- [ ] **TRACK-02**: DayDigest entries are pre-populated as "pending" at runPoC() start so the full schedule is visible from first poll
+- [ ] **TRACK-03**: GET /api/poc/days endpoint returns the DayDigest array (behind authMiddleware)
+- [ ] **TRACK-04**: DayDigest includes a "last heartbeat" timestamp proving the engine was alive during each day's execution window
+
+### UI — Daily Digest
+
+- [ ] **DIGEST-01**: User can see a per-day summary panel showing which techniques ran and their results
+- [ ] **DIGEST-02**: Current day auto-expands; completed days are collapsed by default
+- [ ] **DIGEST-03**: Each day entry shows technique count, pass/fail counts, and execution time window
+
+### UI — Timeline Calendar
+
+- [ ] **CAL-01**: User can see a horizontal day-by-day grid showing the full PoC schedule
+- [ ] **CAL-02**: Days are color-coded: green (complete), yellow/accent (current), gray (future), muted (gap)
+- [ ] **CAL-03**: Each day cell shows technique count badge
+- [ ] **CAL-04**: Phase labels (Phase 1 / Gap / Phase 2) are visible above day groups
+
+### Testability
+
+- [ ] **TEST-01**: Engine accepts injectable clock/wait function for deterministic runPoC() testing
+- [ ] **TEST-02**: Tests validate monotonic day counter across Phase1→Gap→Phase2 transitions
+- [ ] **TEST-03**: Tests validate stop-signal handling during PoC sleep periods
+- [ ] **TEST-04**: Tests validate DayDigest lifecycle (pending→active→complete)
+
+### Campaign Execution
+
+- [ ] **CAMP-01**: Campaign delay_after field is applied between technique steps during PoC Phase 2 execution
+
+## Future Requirements
+
+### PoC Reporting
+
+- **REPORT-01**: HTML report includes per-day breakdown section for PoC runs
+- **REPORT-02**: DayDigest data persists across binary restart (disk serialization)
+
+### Log Performance
+
+- **LOG-01**: Log entries paginated with offset/limit on GET /api/logs to prevent multi-week memory growth
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Per-day SIEM verification results | Requires SIEM API integration — deferred to future milestone |
+| Real-time WebSocket updates | SSE/WebSocket adds complexity; 2-3s polling sufficient for daily-execution tool |
+| Parallel PoC simulations | Engine is singleton by design; multi-simulation not needed for current use case |
+| PoC state persistence to disk | In-memory state acceptable for v1.2; restart resumes from scratch |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| POCFIX-01 | — | Pending |
+| POCFIX-02 | — | Pending |
+| POCFIX-03 | — | Pending |
+| TRACK-01 | — | Pending |
+| TRACK-02 | — | Pending |
+| TRACK-03 | — | Pending |
+| TRACK-04 | — | Pending |
+| DIGEST-01 | — | Pending |
+| DIGEST-02 | — | Pending |
+| DIGEST-03 | — | Pending |
+| CAL-01 | — | Pending |
+| CAL-02 | — | Pending |
+| CAL-03 | — | Pending |
+| CAL-04 | — | Pending |
+| TEST-01 | — | Pending |
+| TEST-02 | — | Pending |
+| TEST-03 | — | Pending |
+| TEST-04 | — | Pending |
+| CAMP-01 | — | Pending |
+
+**Coverage:**
+- v1.2 requirements: 19 total
+- Mapped to phases: 0
+- Unmapped: 19 ⚠️
+
+---
+*Requirements defined: 2026-04-08*
+*Last updated: 2026-04-08 after initial definition*
