@@ -1,13 +1,55 @@
 package engine
 
 import (
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"lognojutsu/internal/playbooks"
+	"lognojutsu/internal/simlog"
 	"lognojutsu/internal/userstore"
 )
+
+// fakeClock implements Clock for deterministic testing — After() fires immediately.
+type fakeClock struct {
+	now time.Time
+}
+
+func (f *fakeClock) Now() time.Time { return f.now }
+
+func (f *fakeClock) After(d time.Duration) <-chan time.Time {
+	f.now = f.now.Add(d) // advance fake time
+	ch := make(chan time.Time, 1)
+	ch <- f.now
+	return ch
+}
+
+// newPoCEngine creates an Engine wired with a fake clock and fake runner,
+// configured for a minimal PoC run with the given day counts.
+func newPoCEngine(phase1Days, gapDays, phase2Days int) (*Engine, *fakeClock) {
+	reg := testRegistry(
+		testTechnique("T1087", "discovery", "discovery"),
+		testTechnique("T1059", "discovery", "execution"),
+		testTechnique("T1078", "attack", "persistence"),
+	)
+	// Add a minimal campaign for Phase 2
+	reg.Campaigns["camp-test"] = &playbooks.Campaign{
+		ID:   "camp-test",
+		Name: "Test Campaign",
+		Steps: []playbooks.CampaignStep{
+			{TechniqueID: "T1078", DelayAfter: 0},
+		},
+	}
+	eng := New(reg, nil)
+	fc := &fakeClock{now: time.Date(2026, 4, 8, 6, 0, 0, 0, time.UTC)}
+	eng.clock = fc
+	eng.runner = fakeRunner(0)
+	return eng, fc
+}
+
+// suppress unused import warning — simlog is used in PoC tests below
+var _ = simlog.TypePhase
 
 // testRegistry builds a minimal Registry from the provided techniques.
 func testRegistry(techniques ...*playbooks.Technique) *playbooks.Registry {
