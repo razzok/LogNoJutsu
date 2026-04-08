@@ -1,14 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: PoC Engine Fixes & Clock Injection
+milestone: v1.0
+milestone_name: milestone
+current_phase: 10 — poc-engine-fixes-clock-injection
+current_plan: 10-02 (plan 01 complete)
 status: In Progress
-last_updated: "2026-04-08T19:58:27Z"
+last_updated: "2026-04-08T20:06:31.032Z"
 progress:
-  total_phases: 1
-  completed_phases: 0
-  total_plans: 3
-  completed_plans: 1
+  total_phases: 3
+  completed_phases: 3
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -25,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Milestone:** v1.2 — PoC Engine Fixes & Clock Injection — In Progress (2026-04-08)
 **Current phase:** 10 — poc-engine-fixes-clock-injection
-**Current plan:** 10-02 (plan 01 complete)
+**Current plan:** 10-03 (plans 01 and 02 complete)
 
 ## Phase Progress
 
@@ -65,6 +67,7 @@ Key decisions carried forward:
 - Clock interface injected into Engine struct via unexported `clock` field; `realClock{}` default in `New()`; `e.clock.Now()`/`e.clock.After()` replaces `time.Now()`/`time.After()` in `runPoC`, `waitOrStop`, `setPhase`
 - `globalDay` counter increments monotonically across Phase1/Gap/Phase2 loops; `nextOccurrenceOfHour` accepts `now` parameter (pure function); `simlog.Phase()` at call sites not inside `setPhase()`
 - Clock interface defined inline in engine.go (not clock.go) — single file, minimal surface area
+- captureClock pattern for reliable state capture: when fake clock fires too fast for polling goroutines, embed fakeClock in a wrapper that reads engine status synchronously on each After() call
 
 ## Known Technical Debt
 
@@ -81,4 +84,4 @@ Key decisions carried forward:
 *Initialized: 2026-03-24*
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
-*Last session: 2026-04-08 — Stopped at: Completed 10-poc-engine-fixes-clock-injection/10-01-PLAN.md*
+*Last session: 2026-04-08 — Stopped at: Completed 10-poc-engine-fixes-clock-injection/10-02-PLAN.md*

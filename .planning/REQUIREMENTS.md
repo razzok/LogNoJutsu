@@ -9,9 +9,9 @@ Requirements for PoC Mode Fix & Overhaul. Each maps to roadmap phases.
 
 ### Bug Fixes
 
-- [ ] **POCFIX-01**: PoC day counter updates correctly across all three phases (Phase1, Gap, Phase2) — showing global day N of total
-- [ ] **POCFIX-02**: All CurrentStep strings in runPoC() display in English (no German "Tag", "warte bis", "keine Aktionen")
-- [ ] **POCFIX-03**: Phase transitions in runPoC() produce simlog.Phase() separator entries visible in log viewer
+- [x] **POCFIX-01**: PoC day counter updates correctly across all three phases (Phase1, Gap, Phase2) — showing global day N of total
+- [x] **POCFIX-02**: All CurrentStep strings in runPoC() display in English (no German "Tag", "warte bis", "keine Aktionen")
+- [x] **POCFIX-03**: Phase transitions in runPoC() produce simlog.Phase() separator entries visible in log viewer
 
 ### Daily Tracking
 
@@ -35,7 +35,7 @@ Requirements for PoC Mode Fix & Overhaul. Each maps to roadmap phases.
 
 ### Testability
 
-- [ ] **TEST-01**: Engine accepts injectable clock/wait function for deterministic runPoC() testing
+- [x] **TEST-01**: Engine accepts injectable clock/wait function for deterministic runPoC() testing
 - [ ] **TEST-02**: Tests validate monotonic day counter across Phase1→Gap→Phase2 transitions
 - [ ] **TEST-03**: Tests validate stop-signal handling during PoC sleep periods
 - [ ] **TEST-04**: Tests validate DayDigest lifecycle (pending→active→complete)
@@ -70,10 +70,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| POCFIX-01 | Phase 10 | Pending |
-| POCFIX-02 | Phase 10 | Pending |
-| POCFIX-03 | Phase 10 | Pending |
-| TEST-01 | Phase 10 | Pending |
+| POCFIX-01 | Phase 10 | Complete |
+| POCFIX-02 | Phase 10 | Complete |
+| POCFIX-03 | Phase 10 | Complete |
+| TEST-01 | Phase 10 | Complete |
 | TRACK-01 | Phase 11 | Pending |
 | TRACK-02 | Phase 11 | Pending |
 | TRACK-03 | Phase 11 | Pending |
