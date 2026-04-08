@@ -53,7 +53,11 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
   2. The day counter shown in CurrentStep reads the correct global day N across Phase1, Gap, and Phase2 without resetting or skipping
   3. Each phase transition (Phase1 start, Gap start, Phase2 start) produces a visible separator entry in the log viewer
   4. The engine accepts an injectable clock/wait function that tests can supply to eliminate real sleeps
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Clock interface + day counter + English strings + log separators
+- [ ] 10-02-PLAN.md — PoC engine validation tests (fakeClock, day counter, strings, separators)
 
 ### Phase 11: Daily Tracking Data Layer
 **Goal**: The engine records a complete DayDigest for every PoC day from the moment the run starts, exposes it via a new API endpoint, and applies campaign delay_after between technique steps during Phase 2
@@ -102,7 +106,7 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 | 7 | Nyquist Validation | v1.0 | 1/1 | Complete | 2026-03-26 |
 | 8 | Backend Correctness | v1.1 | 2/2 | Complete | 2026-03-26 |
 | 9 | UI Polish | v1.1 | 3/3 | Complete | 2026-03-26 |
-| 10 | PoC Engine Fixes & Clock Injection | v1.2 | 0/? | Not started | - |
+| 10 | PoC Engine Fixes & Clock Injection | v1.2 | 0/2 | Not started | - |
 | 11 | Daily Tracking Data Layer | v1.2 | 0/? | Not started | - |
 | 12 | Daily Digest & Timeline Calendar UI | v1.2 | 0/? | Not started | - |
 | 13 | runPoC() Scheduling Tests | v1.2 | 0/? | Not started | - |
