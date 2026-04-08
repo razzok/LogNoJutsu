@@ -70,31 +70,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| POCFIX-01 | — | Pending |
-| POCFIX-02 | — | Pending |
-| POCFIX-03 | — | Pending |
-| TRACK-01 | — | Pending |
-| TRACK-02 | — | Pending |
-| TRACK-03 | — | Pending |
-| TRACK-04 | — | Pending |
-| DIGEST-01 | — | Pending |
-| DIGEST-02 | — | Pending |
-| DIGEST-03 | — | Pending |
-| CAL-01 | — | Pending |
-| CAL-02 | — | Pending |
-| CAL-03 | — | Pending |
-| CAL-04 | — | Pending |
-| TEST-01 | — | Pending |
-| TEST-02 | — | Pending |
-| TEST-03 | — | Pending |
-| TEST-04 | — | Pending |
-| CAMP-01 | — | Pending |
+| POCFIX-01 | Phase 10 | Pending |
+| POCFIX-02 | Phase 10 | Pending |
+| POCFIX-03 | Phase 10 | Pending |
+| TEST-01 | Phase 10 | Pending |
+| TRACK-01 | Phase 11 | Pending |
+| TRACK-02 | Phase 11 | Pending |
+| TRACK-03 | Phase 11 | Pending |
+| TRACK-04 | Phase 11 | Pending |
+| CAMP-01 | Phase 11 | Pending |
+| DIGEST-01 | Phase 12 | Pending |
+| DIGEST-02 | Phase 12 | Pending |
+| DIGEST-03 | Phase 12 | Pending |
+| CAL-01 | Phase 12 | Pending |
+| CAL-02 | Phase 12 | Pending |
+| CAL-03 | Phase 12 | Pending |
+| CAL-04 | Phase 12 | Pending |
+| TEST-02 | Phase 13 | Pending |
+| TEST-03 | Phase 13 | Pending |
+| TEST-04 | Phase 13 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-08*
-*Last updated: 2026-04-08 after initial definition*
+*Last updated: 2026-04-08 — traceability filled after roadmap creation*
