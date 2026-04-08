@@ -1,31 +1,31 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Bug Fixes & UI Polish
-status: Archived
-last_updated: "2026-03-26T21:06:22.526Z"
+milestone: v1.2
+milestone_name: PoC Mode Fix & Overhaul
+status: Active
+last_updated: "2026-04-08T00:00:00.000Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-26)
+See: .planning/PROJECT.md (updated 2026-04-08)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Planning next milestone
+**Current focus:** Defining requirements for v1.2
 
 ## Current Status
 
-**Milestone:** v1.1 — Bug Fixes & UI Polish — ARCHIVED (2026-03-26)
-**Next step:** `/gsd:new-milestone` to define v1.2 scope
-**All phases (v1.1):** 2/2 complete, 5/5 plans complete
+**Milestone:** v1.2 — PoC Mode Fix & Overhaul
+**Status:** Defining requirements
+**Last activity:** 2026-04-08 — Milestone v1.2 started
 
 ## Phase Progress
 

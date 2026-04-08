@@ -31,17 +31,21 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - ✓ Additional MITRE ATT&CK techniques and Exabeam UEBA scenarios — v1.0
 - ✓ CrowdStrike SIEM coverage: detection mappings + Falcon-sensor-specific techniques — v1.0
 - ✓ Microsoft Sentinel coverage: detection mappings + Azure AD / Sentinel-specific techniques — v1.0
+- ✓ Windows Audit Policy uses locale-independent GUIDs — v1.1
+- ✓ Version injected at build time via ldflags — v1.1
+- ✓ Full English UI — all German strings in index.html replaced — v1.1
+- ✓ Preparation tab: inline error panels replace alert() dialogs — v1.1
+- ✓ Dashboard technique count wired to live /api/techniques count — v1.1
 
 ### Active
 
-<!-- Current scope for next milestone. -->
+<!-- Current scope for v1.2 milestone. -->
 
-- ✓ Windows Audit Policy uses locale-independent GUIDs — fixes failure on non-English (e.g. German) Windows — v1.1 (Validated in Phase 08: backend-correctness)
-- ✓ Version injected at build time via ldflags — replaces hardcoded v0.1.0 in HTML badge and Go banner — v1.1 (Validated in Phase 08: backend-correctness)
-- ✓ Outdated/inconsistent UI labels and placeholder text updated throughout — v1.1 (Validated in Phase 09: ui-polish)
-- ✓ Preparation tab surfaces clear, actionable error messages (not raw exit codes) — v1.1 (Validated in Phase 09: ui-polish)
-- ✓ Web UI fully in English — all German strings replaced — v1.1 (Validated in Phase 09: ui-polish)
-- ✓ Dashboard technique count reflects current 57-technique library — v1.1 (Validated in Phase 09: ui-polish)
+- [ ] PoC mode bugs fixed: stale PoCDay counter during Gap/Phase2, missing simlog.Phase() calls, German CurrentStep strings
+- [ ] Daily digest panel: per-day summary showing which techniques ran, when, and success/failure
+- [ ] Timeline calendar: visual day-by-day schedule showing completed/current/future days with technique counts
+- [ ] Test coverage for runPoC() scheduling logic
+- [ ] Campaign delay_after support applied during PoC Phase 2 execution
 
 ### Out of Scope
 
@@ -83,26 +87,21 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | Race detector skip (no CGO/gcc) | TestEngineRace validates mutex discipline structurally; -race requires CGO | ✓ Acceptable — documented in STATE.md and Phase 2 VALIDATION.md |
 | EventSpec format for expected_events | Typed struct (Channel+ID+Description) over plain strings | ✓ Good — enables per-event pass/fail reporting in HTML |
 
-## Current State: v1.1 Shipped
+## Current Milestone: v1.2 PoC Mode Fix & Overhaul
 
-**Latest release:** v1.1 Bug Fixes & UI Polish (2026-03-26)
+**Goal:** Make PoC/Multiday mode work reliably with clear daily feedback — fix bugs that make it appear broken, add per-day execution tracking, and improve schedule visualization so consultants trust the tool during multi-week engagements.
 
-**Shipped in v1.1:**
-- Windows Audit Policy: locale-independent GUID-based subcategory lookup (fixes German/non-English Windows)
-- Dynamic build-time version via `-ldflags "-X main.version=v1.1.0"` + `GET /api/info` endpoint
-- Preparation tab: clear, actionable inline error panels (no more alert() dialogs)
-- Full English UI — zero German strings in index.html
-- Dashboard "Techniques Available" stat box wired to live /api/techniques count
-- Tactic badge colors fixed for command-and-control (red) and ueba-scenario (purple)
+**Target features:**
+- Fix PoC mode bugs: stale day counter, missing log separators, German strings in CurrentStep
+- Daily digest panel: per-day summary showing which techniques ran, when, success/failure
+- Timeline calendar: visual day-by-day schedule (completed/current/future) with technique counts
+- Test coverage for runPoC() scheduling logic
+- Campaign delay_after support
 
-**Known tech debt:**
+**Known tech debt (carried forward):**
 - `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
 - German strings remain in `reporter.go` htmlTemplate (HTML reports)
 - Two audit GUIDs need on-machine validation on non-English Windows
-
-## Next Milestone
-
-Run `/gsd:new-milestone` to define v1.2 scope.
 
 ## Evolution
 
@@ -122,4 +121,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-26 — v1.1 archived. Milestone complete: phases 8-9, 5 plans, 9 requirements satisfied.*
+*Last updated: 2026-04-08 — v1.2 milestone started: PoC Mode Fix & Overhaul*
