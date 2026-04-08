@@ -1,25 +1,22 @@
 # Feature Research
 
-**Domain:** Security tool admin UI — polish/bug-fix milestone for a Go SIEM validation tool
-**Researched:** 2026-03-26
-**Confidence:** HIGH (current UI code fully reviewed; v1.1 requirements directly from PROJECT.md)
+**Domain:** Multi-day simulation dashboard / daily execution feedback for SIEM validation tool
+**Researched:** 2026-04-08
+**Confidence:** HIGH (analysis from codebase, not external research)
 
 ---
 
-## Context
+## Context: What Already Exists vs What Is Being Added
 
-This research covers UI polish improvements for v1.1, not new product features. The core engine
-(57 techniques, verification engine, HTML report) shipped in v1.0. The six items in scope are:
+This milestone is a targeted overhaul, not greenfield. Features below are evaluated against the
+existing PoC mode implementation. The existing system has:
 
-1. Windows Audit Policy using locale-independent GUIDs (fixes non-English Windows)
-2. Dynamic build-time version via ldflags (replaces hardcoded `v0.1.0`)
-3. Preparation tab: clear, actionable error messages (not raw exit codes)
-4. UI labels, placeholder text, and technique counts updated throughout
-5. Layout and spacing polish across all tabs
-6. Dashboard technique count reflecting 57-technique library
-
-Each item is categorised below as Table Stakes, Differentiator, or Anti-Feature to inform roadmap
-phase ordering and implementation strategy.
+- `runPoC()` in `engine.go`: 3-phase loop (Phase1 Discovery → Gap → Phase2 Attack), hour-based scheduling via `nextOccurrenceOfHour()`
+- `Status` struct PoC fields: `PoCDay`, `PoCTotalDays`, `PoCPhase`, `NextScheduledRun`
+- Dashboard panel (`pocInfoPanel`): day counter, total days, countdown to next run, current phase description
+- Schedule preview (`pocSchedulePreview`): pre-run static date range table (Phase 1 start/end, Gap, Phase 2 start/end)
+- Known bugs: `PoCDay` only updated in Phase1 loop (stale during Gap and Phase2); German `CurrentStep` strings hardcoded; no `simlog.Phase()` calls in `runPoC()`
+- Campaign YAML has `step.DelayAfter` but `getTechniquesForCampaign()` discards it
 
 ---
 
@@ -27,92 +24,97 @@ phase ordering and implementation strategy.
 
 ### Table Stakes (Users Expect These)
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Actionable error messages in Preparation tab | When a prep step fails, consultants need to know *why* (no admin rights, service already running, policy already set, exit code meaning) not just "✗ Failed". Showing raw exit codes is universally considered broken UX. | LOW | Current code: `alert('Step failed:\n' + r.message)` in `runPrepStep()`. `r.message` may already carry the Go-side error string; UI just needs to surface it clearly, add per-step inline error panel, remove the browser `alert()` anti-pattern |
-| Version badge reflects actual build | A tool distributed as a .exe to clients must show a real version so clients and consultants can identify which release is installed. Hardcoded `v0.1.0` on line 167 is incorrect for every release after the first. | LOW | Go ldflags pattern: `go build -ldflags "-X main.version=$(git describe --tags)"`. The Go server needs to expose version via `/api/status` or a dedicated `/api/version` endpoint; JS reads it on init and updates the badge |
-| UI language consistency | The current UI mixes English and German in the same tab (e.g., "Configure & Run" tab has German labels "Wartezeit vor Phase 1: Discovery" alongside English labels). A consultant presenting to a German client or an English client needs one consistent language, or a clear language choice. | MEDIUM | ~15 German-only strings identified in the Scheduler tab and PoC panel (lines 358–535). Dashboard PoC panel has German strings: "Gesamttage", "Nächste Ausführung", "Aktuelle Phase" (lines 229–239). Decision needed: go all-English or add language toggle (see Anti-Features) |
-| Technique count accuracy on Dashboard | The "Expected SIEM Events" table and any stat that implies library size must not mislead. Dashboard Quick Start button says "All Techniques" with no count; technique count is 57 but the table shows 10 hardcoded events. | LOW | The JS already pulls live technique count via `/api/techniques` and populates `diag-disc-count`/`diag-atk-count` on the Scheduler tab. The same data should populate a stat box on Dashboard. The hardcoded SIEM Events table is illustrative — add a note or count it accurately |
-| Preparation steps show current status on load | Consultants re-open the tool on subsequent sessions. Prep step statuses show `—` until re-run, even if the system is already configured. Status should reflect system state, not just last-run state. | MEDIUM | Requires a `/api/prepare/status` GET endpoint to check current state of each prep step (e.g., query registry key for PS logging, run `auditpol /get` for audit policy, check if Sysmon service exists). Higher complexity than other items — may be deferred to v1.2 |
-| No browser `alert()` for error feedback | Browser `alert()` blocks execution, cannot be styled, looks unprofessional, and is universally avoided in polished tooling. Current code uses `alert()` in 5 places: simulation error, user CRUD, and prep step failure. | LOW | Replace all `alert()` with inline notification component using existing `.alert` CSS classes. The CSS already has `alert-info`, `alert-warn`, `alert-success` — add `alert-error` (red) variant and a toast/banner display function |
+Features a consultant using PoC mode will assume exist. Their absence makes the tool feel broken
+or untrustworthy during a multi-week client engagement.
+
+| Feature | Why Expected | Complexity | Depends On |
+|---------|--------------|------------|------------|
+| Bug: stale PoCDay counter during Gap and Phase2 | Day counter shows "1" throughout Gap and all of Phase2. Consultant cannot tell which day of the engagement they are on. PoC mode appears stuck. | LOW | `engine.go` `runPoC()` — add `PoCDay` update to Gap and Phase2 loops |
+| Bug: German CurrentStep strings | `"PoC Phase 1 — Tag %d/%d — warte bis %02d:00 Uhr"` — product was fully translated to English in v1.1; these strings survived. Dashboard shows German during every PoC run. | LOW | `engine.go` `runPoC()` — translate 3 format strings |
+| Bug: missing simlog.Phase() calls in runPoC() | Phase transitions in PoC mode don't write the separator lines to the log that normal mode writes. The `.log` file has no visual phase boundaries, making it hard to audit or share with clients. | LOW | `engine.go` `runPoC()`, `simlog.Phase()` already exists |
+| Daily digest panel: per-day execution summary | After each day completes, consultant must see which techniques ran, at what time, and whether they succeeded or failed. Without this, the only feedback is the day counter advancing. Over a 17-day engagement this is the primary progress signal. | MEDIUM | New `DailyDigest []DailyDigest` slice in `Status`; engine appends a record after each day's technique loop |
+| Timeline calendar: visual schedule with completion state | During a 17-day engagement, a consultant presenting to a client needs to see at a glance which days are done, which is current, and which remain — not just a static pre-run date preview. | MEDIUM | Requires `DailyDigest` data from backend; JS renders day strip in index.html |
 
 ### Differentiators (Competitive Advantage)
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Prep step inline error panel with remediation hint | Instead of "✗ Failed", show a collapsible panel under the failed step with: (a) exact error output, (b) a one-line human-readable cause, (c) a remediation hint specific to the failure type (e.g., "Run as Administrator", "Sysmon binary not found — check internet access", "auditpol returned exit code 5 — insufficient privileges"). This goes beyond table-stakes error surfacing to make the tool self-documenting during consultant onboarding. | MEDIUM | Go-side: preparation package should return structured error types with Code, Message, Remediation fields. JS-side: render the remediation hint in a styled hint block beneath the step. Pattern from NN/g error guidelines: "every error should suggest a next step" |
-| Version badge with build date and commit | Show `v1.1.0 · 2026-03-26 · abc1234` in the header badge (or in a tooltip). Clients can screenshot it for support tickets. Security tools that distribute as binaries without build metadata are harder to audit. | LOW | ldflags can carry `version`, `buildDate`, `commit`. Server exposes all three. Badge tooltip shows full build info. This differentiates from the bare `v0.1.0` string a client currently sees |
-| Tactic badge colour completeness | Known cosmetic gap from PROJECT.md: `command-and-control` and `ueba-scenario` tactic badges render grey. Correct colour mapping makes the technique table readable at a glance for consultants explaining coverage to clients. | LOW | Add two entries to `tacticColor` funcMap in Go template. Fix is one-line per missing tactic |
+Features that make PoC mode distinctly more trustworthy than a consultant manually tracking
+execution in a spreadsheet.
+
+| Feature | Value Proposition | Complexity | Depends On |
+|---------|-------------------|------------|------------|
+| Campaign `delay_after` support in Phase2 | Campaign YAML steps declare `delay_after` seconds for realistic timing between techniques. `getTechniquesForCampaign()` discards this. Honoring it makes Phase2 simulations more realistic, which matters for SIEM correlation rule timing windows. | LOW-MEDIUM | `engine.go` — `getTechniquesForCampaign()` must return steps (not just techniques), Phase2 loop must call `waitOrStop(step.DelayAfter)` |
+| Test coverage for runPoC() scheduling logic | `runPoC()` has never had unit tests despite being the most complex scheduling path. The injectable `RunnerFunc` already exists. Tests validate day counting, phase transitions, and stop-signal handling without real time.Sleep. | MEDIUM | `engine_test.go`, `RunnerFunc` (already in engine.go) |
+| Technique counts in schedule preview (pre-run) | Static preview shows dates only. Showing "3 techniques/day" for Phase1 and "N techniques (campaign)" for Phase2 makes the preview actionable before starting. | LOW | JS `updatePoCSchedule()` only — no backend change |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Language toggle (EN/DE switch) | UI is bilingual; some consultants work in German contexts, others English | Doubles string maintenance burden; JS i18n in a single-file SPA requires either a build step or a large inline translation map; deferred language state complicates tests | Pick one language for each string and apply consistently. The tool's README is in German but the UI should be English for broadest adoption and testability. Migrate all German UI strings to English in v1.1 |
-| Persist prep step results to disk | Users want status to survive page refresh | Requires a state file or DB for prep results; prep state can go stale if system changes outside the tool; adds complexity disproportionate to a polish milestone | Surface current system state on load (via check endpoint, noted above as Medium complexity) — do not persist |
-| Animated / toast notification system | More polished than `alert()` or banner | A full toast system (position, stacking, auto-dismiss timers) is 50+ lines of new JS for marginal gain in an internal tool | Use a single reusable `showNotification(message, type)` function that renders a dismissible banner at the top of the active card. Simple, reusable, consistent with existing `.alert` CSS |
-| Light mode toggle | Some users prefer light mode | Requires a full parallel colour token set. The dark theme (`--bg: #0d1117`) is a deliberate product identity choice for a security tool. Adding light mode doubles CSS maintenance. | Not in scope for v1.1. The CSS uses variables consistently so it can be added later with a single token swap if demanded |
-| Real-time prep step progress bar | Looks impressive | Prep steps run for 2–15 seconds max; a progress bar adds complexity with no real user value at that timescale | Spinner + "Running…" text (already implemented as `.status-running`) is sufficient |
+| Pause/Resume PoC mid-engagement | Seems useful if machine reboots or consultant interrupts the run | Go's goroutine/channel model has no clean pause primitive. Stop cancels the run entirely and resets state. Resume-from-day-N requires persisting state to disk, adds a persistence layer, and creates failure modes around state corruption | Stop + restart; the timeline calendar shows which days completed; add start-from-day-N config field only if consultants consistently request it (v2+) |
+| Real-time technique output in daily digest | Showing raw PowerShell output per technique in the daily summary | Output can be kilobytes per technique; rendering all of it in the digest panel makes the UI unusable. The log viewer (`/api/logs`) already handles this. | Link each digest entry to the log viewer; no raw output in digest |
+| Persistent state across binary restarts | Consultant restarts lognojutsu.exe mid-engagement and wants it to continue | Requires a state file on disk, migration logic, and version-aware deserialization — scope explosion for marginal use case | The `.log` file (already written to disk) provides a full audit trail. Restart PoC mode from scratch. |
+| Per-day HTML report | Separate HTML report for each day's execution | Reporter always generates a full-run report at finish. Per-day reports require calling `reporter.SaveResults()` mid-run with partial results, which changes its semantics. | The existing HTML report covers all executed techniques across all PoC days. |
+| SIEM alert correlation in digest | Show whether SIEM fired an alert for each technique that day | Requires SIEM API access — explicitly out of scope in PROJECT.md; breaks standalone deployment model | Local event log verification (already per-technique in `ExecutionResult`) is the proxy. Show `VerificationStatus` in the digest. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Actionable error messages]
-    └──requires──> [Structured error response from Go preparation package]
-                       └──requires──> [PrepResult.Remediation field in API response]
+[Bug: stale PoCDay]
+    └──must-fix-before──> [Daily Digest Panel]
+                              └──provides-data-for──> [Timeline Calendar]
 
-[Dynamic version badge]
-    └──requires──> [ldflags wired in build command / Makefile]
-    └──requires──> [/api/status or /api/version exposes version string]
-    └──requires──> [JS reads version on init and sets badge text]
+[Bug: German CurrentStep strings]
+    └──standalone fix (no dependencies)
 
-[Remove alert() anti-pattern]
-    └──requires──> [showNotification() helper function]
-    └──enhances──> [Actionable error messages] (same display path)
+[Bug: missing simlog.Phase() calls]
+    └──standalone fix (no dependencies)
 
-[UI language consistency]
-    ──independent──> all other features (string changes only)
+[DailyDigest struct added to Status]
+    └──required-by──> [Daily Digest Panel UI]
+    └──required-by──> [Timeline Calendar UI]
 
-[Technique count on Dashboard]
-    └──requires──> [/api/techniques already working — it is]
-    ──enhances──> [Dashboard accuracy]
+[Campaign delay_after in Phase2]
+    └──structural change: getTechniquesForCampaign() return type
+    └──standalone — does not block other features
 
-[Tactic badge colour fix]
-    ──independent──> (one-line Go template change)
+[runPoC() test coverage]
+    └──best-added-after──> [Bug fixes] (tests should validate correct behavior, not bugs)
+    └──uses──> [RunnerFunc injection] (already exists)
 ```
 
 ### Dependency Notes
 
-- **Actionable errors require structured Go response:** The JS currently uses `r.message` as a tooltip (`title` attribute) and calls `alert()`. To show inline error panels with remediation hints, the Go handler must return a richer object. This is a backend change (preparation package) that gates the UI improvement.
-- **Version badge requires build pipeline change:** The ldflags approach is well-established (HIGH confidence, multiple official sources). The Makefile or build script must be updated first; the UI change is trivial once the server exposes the value.
-- **alert() removal enhances error messaging:** Both features write to the same notification display path. Implement `showNotification()` once; use it for both error message improvements and alert() replacements.
-- **Language consistency is independent:** Pure string changes in HTML. Can be done in any order, no API changes needed.
+- **Daily digest requires PoCDay bug fix first.** The digest records which day each bucket of results belongs to. A stale counter mislabels entries.
+- **Timeline calendar requires daily digest.** The calendar needs completed-day data (techniques run, success count) to show anything beyond the static date preview that already exists.
+- **delay_after is self-contained but structurally significant.** `getTechniquesForCampaign()` returns `[]*playbooks.Technique`, discarding `CampaignStep.DelayAfter`. The fix either changes the return type (affects callers) or adds a sibling helper returning `[]CampaignStep` for Phase2 use only.
+- **Tests should come after bug fixes.** Writing tests that document currently-buggy behavior creates misleading test suite state.
 
 ---
 
 ## MVP Definition
 
-### v1.1 Launch With (all six items from PROJECT.md are in scope)
+### v1.2 Launch With (required for milestone)
 
-- [x] **Dynamic version via ldflags** — prevents clients from running with a permanently stale version badge; low complexity, high trust signal
-- [x] **Actionable prep error messages** — current raw exit code display is the most visible UX failure; fixing it requires structured Go response + inline UI panel
-- [x] **Remove alert() calls** — universally expected in professional tooling; blocker for polished feel
-- [x] **UI language consistency (migrate German strings to English)** — ~15 strings in Scheduler/PoC/Dashboard tabs; low complexity, pure string edits
-- [x] **Dashboard technique count accuracy** — stat box showing correct 57-technique count; trivially reads existing API data
-- [x] **Tactic badge colour fix** — one-line Go fix; eliminates grey badge cosmetic gap noted in PROJECT.md
+- [ ] Bug fix: stale `PoCDay` counter during Gap and Phase2
+- [ ] Bug fix: German `CurrentStep` strings in `runPoC()`
+- [ ] Bug fix: missing `simlog.Phase()` calls in `runPoC()`
+- [ ] `DailyDigest` data structure added to `Status` (Go backend)
+- [ ] Engine appends `DailyDigest` entry after each completed day (Phase1, Gap, Phase2 loops)
+- [ ] Daily digest panel in UI: scrollable list of completed days, technique names, success/fail indicators
+- [ ] Timeline calendar: day strip showing completed (check), current (pulsing), gap (silent), future (dimmed)
+- [ ] Test coverage for `runPoC()`: day sequencing, phase transitions, stop signal
 
-### Add After Validation (v1.2 candidates)
+### Add After Validation (v1.3 candidates)
 
-- [ ] **Prep step status on page load (system check endpoint)** — `GET /api/prepare/status` checks registry/auditpol/Sysmon on load; Medium complexity; deferred because it requires Windows-side read calls and careful error handling for partial configs
-- [ ] **Version badge with build date + commit** — expand ldflags to include date and git hash; Low complexity once ldflags is wired; deferred to keep v1.1 scope tight
+- [ ] Campaign `delay_after` support in Phase2 — structural change; ships cleanly in its own phase
+- [ ] Technique count labels in schedule preview (pre-run) — low effort, cosmetic improvement
 
 ### Future Consideration (v2+)
 
-- [ ] **Language toggle (EN/DE)** — requires i18n infrastructure; out of scope until user research confirms need
-- [ ] **Light mode** — CSS tokens are in place but doubling the colour set is a design task; defer
-- [ ] **Persistent prep state across sessions** — requires state storage strategy; architectural decision for a later milestone
+- [ ] Start-from-day-N config field — only if consultants consistently interrupt and restart engagements
+- [ ] Per-day simlog markers with embedded day number — already partially covered by `simlog.Info()`
 
 ---
 
@@ -120,43 +122,85 @@ phase ordering and implementation strategy.
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Dynamic version badge (ldflags) | HIGH — every client engagement starts with "what version is this?" | LOW — build flag + 1 API field + 1 JS line | P1 |
-| Actionable prep error messages | HIGH — current UX is broken (exit codes, browser alert) | MEDIUM — Go struct change + inline UI panel | P1 |
-| Remove alert() anti-pattern | MEDIUM — polish; currently functional but jarring | LOW — replace 5 call sites with banner function | P1 |
-| UI language consistency | MEDIUM — bilingual UI undermines professional impression | LOW — string replacements, no logic changes | P1 |
-| Dashboard technique count accuracy | MEDIUM — stat box shows 0 until simulation runs | LOW — read existing API data on load | P1 |
-| Tactic badge colour fix | LOW — grey badges are cosmetic, data is correct | LOW — one Go template line per missing tactic | P2 |
-| Prep status check on load | HIGH — consultants re-run the tool across sessions | MEDIUM-HIGH — Windows registry/service queries | P3 (v1.2) |
+| Bug: stale PoCDay | HIGH — affects every PoC run, day counter is the primary status signal | LOW | P1 |
+| Bug: German strings | HIGH — product regression from v1.1 English translation | LOW | P1 |
+| Bug: missing Phase() calls | MEDIUM — log readability for client deliverables | LOW | P1 |
+| DailyDigest backend struct | HIGH — unblocks digest panel and timeline calendar | MEDIUM | P1 |
+| Daily digest panel (UI) | HIGH — only feedback mechanism during a 17-day engagement | MEDIUM | P1 |
+| Timeline calendar (UI) | HIGH — visual orientation; consultant presenting to client | MEDIUM | P1 |
+| runPoC() test coverage | HIGH — prevents regressions in scheduling logic | MEDIUM | P1 |
+| delay_after in Phase2 | MEDIUM — simulation realism improvement | MEDIUM | P2 |
+| Technique counts in schedule preview | LOW — cosmetic, pre-run only | LOW | P3 |
 
 **Priority key:**
-- P1: Must have for v1.1 launch
-- P2: Should have, fits in v1.1 if schedule allows
+- P1: Required for v1.2 milestone
+- P2: Should have, ship in v1.3
 - P3: Nice to have, future consideration
 
 ---
 
-## Competitor Feature Analysis
+## Implementation Notes
 
-| Feature | Exabeam Magneto (inspiration) | Typical SIEM validation tools | LogNoJutsu v1.1 approach |
-|---------|------------------------------|-------------------------------|--------------------------|
-| Version display | Internal tool, version rarely surfaced to end users | Often absent or buried in About page | Badge in header, every page — correct version via ldflags |
-| Error messages in setup steps | PowerShell output shown raw in transcript | Raw CLI output or no UI at all | Structured messages with remediation hints |
-| Language | English only | English only | English (migrate v1.1); German README stays |
-| Preparation status | No persistent prep UI — run scripts manually | No UI — manual script execution | Visual prep tab with per-step status (v1.0 shipped); system-check on load deferred to v1.2 |
-| UI consistency | Dark PowerShell-hosted web UI, minimal polish | Minimal or no web UI | CSS variables in place; apply spacing/label consistency pass |
+### DailyDigest struct design
+
+The engine appends a record after each completed day. Suggested shape:
+
+```go
+// DailyDigest records the result of one PoC simulation day.
+type DailyDigest struct {
+    Day          int                `json:"day"`           // 1-based within the phase
+    Phase        string             `json:"phase"`         // "phase1", "gap", "phase2"
+    Date         string             `json:"date"`          // RFC3339 of execution time
+    TechCount    int                `json:"tech_count"`
+    SuccessCount int                `json:"success_count"`
+    Techniques   []DailyTechEntry   `json:"techniques"`
+}
+
+type DailyTechEntry struct {
+    ID      string `json:"id"`
+    Name    string `json:"name"`
+    Success bool   `json:"success"`
+    Time    string `json:"time"`   // RFC3339
+}
+```
+
+`Status` gains: `DailyDigests []DailyDigest json:"daily_digests,omitempty"`
+
+Gap days append a zero-technique entry so the timeline calendar can render them as a distinct
+"silent" state rather than treating silence as a missing entry.
+
+### Timeline calendar design
+
+A horizontal strip of day cells rendered from two sources: the pre-computed schedule (same
+logic as `updatePoCSchedule()` in JS) overlaid with `status.daily_digests` for completion state.
+
+Cell states:
+- **Completed Phase1/Phase2 day**: date label + technique count + green check
+- **Current day (waiting)**: date label + pulsing accent indicator
+- **Gap day completed**: date label + "gap" (muted)
+- **Future day**: date label, dimmed
+
+Implemented in vanilla JS; no new CSS primitives needed beyond what exists.
+
+### delay_after structural fix
+
+`getTechniquesForCampaign()` must be supplemented (or its return type changed) to preserve
+`CampaignStep.DelayAfter`. The Phase2 loop in `runPoC()` iterates over steps and calls
+`waitOrStop(time.Duration(step.DelayAfter) * time.Second)` after each `runTechnique()` call.
+The `CampaignStep` struct already carries `DelayAfter int` — the data is there, just discarded.
 
 ---
 
 ## Sources
 
-- Current UI code: `internal/server/static/index.html` (1321 lines, reviewed in full)
-- Project requirements: `.planning/PROJECT.md` — v1.1 Active requirements section
-- [Using ldflags to Set Version Information for Go Applications — DigitalOcean](https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications) — HIGH confidence (official DigitalOcean tutorial, stable Go pattern)
-- [Error-Message Guidelines — Nielsen Norman Group](https://www.nngroup.com/articles/error-message-guidelines/) — HIGH confidence (authoritative UX research; guideline: every error should suggest a next step)
-- [Dark Mode UI Best Practices 2025 — LogRocket](https://blog.logrocket.com/ux-design/dark-mode-ui-design-best-practices-and-examples/) — MEDIUM confidence (verified against multiple sources)
-- [Best Practices for UI Error Handling — DevX](https://www.devx.com/web-ui/9-best-practices-and-examples-for-effective-error-handling-in-ui-design/) — MEDIUM confidence (corroborates NN/g findings)
+- Codebase analysis: `internal/engine/engine.go` (runPoC full implementation reviewed)
+- Codebase analysis: `internal/simlog/simlog.go` (entry types, Phase() function)
+- Codebase analysis: `internal/server/static/index.html` (pocInfoPanel, pocSchedulePreview, updatePoCSchedule())
+- Codebase analysis: `internal/playbooks/types.go` (CampaignStep.DelayAfter confirmed present)
+- PROJECT.md v1.2 Active requirements
+- STRUCTURE.md codebase map
 
 ---
 
-*Feature research for: LogNoJutsu v1.1 Bug Fixes & UI Polish*
-*Researched: 2026-03-26*
+*Feature research for: LogNoJutsu v1.2 PoC Mode Fix & Overhaul*
+*Researched: 2026-04-08*
