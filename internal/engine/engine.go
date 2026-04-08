@@ -325,6 +325,7 @@ func nextOccurrenceOfHour(hour int, now time.Time) time.Duration {
 func (e *Engine) runPoC() {
 	cfg := e.cfg
 	totalDays := cfg.Phase1DurationDays + cfg.GapDays + cfg.Phase2DurationDays
+	globalDay := 0
 
 	simlog.Info(fmt.Sprintf("[PoC] Multi-day simulation: Phase1=%dd (%d techs/day @ %02d:00)  Gap=%dd  Phase2=%dd (campaign=%q @ %02d:00)  Total=%dd",
 		cfg.Phase1DurationDays, cfg.Phase1TechsPerDay, cfg.Phase1DailyHour,
@@ -348,7 +349,9 @@ func (e *Engine) runPoC() {
 
 	// ── Phase 1: Discovery ──────────────────────────────────────────
 	e.setPhase(PhasePoCPhase1)
+	simlog.Phase("PoC Phase 1: Discovery")
 	for day := 1; day <= cfg.Phase1DurationDays; day++ {
+		globalDay++
 		if e.isStopped() {
 			e.abort()
 			return
@@ -357,10 +360,10 @@ func (e *Engine) runPoC() {
 		nextRun := e.clock.Now().Add(d)
 		simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d/%d — waiting until %s", day, cfg.Phase1DurationDays, nextRun.Format("2006-01-02 15:04")))
 		e.mu.Lock()
-		e.status.PoCDay = day
+		e.status.PoCDay = globalDay
 		e.status.PoCPhase = "phase1"
 		e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
-		e.status.CurrentStep = fmt.Sprintf("PoC Phase 1 — Tag %d/%d — warte bis %02d:00 Uhr", day, cfg.Phase1DurationDays, cfg.Phase1DailyHour)
+		e.status.CurrentStep = fmt.Sprintf("PoC Phase 1 — Day %d of %d — Waiting until %02d:00", globalDay, totalDays, cfg.Phase1DailyHour)
 		e.mu.Unlock()
 
 		if !e.waitOrStop(d) {
@@ -387,7 +390,9 @@ func (e *Engine) runPoC() {
 	// ── Gap ─────────────────────────────────────────────────────────
 	if cfg.GapDays > 0 {
 		e.setPhase(PhasePoCGap)
+		simlog.Phase("PoC Gap")
 		for day := 1; day <= cfg.GapDays; day++ {
+			globalDay++
 			if e.isStopped() {
 				e.abort()
 				return
@@ -396,9 +401,10 @@ func (e *Engine) runPoC() {
 			nextRun := e.clock.Now().Add(d)
 			simlog.Info(fmt.Sprintf("[PoC Gap] Day %d/%d — silent day, waiting until %s", day, cfg.GapDays, nextRun.Format("2006-01-02 15:04")))
 			e.mu.Lock()
+			e.status.PoCDay = globalDay
 			e.status.PoCPhase = "gap"
 			e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
-			e.status.CurrentStep = fmt.Sprintf("PoC Pause — Tag %d/%d (keine Aktionen)", day, cfg.GapDays)
+			e.status.CurrentStep = fmt.Sprintf("PoC Gap — Day %d of %d (no actions)", globalDay, totalDays)
 			e.mu.Unlock()
 			if !e.waitOrStop(d) {
 				e.abort()
@@ -409,7 +415,9 @@ func (e *Engine) runPoC() {
 
 	// ── Phase 2: Attack ──────────────────────────────────────────────
 	e.setPhase(PhasePoCPhase2)
+	simlog.Phase("PoC Phase 2: Attack")
 	for day := 1; day <= cfg.Phase2DurationDays; day++ {
+		globalDay++
 		if e.isStopped() {
 			e.abort()
 			return
@@ -418,9 +426,10 @@ func (e *Engine) runPoC() {
 		nextRun := e.clock.Now().Add(d)
 		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d/%d — waiting until %s", day, cfg.Phase2DurationDays, nextRun.Format("2006-01-02 15:04")))
 		e.mu.Lock()
+		e.status.PoCDay = globalDay
 		e.status.PoCPhase = "phase2"
 		e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
-		e.status.CurrentStep = fmt.Sprintf("PoC Phase 2 — Tag %d/%d — warte bis %02d:00 Uhr", day, cfg.Phase2DurationDays, cfg.Phase2DailyHour)
+		e.status.CurrentStep = fmt.Sprintf("PoC Phase 2 — Day %d of %d — Waiting until %02d:00", globalDay, totalDays, cfg.Phase2DailyHour)
 		e.mu.Unlock()
 
 		if !e.waitOrStop(d) {
