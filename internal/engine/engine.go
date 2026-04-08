@@ -101,6 +101,7 @@ type Engine struct {
 	resolvedProfiles   []resolvedProfile
 	rotationIndex      int
 	runner             RunnerFunc // nil = real executor
+	clock              Clock     // injectable; defaults to realClock{}
 }
 
 type resolvedProfile struct {
@@ -113,6 +114,17 @@ type resolvedProfile struct {
 // nil means use the real executor (production path unchanged).
 type RunnerFunc func(t *playbooks.Technique, profile *userstore.UserProfile, password string) playbooks.ExecutionResult
 
+// Clock abstracts time operations for deterministic testing.
+type Clock interface {
+	Now() time.Time
+	After(d time.Duration) <-chan time.Time
+}
+
+type realClock struct{}
+
+func (realClock) Now() time.Time                         { return time.Now() }
+func (realClock) After(d time.Duration) <-chan time.Time { return time.After(d) }
+
 func New(registry *playbooks.Registry, users *userstore.Store) *Engine {
 	return &Engine{
 		registry: registry,
@@ -124,6 +136,7 @@ func New(registry *playbooks.Registry, users *userstore.Store) *Engine {
 			Errors:          []string{},
 		},
 		stopCh: make(chan struct{}, 1),
+		clock:  realClock{},
 	}
 }
 
@@ -301,8 +314,7 @@ func (e *Engine) run() {
 
 // nextOccurrenceOfHour returns the duration until the next occurrence of hour:00:00
 // on the local clock. If that time has already passed today, returns duration to tomorrow.
-func nextOccurrenceOfHour(hour int) time.Duration {
-	now := time.Now()
+func nextOccurrenceOfHour(hour int, now time.Time) time.Duration {
 	next := time.Date(now.Year(), now.Month(), now.Day(), hour, 0, 0, 0, now.Location())
 	if !next.After(now) {
 		next = next.Add(24 * time.Hour)
@@ -341,8 +353,8 @@ func (e *Engine) runPoC() {
 			e.abort()
 			return
 		}
-		d := nextOccurrenceOfHour(cfg.Phase1DailyHour)
-		nextRun := time.Now().Add(d)
+		d := nextOccurrenceOfHour(cfg.Phase1DailyHour, e.clock.Now())
+		nextRun := e.clock.Now().Add(d)
 		simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d/%d — waiting until %s", day, cfg.Phase1DurationDays, nextRun.Format("2006-01-02 15:04")))
 		e.mu.Lock()
 		e.status.PoCDay = day
@@ -380,8 +392,8 @@ func (e *Engine) runPoC() {
 				e.abort()
 				return
 			}
-			d := nextOccurrenceOfHour(cfg.Phase2DailyHour)
-			nextRun := time.Now().Add(d)
+			d := nextOccurrenceOfHour(cfg.Phase2DailyHour, e.clock.Now())
+			nextRun := e.clock.Now().Add(d)
 			simlog.Info(fmt.Sprintf("[PoC Gap] Day %d/%d — silent day, waiting until %s", day, cfg.GapDays, nextRun.Format("2006-01-02 15:04")))
 			e.mu.Lock()
 			e.status.PoCPhase = "gap"
@@ -402,8 +414,8 @@ func (e *Engine) runPoC() {
 			e.abort()
 			return
 		}
-		d := nextOccurrenceOfHour(cfg.Phase2DailyHour)
-		nextRun := time.Now().Add(d)
+		d := nextOccurrenceOfHour(cfg.Phase2DailyHour, e.clock.Now())
+		nextRun := e.clock.Now().Add(d)
 		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d/%d — waiting until %s", day, cfg.Phase2DurationDays, nextRun.Format("2006-01-02 15:04")))
 		e.mu.Lock()
 		e.status.PoCPhase = "phase2"
@@ -651,12 +663,12 @@ func (e *Engine) setPhase(p Phase) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.status.Phase = p
-	e.status.PhaseStartTimes[p] = time.Now().Format(time.RFC3339)
+	e.status.PhaseStartTimes[p] = e.clock.Now().Format(time.RFC3339)
 }
 
 func (e *Engine) waitOrStop(d time.Duration) bool {
 	select {
-	case <-time.After(d):
+	case <-e.clock.After(d):
 		return true
 	case <-e.stopCh:
 		return false
