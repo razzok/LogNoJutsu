@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Realistic Attack Simulation
 current_phase: 14
-current_plan: Not started
-status: Roadmap defined
+current_plan: 01 complete
+status: In progress
 last_updated: "2026-04-09"
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 0
-  completed_plans: 0
+  completed_plans: 1
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Milestone:** v1.3 — Realistic Attack Simulation
 **Current phase:** 14 — Safety Audit
-**Current plan:** Not started
-**Last activity:** 2026-04-09 — Roadmap defined (5 phases, 16 requirements mapped)
+**Current plan:** 01 complete — Plan 02 next
+**Last activity:** 2026-04-09 — 14-01 complete: Tier field, defer cleanup, test scaffolds
 
 ## Milestone Progress
 
@@ -105,6 +105,15 @@ Key decisions carried forward:
 - stopOnNthClock generalizes blockingClock with configurable block-at-N: fires immediately for calls < N, blocks on call >= N
 - No production code changes — all 6 tests verify existing runPoC() behavior via clock injection only
 
+## Decisions (Phase 14 Plan 01)
+
+- Tier field added to Technique struct between NistControls and SIEMCoverage, matching existing aligned struct tag convention
+- Tier added to ExecutionResult with json:"tier,omitempty" so HTML report can access it from results
+- TestTierClassified scaffold intentionally fails — it is the gate Plan 02 must satisfy by adding tier: N to all 58 YAMLs
+- T1059.001 and T1550.002 excluded from writeArtifacts map: no persistent artifacts / inline self-cleanup respectively
+- T1070.001 excluded from writeArtifacts in Plan 01 — cleanup added in Plan 02 (custom log channel rewrite per D-06)
+- Named return variable 'result' in RunWithCleanup is required for defer closure to write CleanupRun = true to caller's copy
+
 ## Roadmap Evolution
 
 - Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
@@ -135,4 +144,4 @@ Key decisions carried forward:
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
 *v1.3 roadmap defined: 2026-04-09*
-*Last session: 2026-04-09 — v1.3 roadmap created (Phases 14-18)*
+*Last session: 2026-04-09 — Completed 14-01-PLAN.md (Tier field, defer cleanup, test scaffolds)*
