@@ -48,7 +48,6 @@ type Technique struct {
 	Tier                 int                 `yaml:"tier"                     json:"tier,omitempty"`
 	SIEMCoverage         map[string][]string `yaml:"siem_coverage,omitempty"  json:"siem_coverage,omitempty"`
 	RequiresConfirmation bool                `yaml:"requires_confirmation"    json:"requires_confirmation,omitempty"`
-	Tier                 int                 `yaml:"tier"                     json:"tier,omitempty"`
 }
 
 type Executor struct {
