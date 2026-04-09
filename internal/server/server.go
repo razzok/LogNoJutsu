@@ -86,6 +86,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/stop", s.authMiddleware(s.handleStop))
 	mux.HandleFunc("/api/logs", s.authMiddleware(s.handleLogs))
 	mux.HandleFunc("/api/report", s.authMiddleware(s.handleReport))
+	mux.HandleFunc("/api/poc/days", s.authMiddleware(s.handlePoCDays))
 
 	// Preparation API
 	mux.HandleFunc("/api/prepare", s.authMiddleware(s.handlePrepare))
@@ -130,6 +131,10 @@ func writeError(w http.ResponseWriter, msg string, code int) {
 
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, s.eng.GetStatus())
+}
+
+func (s *Server) handlePoCDays(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, s.eng.GetDayDigests())
 }
 
 func (s *Server) handleTechniques(w http.ResponseWriter, r *http.Request) {
