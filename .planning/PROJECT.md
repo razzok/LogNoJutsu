@@ -45,7 +45,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - [ ] Daily digest panel: per-day summary showing which techniques ran, when, and success/failure
 - [ ] Timeline calendar: visual day-by-day schedule showing completed/current/future days with technique counts
 - ✓ Test coverage for runPoC() scheduling logic — Validated in Phase 10
-- [ ] Campaign delay_after support applied during PoC Phase 2 execution
+- ✓ Campaign delay_after support applied during PoC Phase 2 execution — Validated in Phase 11
 
 ### Out of Scope
 
@@ -121,4 +121,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-08 — Phase 10 complete: PoC engine bugs fixed, Clock interface injected, 4 test functions added*
+*Last updated: 2026-04-09 — Phase 11 complete: DayDigest per-day tracking, /api/poc/days endpoint, campaign delay_after, 11 new tests*
