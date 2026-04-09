@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Realistic Attack Simulation
-current_phase: 14
-current_plan: 2 complete
-status: Executing Phase 14
-last_updated: "2026-04-09T13:30:00.000Z"
-last_activity: 2026-04-09
+current_phase: 14 — Safety Audit
+current_plan: Plans 01+02+03 complete — Phase 14 complete
+status: Phase 14 complete
+last_updated: "2026-04-09T15:35:00.000Z"
+last_activity: "2026-04-09 — Plan 03 complete: tier: N to all 58 YAMLs, classification doc, tier badges in HTML report + web UI"
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Milestone:** v1.3 — Realistic Attack Simulation
 **Current phase:** 14 — Safety Audit
-**Current plan:** Plans 01+02 complete — Plan 03 next
-**Last activity:** 2026-04-09 — Wave 1 complete: Tier field, defer cleanup, test scaffolds, destructive technique rewrites
+**Current plan:** Plans 01+02+03 complete — Phase 14 complete
+**Last activity:** 2026-04-09 — Plan 03 complete: tier: N to all 58 YAMLs, classification doc, tier badges in HTML report + web UI
 
 ## Milestone Progress
 
@@ -122,6 +122,13 @@ Key decisions carried forward:
 - T1550.002 already self-cleans IPC$ and cmdkey inline in command block — empty cleanup field is correct by design
 - T1558.003 and all 5 UEBA chain techniques are read-only/query-only — empty cleanup fields are correct
 
+## Decisions (Phase 14, Plan 03)
+
+- Tier 1/2/3 classification applied to all 58 techniques: T1=real attacker tools/APIs, T2=simulation shortcuts, T3=enumeration stubs; distribution: 30/15/13
+- AZURE_kerberoasting classified Tier 1: real System.IdentityModel TGS requests trigger real EID 4769 per SPN on DC
+- AZURE_dcsync classified Tier 2: LDAP ACL queries only, no actual replication tool
+- HasTier computed from results slice (result.Tier > 0) — mirrors existing HasCrowdStrike/HasSentinel pattern in reporter
+
 ## Roadmap Evolution
 
 - Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
@@ -152,4 +159,4 @@ Key decisions carried forward:
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
 *v1.3 roadmap defined: 2026-04-09*
-*Last session: 2026-04-09 — Wave 1 complete: 14-01 (Tier field, defer cleanup, test scaffolds) + 14-02 (destructive technique rewrites)*
+*Last session: 2026-04-09 — 14-03 complete: tier annotations on all 58 YAMLs, classification doc, tier badges in HTML report + web UI*

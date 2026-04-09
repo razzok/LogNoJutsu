@@ -48,7 +48,7 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 
 ### v1.3 Realistic Attack Simulation
 
-- [ ] **Phase 14: Safety Audit** — All existing techniques audited, classified, and made safe before any upgrades (1/3 plans complete)
+- [x] **Phase 14: Safety Audit** — All existing techniques audited, classified, and made safe before any upgrades (1/3 plans complete) (completed 2026-04-09)
 - [ ] **Phase 15: Native Go Architecture** — Go executor and native Go libraries in place to support realistic technique execution
 - [ ] **Phase 16: Safety Infrastructure** — AMSI classification, elevation detection, and scan safeguards protect technique execution
 - [ ] **Phase 17: Network Discovery** — Real ARP/ICMP/TCP scanning of the local /24 subnet with user-facing safeguards
@@ -69,7 +69,7 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 Plans:
 - [x] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds (completed 2026-04-09)
 - [x] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit (completed 2026-04-09)
-- [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
+- [x] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
 
 ### Phase 15: Native Go Architecture
 **Goal**: The executor layer supports native Go techniques and the two Go libraries needed for realistic AD and WMI queries are integrated
@@ -82,8 +82,8 @@ Plans:
   4. WMI queries execute via pure Go (no CGO) and return process or system data that appears in the technique result log
 **Plans**: 3 plans
 Plans:
-- [ ] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
-- [ ] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
+- [x] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
+- [x] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
 - [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
 
 ### Phase 16: Safety Infrastructure
