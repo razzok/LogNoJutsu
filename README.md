@@ -67,6 +67,8 @@ LogNoJutsu implements this idea as a standalone, extensible tool — with a part
 
 The tool is a **single `.exe` file** (~10 MB). No additional runtime environments, external software, or internet connection are required (except for the automatic Sysmon download during preparation).
 
+Some techniques use a **native Go executor** (`type: go`) that runs directly within the LogNoJutsu process without spawning child processes. These techniques generate network artifacts (e.g., Sysmon EID 3) directly from the main process, which is useful for techniques like LDAP queries or WMI enumeration where avoiding `powershell.exe` or `cmd.exe` process creation provides a more realistic attacker simulation.
+
 ---
 
 ## System Requirements
@@ -106,8 +108,8 @@ The web UI consists of seven sections:
 |---|---|
 | **Dashboard** | Current simulation status, phase display, execution timeline, expected SIEM events |
 | **Preparation** | One-time system preparation: Audit Policy, PowerShell Logging, Sysmon installation |
-| **Playbooks** | Overview of all available campaigns and individual techniques |
-| **Configure & Run** | Choose mode (Quick / PoC), campaign, timing, tactic filter, WhatIf mode, user rotation, start/stop simulation |
+| **Playbooks** | Overview of all available campaigns and individual techniques, with tier badges (Tier 1/2/3) per technique |
+| **Configure & Run** | Choose mode (Quick / PoC), campaign, timing, tactic filter, WhatIf mode, user rotation, scan confirmation for network techniques, start/stop simulation |
 | **Results** | Detailed results for each executed technique with output, cleanup status, and executing user |
 | **Simulation Log** | Live log stream of all actions with color-coded view by event type |
 | **Users** | Manage user profiles (local/AD), store credentials, discovery, credential test |
@@ -313,6 +315,32 @@ The filter applies in both modes (Quick + PoC Multi-Day).
 
 ---
 
+## Safety Features
+
+LogNoJutsu includes several safety mechanisms to prevent accidental damage and provide clear feedback when techniques cannot execute normally.
+
+### AMSI Detection
+
+When Windows Antimalware Scan Interface (AMSI) blocks a PowerShell technique, the tool reports **"AMSI Blocked"** instead of a misleading "Failed" status. This is shown as an orange badge in both the web UI and HTML reports. AMSI blocking is expected behavior on hardened systems and does not indicate a tool error.
+
+### Elevation Gating
+
+Techniques that require administrator privileges are automatically skipped when LogNoJutsu is running as a standard user. Instead of failing with cryptic errors, these techniques show **"Elevation Required"** with a gray badge in reports and the UI. This allows safe execution of the full technique set without worrying about privilege-related failures.
+
+### Scan Confirmation
+
+Network scanning techniques (T1046 Network Service Scanning, T1018 Remote System Discovery) require explicit user confirmation before execution. A confirmation modal displays the target subnet, rate limit settings, and an IDS detection warning. This prevents accidental network reconnaissance that could trigger alerts or disrupt services.
+
+### Technique Tiers
+
+All techniques are classified into three tiers with visual badges in the UI and HTML reports:
+
+- **Tier 1** (Realistic) — Full attacker-realistic implementation generating high-fidelity SIEM events
+- **Tier 2** (Partial) — Partial implementation covering key detection signals
+- **Tier 3** (Stub) — Placeholder generating minimal artifacts, planned for future enhancement
+
+---
+
 ## Exabeam Use Case Coverage
 
 LogNoJutsu covers all three Exabeam TDIR Use Case Packages with a total of 21 use cases. The following table shows the mapping:
@@ -508,25 +536,12 @@ ipconfig /displaydns    # Local DNS cache (shows known hostnames)
 
 **What is executed:**
 
-```powershell
-# tasklist variants — /v (user context) and /svc (services) are most suspicious
-tasklist                      # All processes (EID 4688)
-tasklist /v 2>&1              # Verbose with user context
-tasklist /svc 2>&1            # Services per process
-tasklist | findstr /i "lsass csrss winlogon svchost defender mssense splunk cb"  # Targeted search
+This technique uses the **native Go executor** (`type: go`) with WMI queries via `go-ole/wmi` — no PowerShell or cmd.exe child processes are spawned.
 
-# wmic process get CommandLine — highest signal (EID 4688 wmic.exe, CommandLine field)
-wmic process get Name,ProcessId,ParentProcessId,CommandLine /format:csv
-
-# PowerShell Win32_Process with CommandLine (EID 4104)
-Get-WmiObject Win32_Process | Select-Object Name, ProcessId, ParentProcessId, CommandLine | Where-Object { $_.CommandLine -ne $null }
-
-# Parent-Child tree reconstruction — attacker maps process chain
-Get-WmiObject Win32_Process | ForEach-Object {
-    $parent = (Get-WmiObject Win32_Process -Filter "ProcessId=$($_.ParentProcessId)").Name
-    [PSCustomObject]@{ Name=$_.Name; PID=$_.ProcessId; Parent=$parent }
-} | Where-Object { $_.Name -match "lsass|csrss|winlogon|services|svchost" }
-```
+- `tasklist` with `/v` (verbose, user context) and `/svc` (services) flags
+- Targeted process search for security-relevant processes (lsass, csrss, winlogon, svchost, defender, splunk, cb)
+- WMI `Win32_Process` query with `CommandLine` field via native Go WMI bindings (highest signal)
+- Parent-child process tree reconstruction targeting lsass/csrss/winlogon
 
 **Why attackers do this:** Attackers enumerate processes to identify security tools (Sysmon, Splunk, CrowdStrike) that they need to disable. `wmic process get CommandLine` is particularly valuable because it shows the full command line of all running processes — a direct detection signal for this argument. The parent-child reconstruction helps attackers identify injection targets.
 
@@ -717,20 +732,20 @@ foreach ($share in @("C$", "IPC$", "ADMIN$")) {
 
 **What is executed:**
 
-```powershell
-# nltest — most common attacker tool for trust enumeration
-nltest /domain_trusts           # All trust relationships
-nltest /dclist:$env:USERDOMAIN  # List domain controllers
+This technique uses the **native Go executor** (`type: go`) with `go-ldap/v3` for direct LDAP queries, plus traditional tools as fallback:
 
-# PowerShell .NET trust enumeration
-$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
-$domain.GetAllTrustRelationships()
-```
+- **LDAP trustedDomain query** — native Go LDAP bind to the domain controller, querying `trustedDomain` objects directly (generates EID 4662)
+- **nltest /domain_trusts** — verbatim command from Ryuk/Trickbot/Cobalt Strike playbooks, standalone SIEM detection rule
+- **.NET Forest/Domain trust APIs** — `GetCurrentDomain().GetAllTrustRelationships()`
+- **dsquery** — `dsquery * -filter "(objectClass=trustedDomain)"`
+
+When no domain controller is reachable, the technique gracefully falls back to local-only enumeration methods instead of failing outright.
 
 **Why attackers do this:** Domain trusts are the bridges for forest-spanning lateral movement. An attacker who knows a domain trust relationship can move into trusted domains. `nltest.exe` with `/domain_trusts` is such a characteristic attacker pattern that many EDR solutions directly classify this call as an Indicator of Compromise.
 
 **Expected SIEM Events:**
 - `4688` — `nltest.exe` with `/domain_trusts`
+- `4662` — LDAP query accessing trusted domain objects
 - `Sysmon 1` — `nltest.exe` process creation
 
 ---
