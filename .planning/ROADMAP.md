@@ -67,10 +67,10 @@ Plans:
 **Goal:** Add daily digest panel and timeline calendar to the web UI for PoC schedule visualization.
 **Requirements:** DIGEST-01, DIGEST-02, DIGEST-03, CAL-01, CAL-02, CAL-03, CAL-04
 **Depends on:** Phase 11
-**Plans:** 0 plans
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 12 to break down)
+- [ ] 12-01-PLAN.md — Timeline calendar strip + daily digest accordion + polling integration
 
 ### Phase 13: PoC Scheduling Tests
 
@@ -97,5 +97,5 @@ Plans:
 | 9 | UI Polish | v1.1 | 3/3 | Complete | 2026-03-26 |
 | 10 | PoC Engine Fixes & Clock Injection | v1.2 | 2/2 | Complete | 2026-04-08 |
 | 11 | Daily Tracking Backend & Campaign Delay | v1.2 | 2/2 | Complete | 2026-04-09 |
-| 12 | Daily Digest & Timeline Calendar UI | v1.2 | 0/? | Not started | — |
+| 12 | Daily Digest & Timeline Calendar UI | v1.2 | 0/1 | Not started | — |
 | 13 | PoC Scheduling Tests | v1.2 | 0/? | Not started | — |
