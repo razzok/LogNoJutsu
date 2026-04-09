@@ -65,7 +65,11 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
   2. All 57 techniques carry a Tier 1/2/3 label visible in their YAML (or classification manifest), so a consultant can instantly know which fire realistic events
   3. Every technique that writes to disk, registry, or scheduled tasks has a cleanup command that runs even when the technique body fails or is interrupted
   4. The tier classification document exists and covers all 57 techniques with a rationale for each assignment
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
+- [ ] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
+- [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
 
 ### Phase 15: Native Go Architecture
 **Goal**: The executor layer supports native Go techniques and the two Go libraries needed for realistic AD and WMI queries are integrated
@@ -76,7 +80,11 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
   2. The internal/native registry exists with at least one Go-implemented technique that compiles and runs in the test suite
   3. LDAP enumeration runs against a reachable DC and returns results; when no DC is reachable it logs a graceful fallback message instead of crashing
   4. WMI queries execute via pure Go (no CGO) and return process or system data that appears in the technique result log
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
+- [ ] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
+- [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
 
 ### Phase 16: Safety Infrastructure
 **Goal**: The engine detects AMSI blocks and missing elevation, and network scans require explicit user acknowledgment before running
@@ -87,7 +95,11 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
   2. When a technique requiring admin is run by a non-admin user, the engine skips it with a visible "Elevation required" status rather than producing a misleading failure
   3. Before a network scan starts, the UI displays the target subnet, a rate-limit notice, and an IDS warning; the scan does not proceed until the user confirms
   4. A consultant running non-admin can complete a full simulation without cryptic error messages for elevation-gated techniques
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
+- [ ] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
+- [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
 **UI hint**: yes
 
 ### Phase 17: Network Discovery
@@ -99,7 +111,11 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
   2. T1018 combines ICMP ping sweep, ARP table enumeration, and nltest DC discovery into a single technique execution that logs all three discovery methods
   3. Both scan techniques are implemented as native Go (`type: go`) and generate Sysmon EID 3 (Network Connection) events observable in Event Viewer after execution
   4. The scan completes within a reasonable time on a typical /24 (rate limiting active) and does not cause network errors that fail the technique verification
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
+- [ ] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
+- [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
 
 ### Phase 18: Technique Realism
 **Goal**: Stub discovery techniques are replaced with real tool execution, and the technique library gains persistence, defense evasion, and C2 categories
@@ -111,7 +127,11 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
   3. At least one defense evasion technique (encoded command, masquerading, rundll32, or DLL sideloading) executes and produces a detectable Sysmon or Security event
   4. At least one C2/exfiltration technique using loopback or internal-only patterns (HTTP C2, DNS C2, data encoding, or exfil-over-alt-protocol) executes and generates the expected network or process event
   5. All new techniques pass the verification engine (expected vs. observed event IDs) and appear correctly in the HTML report
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
+- [ ] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
+- [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
 
 ## Progress
 
@@ -130,7 +150,7 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 | 11 | Daily Tracking Backend & Campaign Delay | v1.2 | 2/2 | Complete | 2026-04-09 |
 | 12 | Daily Digest & Timeline Calendar UI | v1.2 | 1/1 | Complete | 2026-04-09 |
 | 13 | PoC Scheduling Tests | v1.2 | 1/1 | Complete | 2026-04-09 |
-| 14 | Safety Audit | v1.3 | 0/? | Not started | - |
+| 14 | Safety Audit | v1.3 | 0/3 | Planned | - |
 | 15 | Native Go Architecture | v1.3 | 0/? | Not started | - |
 | 16 | Safety Infrastructure | v1.3 | 0/? | Not started | - |
 | 17 | Network Discovery | v1.3 | 0/? | Not started | - |
