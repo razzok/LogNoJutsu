@@ -78,15 +78,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TECH-02 | Phase 18 | Pending |
 | TECH-03 | Phase 18 | Pending |
 | TECH-04 | Phase 18 | Pending |
-<<<<<<< HEAD
-| INFRA-01 | Phase 16 | Pending |
-| INFRA-02 | Phase 16 | Pending |
-| INFRA-03 | Phase 16 | Complete |
-=======
 | INFRA-01 | Phase 16 | Complete |
 | INFRA-02 | Phase 16 | Complete |
-| INFRA-03 | Phase 16 | Pending |
->>>>>>> worktree-agent-ac0803ae
+| INFRA-03 | Phase 16 | Complete |
 | ARCH-01 | Phase 15 | Complete |
 | ARCH-02 | Phase 15 | Complete |
 | ARCH-03 | Phase 15 | Complete |
