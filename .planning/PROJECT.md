@@ -122,6 +122,8 @@ v1.2 delivered reliable PoC/Multiday mode with per-day execution tracking, timel
 
 **Phase 15 complete:** Native Go Architecture (2026-04-09) — Thread-safe technique registry, `type: go` executor dispatch (no child process spawning), T1482 LDAP trust discovery and T1057 WMI process discovery as first native Go techniques. Foundation for realistic technique execution in Phases 17-18.
 
+**Phase 16 complete:** Safety Infrastructure (2026-04-09) — AMSI block detection in PowerShell executor, elevation gating for admin-required techniques, scan confirmation modal with subnet/IDS warning, and color-coded status badges (AMSI Blocked / Elevation Required) in both HTML reports and web UI. INFRA-01, INFRA-02, INFRA-03 all verified.
+
 **Known tech debt (carried forward):**
 - `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
 - German strings remain in `reporter.go` htmlTemplate (HTML reports)
@@ -147,4 +149,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after Phase 15 (Native Go Architecture) completed*
+*Last updated: 2026-04-09 after Phase 16 (Safety Infrastructure) completed*
