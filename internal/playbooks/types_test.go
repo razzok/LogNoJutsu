@@ -92,4 +92,10 @@ func TestVerificationStatusConstants(t *testing.T) {
 	if VerifNotExecuted != "not_executed" {
 		t.Errorf("VerifNotExecuted = %q, want %q", VerifNotExecuted, "not_executed")
 	}
+	if VerifAMSIBlocked != "amsi_blocked" {
+		t.Errorf("VerifAMSIBlocked = %q, want %q", VerifAMSIBlocked, "amsi_blocked")
+	}
+	if VerifElevationRequired != "elevation_required" {
+		t.Errorf("VerifElevationRequired = %q, want %q", VerifElevationRequired, "elevation_required")
+	}
 }

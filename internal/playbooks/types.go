@@ -12,10 +12,12 @@ type EventSpec struct {
 type VerificationStatus string
 
 const (
-	VerifNotRun      VerificationStatus = "not_run"
-	VerifPass        VerificationStatus = "pass"
-	VerifFail        VerificationStatus = "fail"
-	VerifNotExecuted VerificationStatus = "not_executed"
+	VerifNotRun            VerificationStatus = "not_run"
+	VerifPass              VerificationStatus = "pass"
+	VerifFail              VerificationStatus = "fail"
+	VerifNotExecuted       VerificationStatus = "not_executed"
+	VerifAMSIBlocked       VerificationStatus = "amsi_blocked"
+	VerifElevationRequired VerificationStatus = "elevation_required"
 )
 
 // VerifiedEvent records the per-EventSpec outcome after querying the event log.
@@ -43,7 +45,8 @@ type Technique struct {
 	Tags              []string          `yaml:"tags"               json:"tags"`
 	InputArgs         map[string]string   `yaml:"input_args"         json:"input_args,omitempty"`
 	NistControls      []string            `yaml:"nist_controls"      json:"nist_controls,omitempty"`
-	SIEMCoverage      map[string][]string `yaml:"siem_coverage,omitempty"  json:"siem_coverage,omitempty"`
+	SIEMCoverage         map[string][]string `yaml:"siem_coverage,omitempty"  json:"siem_coverage,omitempty"`
+	RequiresConfirmation bool                `yaml:"requires_confirmation"    json:"requires_confirmation,omitempty"`
 }
 
 type Executor struct {
