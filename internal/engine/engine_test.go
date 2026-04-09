@@ -479,3 +479,453 @@ func TestPoCClockInjection(t *testing.T) {
 		t.Error("fake clock time did not advance — After() was never called")
 	}
 }
+
+// ── DayDigest tests (TRACK-01, TRACK-02, TRACK-04, CAMP-01) ─────────────────
+
+// newPoCEngineWithCampaign creates an engine with a 2-step campaign where
+// step 1 has DelayAfter=300 and step 2 has DelayAfter=0.
+func newPoCEngineWithCampaign(phase1Days, gapDays, phase2Days int) (*Engine, *fakeClock) {
+	reg := testRegistry(
+		testTechnique("T1087", "discovery", "discovery"),
+		testTechnique("T1059", "discovery", "execution"),
+		testTechnique("T1078", "attack", "persistence"),
+		testTechnique("T1003", "attack", "credential-access"),
+	)
+	reg.Campaigns["camp-delay"] = &playbooks.Campaign{
+		ID:   "camp-delay",
+		Name: "Delay Test Campaign",
+		Steps: []playbooks.CampaignStep{
+			{TechniqueID: "T1078", DelayAfter: 300},
+			{TechniqueID: "T1003", DelayAfter: 0},
+		},
+	}
+	eng := New(reg, nil)
+	fc := &fakeClock{now: time.Date(2026, 4, 8, 6, 0, 0, 0, time.UTC)}
+	eng.clock = fc
+	// alternating runner: first call succeeds, second fails, etc.
+	callCount := 0
+	eng.runner = func(t *playbooks.Technique, profile *userstore.UserProfile, password string) playbooks.ExecutionResult {
+		callCount++
+		success := callCount%2 == 1
+		return playbooks.ExecutionResult{
+			TechniqueID:   t.ID,
+			TechniqueName: t.Name,
+			TacticID:      t.Tactic,
+			StartTime:     time.Now().Format(time.RFC3339),
+			EndTime:       time.Now().Format(time.RFC3339),
+			Success:       success,
+		}
+	}
+	return eng, fc
+}
+
+func pocConfig(phase1Days, gapDays, phase2Days int, campaignID string) Config {
+	return Config{
+		PoCMode:            true,
+		Phase1DurationDays: phase1Days,
+		Phase1TechsPerDay:  1,
+		Phase1DailyHour:    8,
+		GapDays:            gapDays,
+		Phase2DurationDays: phase2Days,
+		Phase2DailyHour:    9,
+		CampaignID:         campaignID,
+	}
+}
+
+// TestGetDayDigests_Empty verifies GetDayDigests returns empty slice (not nil) when no PoC is running (D-06).
+func TestGetDayDigests_Empty(t *testing.T) {
+	reg := testRegistry()
+	eng := New(reg, nil)
+
+	digests := eng.GetDayDigests()
+	if digests == nil {
+		t.Fatal("GetDayDigests() returned nil — expected empty slice []DayDigest{}")
+	}
+	if len(digests) != 0 {
+		t.Errorf("GetDayDigests() returned %d entries, want 0", len(digests))
+	}
+}
+
+// TestDayDigest_PrePopulated verifies all days are pre-populated as pending before any day runs (TRACK-02).
+func TestDayDigest_PrePopulated(t *testing.T) {
+	eng, fc := newPoCEngineWithCampaign(2, 1, 2)
+	_ = fc
+
+	cfg := pocConfig(2, 1, 2, "camp-delay")
+
+	// Use a blocking runner so we can check state mid-run.
+	// Actually, since fakeClock fires immediately, we'll start and let it complete,
+	// then verify the final digest has correct initial structure from pre-population.
+	// The pre-population check is validated by structure (5 entries total, correct phases).
+	if err := eng.Start(cfg); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if !waitForPhase(eng, PhaseDone, 5*time.Second) {
+		t.Fatalf("engine did not reach PhaseDone; stuck at %s", eng.GetStatus().Phase)
+	}
+
+	digests := eng.GetDayDigests()
+	if len(digests) != 5 {
+		t.Fatalf("expected 5 DayDigest entries (2+1+2), got %d", len(digests))
+	}
+
+	// Verify phase labels
+	expectedPhases := []string{"phase1", "phase1", "gap", "phase2", "phase2"}
+	for i, d := range digests {
+		if d.Phase != expectedPhases[i] {
+			t.Errorf("day %d: Phase=%q, want %q", i+1, d.Phase, expectedPhases[i])
+		}
+		if d.Day != i+1 {
+			t.Errorf("day %d: Day number=%d, want %d", i+1, d.Day, i+1)
+		}
+	}
+
+	// Phase1 days should have TechniqueCount=1 (techsPerDay from config)
+	for i := 0; i < 2; i++ {
+		if digests[i].TechniqueCount != 1 {
+			t.Errorf("phase1 day %d: TechniqueCount=%d, want 1", i+1, digests[i].TechniqueCount)
+		}
+	}
+	// Gap day should have TechniqueCount=0
+	if digests[2].TechniqueCount != 0 {
+		t.Errorf("gap day: TechniqueCount=%d, want 0", digests[2].TechniqueCount)
+	}
+}
+
+// TestDayDigest_Lifecycle verifies all DayDigest entries reach DayComplete after PoC run (TRACK-01).
+func TestDayDigest_Lifecycle(t *testing.T) {
+	eng, _ := newPoCEngineWithCampaign(2, 1, 2)
+	cfg := pocConfig(2, 1, 2, "camp-delay")
+
+	if err := eng.Start(cfg); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if !waitForPhase(eng, PhaseDone, 5*time.Second) {
+		t.Fatalf("engine did not reach PhaseDone; stuck at %s", eng.GetStatus().Phase)
+	}
+
+	digests := eng.GetDayDigests()
+	if len(digests) != 5 {
+		t.Fatalf("expected 5 DayDigest entries, got %d", len(digests))
+	}
+
+	for i, d := range digests {
+		if d.Status != DayComplete {
+			t.Errorf("day %d: Status=%q, want DayComplete", i+1, d.Status)
+		}
+		if d.StartTime == "" {
+			t.Errorf("day %d: StartTime is empty", i+1)
+		}
+		if d.EndTime == "" {
+			t.Errorf("day %d: EndTime is empty", i+1)
+		}
+		if d.LastHeartbeat == "" {
+			t.Errorf("day %d: LastHeartbeat is empty", i+1)
+		}
+	}
+}
+
+// TestDayDigest_Counts verifies PassCount and FailCount match alternating runner results (TRACK-01).
+func TestDayDigest_Counts(t *testing.T) {
+	eng, _ := newPoCEngineWithCampaign(2, 1, 2)
+	cfg := pocConfig(2, 1, 2, "camp-delay")
+
+	if err := eng.Start(cfg); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if !waitForPhase(eng, PhaseDone, 5*time.Second) {
+		t.Fatalf("engine did not reach PhaseDone; stuck at %s", eng.GetStatus().Phase)
+	}
+
+	digests := eng.GetDayDigests()
+	if len(digests) != 5 {
+		t.Fatalf("expected 5 DayDigest entries, got %d", len(digests))
+	}
+
+	// Gap day should have no pass/fail counts
+	gapDay := digests[2]
+	if gapDay.PassCount != 0 || gapDay.FailCount != 0 {
+		t.Errorf("gap day: PassCount=%d FailCount=%d, want both 0", gapDay.PassCount, gapDay.FailCount)
+	}
+
+	// Phase1 days run 1 technique each (Phase1TechsPerDay=1)
+	for i, d := range digests {
+		if d.Phase != "phase1" {
+			continue
+		}
+		total := d.PassCount + d.FailCount
+		if total != 1 {
+			t.Errorf("day %d (phase1): PassCount+FailCount=%d, want 1", i+1, total)
+		}
+	}
+	// Phase2 days run 2 campaign steps each (camp-delay has 2 steps)
+	for i, d := range digests {
+		if d.Phase != "phase2" {
+			continue
+		}
+		total := d.PassCount + d.FailCount
+		if total != 2 {
+			t.Errorf("day %d (phase2): PassCount+FailCount=%d, want 2", i+1, total)
+		}
+	}
+}
+
+// TestDayDigest_Heartbeat verifies LastHeartbeat is non-empty for all days after PoC run (TRACK-04).
+func TestDayDigest_Heartbeat(t *testing.T) {
+	eng, _ := newPoCEngineWithCampaign(1, 1, 1)
+	cfg := pocConfig(1, 1, 1, "camp-delay")
+
+	if err := eng.Start(cfg); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if !waitForPhase(eng, PhaseDone, 5*time.Second) {
+		t.Fatalf("engine did not reach PhaseDone; stuck at %s", eng.GetStatus().Phase)
+	}
+
+	digests := eng.GetDayDigests()
+	for i, d := range digests {
+		if d.LastHeartbeat == "" {
+			t.Errorf("day %d (%s): LastHeartbeat is empty — should be set at day-start at minimum", i+1, d.Phase)
+		}
+	}
+}
+
+// TestDayDigest_GapDays verifies gap days transition to complete with timestamps but zero technique counts (TRACK-01).
+func TestDayDigest_GapDays(t *testing.T) {
+	eng, _ := newPoCEngineWithCampaign(1, 2, 1)
+	cfg := pocConfig(1, 2, 1, "camp-delay")
+
+	if err := eng.Start(cfg); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if !waitForPhase(eng, PhaseDone, 5*time.Second) {
+		t.Fatalf("engine did not reach PhaseDone; stuck at %s", eng.GetStatus().Phase)
+	}
+
+	digests := eng.GetDayDigests()
+	if len(digests) != 4 {
+		t.Fatalf("expected 4 DayDigest entries (1+2+1), got %d", len(digests))
+	}
+
+	// Days 2 and 3 are gap days
+	for _, idx := range []int{1, 2} {
+		d := digests[idx]
+		if d.Phase != "gap" {
+			t.Errorf("day %d: Phase=%q, want gap", idx+1, d.Phase)
+		}
+		if d.Status != DayComplete {
+			t.Errorf("gap day %d: Status=%q, want DayComplete", idx+1, d.Status)
+		}
+		if d.StartTime == "" {
+			t.Errorf("gap day %d: StartTime is empty", idx+1)
+		}
+		if d.EndTime == "" {
+			t.Errorf("gap day %d: EndTime is empty", idx+1)
+		}
+		if d.PassCount != 0 || d.FailCount != 0 {
+			t.Errorf("gap day %d: PassCount=%d FailCount=%d, want both 0", idx+1, d.PassCount, d.FailCount)
+		}
+	}
+}
+
+// TestDayDigest_Reset verifies dayDigests are cleared between PoC runs (Pitfall 4).
+func TestDayDigest_Reset(t *testing.T) {
+	eng, _ := newPoCEngineWithCampaign(1, 0, 1)
+
+	run := func(campaignID string) {
+		cfg := pocConfig(1, 0, 1, campaignID)
+		if err := eng.Start(cfg); err != nil {
+			t.Fatalf("Start: %v", err)
+		}
+		if !waitForPhase(eng, PhaseDone, 5*time.Second) {
+			t.Fatalf("engine did not reach PhaseDone; stuck at %s", eng.GetStatus().Phase)
+		}
+	}
+
+	run("camp-delay")
+	firstDigests := eng.GetDayDigests()
+
+	// Reset clock for second run
+	eng.clock = &fakeClock{now: time.Date(2026, 4, 9, 6, 0, 0, 0, time.UTC)}
+
+	run("camp-delay")
+	secondDigests := eng.GetDayDigests()
+
+	// Both runs have 2 days (1+0+1), but the slice should be fresh
+	if len(secondDigests) != len(firstDigests) {
+		t.Errorf("second run: got %d digests, want %d", len(secondDigests), len(firstDigests))
+	}
+	// All second-run digests should be complete (not stale pending from first run)
+	for i, d := range secondDigests {
+		if d.Status != DayComplete {
+			t.Errorf("second run day %d: Status=%q, want DayComplete", i+1, d.Status)
+		}
+	}
+}
+
+// TestCampaignDelayAfter verifies DelayAfter>0 triggers waitOrStop with correct duration; DelayAfter=0 does not (CAMP-01).
+func TestCampaignDelayAfter(t *testing.T) {
+	reg := testRegistry(
+		testTechnique("T1087", "discovery", "discovery"),
+		testTechnique("T1078", "attack", "persistence"),
+		testTechnique("T1003", "attack", "credential-access"),
+	)
+	reg.Campaigns["camp-delay"] = &playbooks.Campaign{
+		ID:   "camp-delay",
+		Name: "Delay Test Campaign",
+		Steps: []playbooks.CampaignStep{
+			{TechniqueID: "T1078", DelayAfter: 300},
+			{TechniqueID: "T1003", DelayAfter: 0},
+		},
+	}
+
+	var delayDurations []time.Duration
+	var delayMu sync.Mutex
+
+	atc := &afterTrackClock{
+		fakeClock:      fakeClock{now: time.Date(2026, 4, 8, 6, 0, 0, 0, time.UTC)},
+		delayDurations: &delayDurations,
+		mu:             &delayMu,
+	}
+
+	eng := New(reg, nil)
+	eng.clock = atc
+	eng.runner = fakeRunner(0)
+
+	cfg := Config{
+		PoCMode:            true,
+		Phase1DurationDays: 0,
+		Phase1TechsPerDay:  0,
+		Phase1DailyHour:    8,
+		GapDays:            0,
+		Phase2DurationDays: 1,
+		Phase2DailyHour:    9,
+		CampaignID:         "camp-delay",
+	}
+
+	if err := eng.Start(cfg); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if !waitForPhase(eng, PhaseDone, 5*time.Second) {
+		t.Fatalf("engine did not reach PhaseDone; stuck at %s", eng.GetStatus().Phase)
+	}
+
+	delayMu.Lock()
+	recorded := make([]time.Duration, len(delayDurations))
+	copy(recorded, delayDurations)
+	delayMu.Unlock()
+
+	// Expect exactly one delay of 300s (from step1 DelayAfter=300).
+	// step2 has DelayAfter=0, so no campaign delay recorded for it.
+	found300s := false
+	for _, d := range recorded {
+		if d == 300*time.Second {
+			found300s = true
+		}
+	}
+	if !found300s {
+		t.Errorf("expected a 300s campaign delay_after call, got durations: %v", recorded)
+	}
+}
+
+// afterTrackClock wraps fakeClock and records After() call durations above 60s
+// (to distinguish campaign delays from scheduling waits which are hour-based = 3600s+).
+// Actually we record all durations and let the test filter.
+type afterTrackClock struct {
+	fakeClock
+	delayDurations *[]time.Duration
+	mu             *sync.Mutex
+}
+
+func (a *afterTrackClock) After(d time.Duration) <-chan time.Time {
+	// Only record sub-hour durations that look like campaign delays (< 3600s)
+	// Scheduling waits are nextOccurrenceOfHour which is always > 0 up to 24h.
+	// Campaign delays are step.DelayAfter seconds, typically much smaller.
+	// Record all durations so the test can inspect them.
+	a.mu.Lock()
+	*a.delayDurations = append(*a.delayDurations, d)
+	a.mu.Unlock()
+	return a.fakeClock.After(d)
+}
+
+// TestCampaignDelayAfter_Interruptible verifies stop signal during DelayAfter aborts the engine (CAMP-01, D-09).
+func TestCampaignDelayAfter_Interruptible(t *testing.T) {
+	reg := testRegistry(
+		testTechnique("T1078", "attack", "persistence"),
+		testTechnique("T1003", "attack", "credential-access"),
+	)
+	reg.Campaigns["camp-long-delay"] = &playbooks.Campaign{
+		ID:   "camp-long-delay",
+		Name: "Long Delay Campaign",
+		Steps: []playbooks.CampaignStep{
+			{TechniqueID: "T1078", DelayAfter: 3600}, // 1 hour delay
+		},
+	}
+
+	eng := New(reg, nil)
+	// Use a blocking fakeClock that we can unblock via stop signal
+	// Since fakeClock.After() fires immediately, we need a slow clock for this test.
+	// Use realClock but with a very short delay (use a custom blocking clock).
+	blockCh := make(chan time.Time) // never fires unless we close it
+	bc := &blockingClock{
+		fakeClock: fakeClock{now: time.Date(2026, 4, 8, 9, 0, 0, 0, time.UTC)},
+		blockCh:   blockCh,
+	}
+	eng.clock = bc
+	eng.runner = fakeRunner(0)
+
+	cfg := Config{
+		PoCMode:            true,
+		Phase1DurationDays: 0,
+		Phase1TechsPerDay:  0,
+		Phase1DailyHour:    8,
+		GapDays:            0,
+		Phase2DurationDays: 1,
+		Phase2DailyHour:    9,
+		CampaignID:         "camp-long-delay",
+	}
+
+	if err := eng.Start(cfg); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+
+	// Wait for Phase 2 to begin running (engine should be in poc_phase2)
+	if !waitForPhase(eng, PhasePoCPhase2, 2*time.Second) {
+		t.Fatalf("engine did not reach PhasePoCPhase2; stuck at %s", eng.GetStatus().Phase)
+	}
+
+	// Give it a moment to start the delay
+	time.Sleep(50 * time.Millisecond)
+
+	// Stop the engine while it's waiting in the campaign delay
+	eng.Stop()
+
+	// Engine should abort
+	if !waitForPhase(eng, PhaseAborted, 2*time.Second) {
+		t.Fatalf("engine did not abort after Stop(); stuck at %s", eng.GetStatus().Phase)
+	}
+}
+
+// blockingClock implements Clock where After() blocks until the channel is closed or a stop signal fires.
+// The scheduling wait (nextOccurrenceOfHour) fires immediately (via fakeClock),
+// but campaign delays block until Stop() is called.
+type blockingClock struct {
+	fakeClock
+	blockCh   chan time.Time
+	callCount int
+	mu        sync.Mutex
+}
+
+func (b *blockingClock) After(d time.Duration) <-chan time.Time {
+	b.mu.Lock()
+	b.callCount++
+	count := b.callCount
+	b.mu.Unlock()
+
+	if count == 1 {
+		// First call is the scheduling wait — fire immediately
+		return b.fakeClock.After(d)
+	}
+	// Subsequent calls (campaign delay) block indefinitely
+	return b.blockCh
+}

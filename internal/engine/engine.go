@@ -88,10 +88,33 @@ type Status struct {
 	NextScheduledRun string `json:"next_scheduled_run,omitempty"` // RFC3339
 }
 
+// DayStatus represents the execution state of a single PoC day.
+type DayStatus string
+
+const (
+	DayPending  DayStatus = "pending"
+	DayActive   DayStatus = "active"
+	DayComplete DayStatus = "complete"
+)
+
+// DayDigest records per-day execution summary for a PoC run.
+type DayDigest struct {
+	Day            int       `json:"day"`
+	Phase          string    `json:"phase"`           // "phase1", "gap", "phase2"
+	Status         DayStatus `json:"status"`
+	TechniqueCount int       `json:"technique_count"`
+	PassCount      int       `json:"pass_count"`
+	FailCount      int       `json:"fail_count"`
+	StartTime      string    `json:"start_time,omitempty"`
+	EndTime        string    `json:"end_time,omitempty"`
+	LastHeartbeat  string    `json:"last_heartbeat,omitempty"`
+}
+
 // Engine manages the simulation lifecycle.
 type Engine struct {
 	mu                 sync.RWMutex
 	status             Status
+	dayDigests         []DayDigest  // per-day tracking for PoC runs, guarded by mu
 	registry           *playbooks.Registry
 	users              *userstore.Store
 	cfg                Config
@@ -155,6 +178,7 @@ func (e *Engine) Start(cfg Config) error {
 	e.cfg = cfg
 	e.stopCh = make(chan struct{}, 1)
 	e.executedTechniques = nil
+	e.dayDigests = nil
 	e.rotationIndex = 0
 	initialPhase := PhaseDiscovery
 	if cfg.PoCMode {
@@ -209,6 +233,19 @@ func (e *Engine) GetStatus() Status {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	return e.status
+}
+
+// GetDayDigests returns a copy of the per-day digest slice.
+// Returns an empty slice (never nil) when no PoC is running, so JSON encodes as [] not null.
+func (e *Engine) GetDayDigests() []DayDigest {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	if len(e.dayDigests) == 0 {
+		return []DayDigest{}
+	}
+	result := make([]DayDigest, len(e.dayDigests))
+	copy(result, e.dayDigests)
+	return result
 }
 
 // resolveProfiles looks up each configured profile ID and decrypts its password.
@@ -347,6 +384,36 @@ func (e *Engine) runPoC() {
 		techsPerDay = 2
 	}
 
+	// Pre-populate all days as pending so /api/poc/days returns the full schedule from first poll (D-02).
+	{
+		digests := make([]DayDigest, totalDays)
+		globalIdx := 0
+		for i := 0; i < cfg.Phase1DurationDays; i++ {
+			digests[globalIdx] = DayDigest{Day: globalIdx + 1, Phase: "phase1", Status: DayPending, TechniqueCount: techsPerDay}
+			globalIdx++
+		}
+		for i := 0; i < cfg.GapDays; i++ {
+			digests[globalIdx] = DayDigest{Day: globalIdx + 1, Phase: "gap", Status: DayPending}
+			globalIdx++
+		}
+		// Phase 2 technique count: campaign step count if campaign, else attack registry length.
+		phase2TechCount := 0
+		if cfg.CampaignID != "" {
+			if c, ok := e.registry.Campaigns[cfg.CampaignID]; ok {
+				phase2TechCount = len(c.Steps)
+			}
+		} else {
+			phase2TechCount = len(e.registry.GetTechniquesByPhase("attack"))
+		}
+		for i := 0; i < cfg.Phase2DurationDays; i++ {
+			digests[globalIdx] = DayDigest{Day: globalIdx + 1, Phase: "phase2", Status: DayPending, TechniqueCount: phase2TechCount}
+			globalIdx++
+		}
+		e.mu.Lock()
+		e.dayDigests = digests
+		e.mu.Unlock()
+	}
+
 	// ── Phase 1: Discovery ──────────────────────────────────────────
 	e.setPhase(PhasePoCPhase1)
 	simlog.Phase("PoC Phase 1: Discovery")
@@ -364,6 +431,9 @@ func (e *Engine) runPoC() {
 		e.status.PoCPhase = "phase1"
 		e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
 		e.status.CurrentStep = fmt.Sprintf("PoC Phase 1 — Day %d of %d — Waiting until %02d:00", globalDay, totalDays, cfg.Phase1DailyHour)
+		e.dayDigests[globalDay-1].Status = DayActive
+		e.dayDigests[globalDay-1].StartTime = e.clock.Now().Format(time.RFC3339)
+		e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
 		e.mu.Unlock()
 
 		if !e.waitOrStop(d) {
@@ -381,9 +451,26 @@ func (e *Engine) runPoC() {
 				t := discoveryTechs[(start+i)%len(discoveryTechs)]
 				simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d — technique %d/%d: %s%s", day, i+1, techsPerDay, t.ID, e.whatIfLabel()))
 				e.runTechnique(t)
+				// Update pass/fail count and heartbeat (D-10)
+				e.mu.RLock()
+				lastResult := e.status.Results[len(e.status.Results)-1]
+				e.mu.RUnlock()
+				e.mu.Lock()
+				if lastResult.Success {
+					e.dayDigests[globalDay-1].PassCount++
+				} else {
+					e.dayDigests[globalDay-1].FailCount++
+				}
+				e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
+				e.mu.Unlock()
 				e.delayBetween()
 			}
 		}
+		e.mu.Lock()
+		e.dayDigests[globalDay-1].Status = DayComplete
+		e.dayDigests[globalDay-1].EndTime = e.clock.Now().Format(time.RFC3339)
+		e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
+		e.mu.Unlock()
 		simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d complete", day))
 	}
 
@@ -405,11 +492,20 @@ func (e *Engine) runPoC() {
 			e.status.PoCPhase = "gap"
 			e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
 			e.status.CurrentStep = fmt.Sprintf("PoC Gap — Day %d of %d (no actions)", globalDay, totalDays)
+			e.dayDigests[globalDay-1].Status = DayActive
+			e.dayDigests[globalDay-1].StartTime = e.clock.Now().Format(time.RFC3339)
+			e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
 			e.mu.Unlock()
 			if !e.waitOrStop(d) {
 				e.abort()
 				return
 			}
+			// Gap days have no techniques; mark complete after the wait (Pitfall 5)
+			e.mu.Lock()
+			e.dayDigests[globalDay-1].Status = DayComplete
+			e.dayDigests[globalDay-1].EndTime = e.clock.Now().Format(time.RFC3339)
+			e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
+			e.mu.Unlock()
 		}
 	}
 
@@ -430,6 +526,9 @@ func (e *Engine) runPoC() {
 		e.status.PoCPhase = "phase2"
 		e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
 		e.status.CurrentStep = fmt.Sprintf("PoC Phase 2 — Day %d of %d — Waiting until %02d:00", globalDay, totalDays, cfg.Phase2DailyHour)
+		e.dayDigests[globalDay-1].Status = DayActive
+		e.dayDigests[globalDay-1].StartTime = e.clock.Now().Format(time.RFC3339)
+		e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
 		e.mu.Unlock()
 
 		if !e.waitOrStop(d) {
@@ -437,16 +536,71 @@ func (e *Engine) runPoC() {
 			return
 		}
 
-		attackTechs := e.getTechniquesForPhase()
-		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d — running %d attack techniques%s", day, len(attackTechs), e.whatIfLabel()))
-		for _, t := range attackTechs {
-			if e.isStopped() {
-				e.abort()
-				return
+		if cfg.CampaignID != "" {
+			campaign, ok := e.registry.Campaigns[cfg.CampaignID]
+			if ok {
+				simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d — running %d campaign steps%s", day, len(campaign.Steps), e.whatIfLabel()))
+				for _, step := range campaign.Steps {
+					if e.isStopped() {
+						e.abort()
+						return
+					}
+					t, exists := e.registry.Techniques[step.TechniqueID]
+					if !exists {
+						continue
+					}
+					e.runTechnique(t)
+					// Update pass/fail count and heartbeat (D-10)
+					e.mu.RLock()
+					lastResult := e.status.Results[len(e.status.Results)-1]
+					e.mu.RUnlock()
+					e.mu.Lock()
+					if lastResult.Success {
+						e.dayDigests[globalDay-1].PassCount++
+					} else {
+						e.dayDigests[globalDay-1].FailCount++
+					}
+					e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
+					e.mu.Unlock()
+					// Apply campaign delay_after (D-07, D-08, D-09)
+					if step.DelayAfter > 0 {
+						if !e.waitOrStop(time.Duration(step.DelayAfter) * time.Second) {
+							e.abort()
+							return
+						}
+					}
+					e.delayBetween()
+				}
 			}
-			e.runTechnique(t)
-			e.delayBetween()
+		} else {
+			attackTechs := e.getTechniquesForPhase()
+			simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d — running %d attack techniques%s", day, len(attackTechs), e.whatIfLabel()))
+			for _, t := range attackTechs {
+				if e.isStopped() {
+					e.abort()
+					return
+				}
+				e.runTechnique(t)
+				// Update pass/fail count and heartbeat (D-10)
+				e.mu.RLock()
+				lastResult := e.status.Results[len(e.status.Results)-1]
+				e.mu.RUnlock()
+				e.mu.Lock()
+				if lastResult.Success {
+					e.dayDigests[globalDay-1].PassCount++
+				} else {
+					e.dayDigests[globalDay-1].FailCount++
+				}
+				e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
+				e.mu.Unlock()
+				e.delayBetween()
+			}
 		}
+		e.mu.Lock()
+		e.dayDigests[globalDay-1].Status = DayComplete
+		e.dayDigests[globalDay-1].EndTime = e.clock.Now().Format(time.RFC3339)
+		e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
+		e.mu.Unlock()
 		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d complete", day))
 	}
 
