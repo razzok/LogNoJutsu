@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: PoC Mode Fix & Overhaul
 current_phase: 12
-current_plan: Not started
-status: Ready to plan
-last_updated: "2026-04-09T07:48:19.443Z"
+current_plan: 1
+status: Executing Phase 12
+last_updated: "2026-04-09T08:50:41.498Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 4
+  total_plans: 5
   completed_plans: 4
 ---
 
@@ -21,13 +21,13 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 11 — daily-tracking-backend-campaign-delay
+**Current focus:** Phase 12 — daily-digest-timeline-calendar-ui
 
 ## Current Status
 
 **Milestone:** v1.2 — PoC Mode Fix & Overhaul — In Progress (2026-04-08)
 **Current phase:** 12
-**Current plan:** Not started
+**Current plan:** 1
 
 ## Phase Progress
 
@@ -78,6 +78,12 @@ Key decisions carried forward:
 - GetDayDigests() returns []DayDigest{} (never nil) for safe JSON encoding as [] not null
 - handlePoCDays delegates entirely to engine — no nil-check needed; route placed in Simulation API section of registerRoutes()
 
+## Decisions (Phase 12)
+
+- Custom JS accordion (classList.toggle open) over details/summary — programmatic open/close required for D-04 auto-expand and D-11 calendar-to-digest link
+- hasDayData flag persists panel visibility after PoC completion — panels not gated on isPocRunning
+- pollStatus() redeclares pocPhases locally — simpler than module-level; matches existing self-contained function patterns
+
 ## Roadmap Evolution
 
 - Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
@@ -100,4 +106,4 @@ Key decisions carried forward:
 *Initialized: 2026-03-24*
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
-*Last session: 2026-04-09 — Stopped at: Completed 11-daily-tracking-backend-campaign-delay/11-02-PLAN.md*
+*Last session: 2026-04-09 — Stopped at: Checkpoint in 12-daily-digest-timeline-calendar-ui/12-01-PLAN.md (Task 2: human-verify)*

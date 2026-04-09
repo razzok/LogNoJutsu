@@ -22,16 +22,16 @@ Requirements for PoC Mode Fix & Overhaul. Each maps to roadmap phases.
 
 ### UI — Daily Digest
 
-- [ ] **DIGEST-01**: User can see a per-day summary panel showing which techniques ran and their results
-- [ ] **DIGEST-02**: Current day auto-expands; completed days are collapsed by default
-- [ ] **DIGEST-03**: Each day entry shows technique count, pass/fail counts, and execution time window
+- [x] **DIGEST-01**: User can see a per-day summary panel showing which techniques ran and their results
+- [x] **DIGEST-02**: Current day auto-expands; completed days are collapsed by default
+- [x] **DIGEST-03**: Each day entry shows technique count, pass/fail counts, and execution time window
 
 ### UI — Timeline Calendar
 
-- [ ] **CAL-01**: User can see a horizontal day-by-day grid showing the full PoC schedule
-- [ ] **CAL-02**: Days are color-coded: green (complete), yellow/accent (current), gray (future), muted (gap)
-- [ ] **CAL-03**: Each day cell shows technique count badge
-- [ ] **CAL-04**: Phase labels (Phase 1 / Gap / Phase 2) are visible above day groups
+- [x] **CAL-01**: User can see a horizontal day-by-day grid showing the full PoC schedule
+- [x] **CAL-02**: Days are color-coded: green (complete), yellow/accent (current), gray (future), muted (gap)
+- [x] **CAL-03**: Each day cell shows technique count badge
+- [x] **CAL-04**: Phase labels (Phase 1 / Gap / Phase 2) are visible above day groups
 
 ### Testability
 
@@ -79,13 +79,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRACK-03 | Phase 11 | Complete |
 | TRACK-04 | Phase 11 | Complete |
 | CAMP-01 | Phase 11 | Complete |
-| DIGEST-01 | Phase 12 | Pending |
-| DIGEST-02 | Phase 12 | Pending |
-| DIGEST-03 | Phase 12 | Pending |
-| CAL-01 | Phase 12 | Pending |
-| CAL-02 | Phase 12 | Pending |
-| CAL-03 | Phase 12 | Pending |
-| CAL-04 | Phase 12 | Pending |
+| DIGEST-01 | Phase 12 | Complete |
+| DIGEST-02 | Phase 12 | Complete |
+| DIGEST-03 | Phase 12 | Complete |
+| CAL-01 | Phase 12 | Complete |
+| CAL-02 | Phase 12 | Complete |
+| CAL-03 | Phase 12 | Complete |
+| CAL-04 | Phase 12 | Complete |
 | TEST-02 | Phase 13 | Pending |
 | TEST-03 | Phase 13 | Pending |
 | TEST-04 | Phase 13 | Pending |

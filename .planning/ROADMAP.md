@@ -37,7 +37,7 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 
 - [x] Phase 10: PoC Engine Fixes & Clock Injection (2/2 plans) — completed 2026-04-08
 - [x] Phase 11: Daily Tracking Backend & Campaign Delay (2/2 plans) — completed 2026-04-09
-- [ ] Phase 12: Daily Digest & Timeline Calendar UI
+- [x] Phase 12: Daily Digest & Timeline Calendar UI (completed 2026-04-09)
 - [ ] Phase 13: PoC Scheduling Tests
 
 ### Phase 10: PoC Engine Fixes & Clock Injection
@@ -67,10 +67,10 @@ Plans:
 **Goal:** Add daily digest panel and timeline calendar to the web UI for PoC schedule visualization.
 **Requirements:** DIGEST-01, DIGEST-02, DIGEST-03, CAL-01, CAL-02, CAL-03, CAL-04
 **Depends on:** Phase 11
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 12-01-PLAN.md — Timeline calendar strip + daily digest accordion + polling integration
+- [x] 12-01-PLAN.md — Timeline calendar strip + daily digest accordion + polling integration
 
 ### Phase 13: PoC Scheduling Tests
 
