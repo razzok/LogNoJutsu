@@ -77,7 +77,7 @@ Plans:
 **Goal:** Write deterministic tests for runPoC() scheduling logic using the fake clock — day counter transitions, stop-signal handling, DayDigest lifecycle.
 **Requirements:** TEST-02, TEST-03, TEST-04
 **Depends on:** Phase 11
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [x] 13-01-PLAN.md — Day counter monotonicity, stop-signal handling (4 scenarios), DayDigest lifecycle transitions
