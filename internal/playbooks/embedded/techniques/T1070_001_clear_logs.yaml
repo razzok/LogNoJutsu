@@ -6,6 +6,7 @@ technique_id: T1070.001
 platform: windows
 phase: attack
 elevation_required: true
+tier: 2
 expected_events:
   - event_id: 104
     channel: "System"

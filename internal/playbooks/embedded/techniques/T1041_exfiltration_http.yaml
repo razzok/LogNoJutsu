@@ -6,6 +6,7 @@ technique_id: T1041
 platform: windows
 phase: attack
 elevation_required: false
+tier: 2
 nist_controls:
   - SC-7
   - SI-4

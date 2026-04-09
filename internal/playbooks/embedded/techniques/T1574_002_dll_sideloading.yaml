@@ -6,6 +6,7 @@ technique_id: T1574.002
 platform: windows
 phase: attack
 elevation_required: false
+tier: 2
 nist_controls:
   - CM-7
   - SI-3

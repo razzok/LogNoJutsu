@@ -6,6 +6,7 @@ technique_id: T1134.001
 platform: windows
 phase: attack
 elevation_required: false
+tier: 3
 nist_controls:
   - AC-6
   - IA-5

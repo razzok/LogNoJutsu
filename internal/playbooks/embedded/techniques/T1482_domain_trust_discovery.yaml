@@ -6,6 +6,7 @@ technique_id: T1482
 platform: windows
 phase: discovery
 elevation_required: false
+tier: 1
 expected_events:
   - event_id: 4688
     channel: "Security"

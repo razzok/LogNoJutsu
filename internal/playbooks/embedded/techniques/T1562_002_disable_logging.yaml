@@ -6,6 +6,7 @@ technique_id: T1562.002
 platform: windows
 phase: attack
 elevation_required: true
+tier: 1
 expected_events:
   - event_id: 4719
     channel: "Security"

@@ -6,6 +6,7 @@ technique_id: T1098
 platform: windows
 phase: attack
 elevation_required: true
+tier: 1
 expected_events:
   - event_id: 4720
     channel: "Security"

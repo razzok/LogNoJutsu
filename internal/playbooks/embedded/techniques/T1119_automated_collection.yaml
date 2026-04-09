@@ -6,6 +6,7 @@ technique_id: T1119
 platform: windows
 phase: attack
 elevation_required: false
+tier: 3
 expected_events:
   - event_id: 4104
     channel: "Microsoft-Windows-PowerShell/Operational"

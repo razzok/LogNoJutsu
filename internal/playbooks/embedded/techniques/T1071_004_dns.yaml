@@ -6,6 +6,7 @@ technique_id: T1071.004
 platform: windows
 phase: attack
 elevation_required: false
+tier: 2
 expected_events:
   - event_id: 22
     channel: "Microsoft-Windows-Sysmon/Operational"

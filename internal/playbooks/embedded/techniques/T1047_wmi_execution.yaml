@@ -6,6 +6,7 @@ technique_id: T1047
 platform: windows
 phase: attack
 elevation_required: false
+tier: 1
 expected_events:
   - event_id: 4688
     channel: "Security"
