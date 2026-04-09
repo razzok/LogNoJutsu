@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 Verified & Expanded** — Phases 1-7 (shipped 2026-03-26)
 - ✅ **v1.1 Bug Fixes & UI Polish** — Phases 8-9 (shipped 2026-03-26)
-- 🔄 **v1.2 PoC Mode Fix & Overhaul** — Phases 10-13 (in progress 2026-04-08)
+- 🔄 **v1.2 PoC Mode Fix & Overhaul** — Phases 10-13 (all phases complete 2026-04-09)
 
 ## Phases
 
@@ -38,7 +38,7 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 - [x] Phase 10: PoC Engine Fixes & Clock Injection (2/2 plans) — completed 2026-04-08
 - [x] Phase 11: Daily Tracking Backend & Campaign Delay (2/2 plans) — completed 2026-04-09
 - [x] Phase 12: Daily Digest & Timeline Calendar UI (completed 2026-04-09)
-- [ ] Phase 13: PoC Scheduling Tests
+- [x] Phase 13: PoC Scheduling Tests (1/1 plans) — completed 2026-04-09
 
 ### Phase 10: PoC Engine Fixes & Clock Injection
 
@@ -80,7 +80,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 13-01-PLAN.md — Day counter monotonicity, stop-signal handling (4 scenarios), DayDigest lifecycle transitions
+- [x] 13-01-PLAN.md — Day counter monotonicity, stop-signal handling (4 scenarios), DayDigest lifecycle transitions
 
 ## Progress
 
@@ -97,5 +97,5 @@ Plans:
 | 9 | UI Polish | v1.1 | 3/3 | Complete | 2026-03-26 |
 | 10 | PoC Engine Fixes & Clock Injection | v1.2 | 2/2 | Complete | 2026-04-08 |
 | 11 | Daily Tracking Backend & Campaign Delay | v1.2 | 2/2 | Complete | 2026-04-09 |
-| 12 | Daily Digest & Timeline Calendar UI | v1.2 | 0/1 | Not started | — |
-| 13 | PoC Scheduling Tests | v1.2 | 0/1 | Not started | — |
+| 12 | Daily Digest & Timeline Calendar UI | v1.2 | 1/1 | Complete | 2026-04-09 |
+| 13 | PoC Scheduling Tests | v1.2 | 1/1 | Complete | 2026-04-09 |

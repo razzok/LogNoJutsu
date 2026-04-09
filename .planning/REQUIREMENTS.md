@@ -36,9 +36,9 @@ Requirements for PoC Mode Fix & Overhaul. Each maps to roadmap phases.
 ### Testability
 
 - [x] **TEST-01**: Engine accepts injectable clock/wait function for deterministic runPoC() testing
-- [ ] **TEST-02**: Tests validate monotonic day counter across Phase1→Gap→Phase2 transitions
-- [ ] **TEST-03**: Tests validate stop-signal handling during PoC sleep periods
-- [ ] **TEST-04**: Tests validate DayDigest lifecycle (pending→active→complete)
+- [x] **TEST-02**: Tests validate monotonic day counter across Phase1→Gap→Phase2 transitions
+- [x] **TEST-03**: Tests validate stop-signal handling during PoC sleep periods
+- [x] **TEST-04**: Tests validate DayDigest lifecycle (pending→active→complete)
 
 ### Campaign Execution
 
@@ -86,9 +86,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CAL-02 | Phase 12 | Complete |
 | CAL-03 | Phase 12 | Complete |
 | CAL-04 | Phase 12 | Complete |
-| TEST-02 | Phase 13 | Pending |
-| TEST-03 | Phase 13 | Pending |
-| TEST-04 | Phase 13 | Pending |
+| TEST-02 | Phase 13 | Complete |
+| TEST-03 | Phase 13 | Complete |
+| TEST-04 | Phase 13 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 19 total
@@ -97,4 +97,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-08*
-*Last updated: 2026-04-08 — traceability filled after roadmap creation*
+*Last updated: 2026-04-09 — Phase 13 complete; TEST-02, TEST-03, TEST-04 satisfied*
