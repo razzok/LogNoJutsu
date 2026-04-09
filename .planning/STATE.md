@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-current_phase: 10
+milestone: v1.2
+milestone_name: PoC Mode Fix & Overhaul
+current_phase: 11
 current_plan: Not started
-status: Milestone complete
+status: executing
 last_updated: "2026-04-08T20:10:18.933Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 4
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
 ---
 
 # Project State
@@ -21,12 +21,12 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Planning next milestone
+**Current focus:** Phase 11 — Daily Tracking Backend & Campaign Delay
 
 ## Current Status
 
-**Milestone:** v1.2 — PoC Engine Fixes & Clock Injection — In Progress (2026-04-08)
-**Current phase:** 10
+**Milestone:** v1.2 — PoC Mode Fix & Overhaul — In Progress (2026-04-08)
+**Current phase:** 11 — Daily Tracking Backend & Campaign Delay
 **Current plan:** Not started
 
 ## Phase Progress
@@ -68,6 +68,13 @@ Key decisions carried forward:
 - `globalDay` counter increments monotonically across Phase1/Gap/Phase2 loops; `nextOccurrenceOfHour` accepts `now` parameter (pure function); `simlog.Phase()` at call sites not inside `setPhase()`
 - Clock interface defined inline in engine.go (not clock.go) — single file, minimal surface area
 - captureClock pattern for reliable state capture: when fake clock fires too fast for polling goroutines, embed fakeClock in a wrapper that reads engine status synchronously on each After() call
+
+## Roadmap Evolution
+
+- Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
+- Phase 11 added: Daily Tracking Backend & Campaign Delay (TRACK-01..04, CAMP-01)
+- Phase 12 added: Daily Digest & Timeline Calendar UI (DIGEST-01..03, CAL-01..04)
+- Phase 13 added: PoC Scheduling Tests (TEST-02..04)
 
 ## Known Technical Debt
 
