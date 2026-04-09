@@ -96,9 +96,9 @@ Plans:
   4. A consultant running non-admin can complete a full simulation without cryptic error messages for elevation-gated techniques
 **Plans**: 3 plans
 Plans:
-- [ ] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
-- [ ] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
-- [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
+- [ ] 16-01-PLAN.md — Types, AMSI detection, and elevation gating (INFRA-01, INFRA-02)
+- [ ] 16-02-PLAN.md — Scan confirmation engine pause, API endpoints, and web UI modal (INFRA-03)
+- [ ] 16-03-PLAN.md — Reporter and web UI status badges for new verification statuses (INFRA-01, INFRA-02)
 **UI hint**: yes
 
 ### Phase 17: Network Discovery
@@ -150,7 +150,7 @@ Plans:
 | 12 | Daily Digest & Timeline Calendar UI | v1.2 | 1/1 | Complete | 2026-04-09 |
 | 13 | PoC Scheduling Tests | v1.2 | 1/1 | Complete | 2026-04-09 |
 | 14 | Safety Audit | v1.3 | 3/3 | Complete | 2026-04-09 |
-| 15 | Native Go Architecture | v1.3 | 0/2 | Planned | - |
-| 16 | Safety Infrastructure | v1.3 | 0/? | Not started | - |
+| 15 | Native Go Architecture | v1.3 | 2/2 | Complete | 2026-04-09 |
+| 16 | Safety Infrastructure | v1.3 | 0/3 | Planned | - |
 | 17 | Network Discovery | v1.3 | 0/? | Not started | - |
 | 18 | Technique Realism | v1.3 | 0/? | Not started | - |
