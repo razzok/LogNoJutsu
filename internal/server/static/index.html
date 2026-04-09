@@ -376,8 +376,23 @@
     <div class="separator"></div>
     <div class="card">
       <h2>🔧 All Techniques</h2>
+      <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; padding:10px 14px; background:var(--bg3); border-radius:6px; font-size:12px; color:var(--muted); align-items:center;">
+        <strong style="color:var(--text)">Tier Legend:</strong>
+        <span><span class="tier-badge tier1">T1</span> Realistic &mdash; real tool execution, generates authentic SIEM artifacts</span>
+        <span><span class="tier-badge tier2">T2</span> Partial &mdash; simplified execution, some artifacts may differ from real attacks</span>
+        <span><span class="tier-badge tier3">T3</span> Stub &mdash; placeholder command, minimal artifact generation</span>
+      </div>
       <table>
-        <thead><tr><th>ID</th><th>Name</th><th>Tactic</th><th>Phase</th><th>Tier</th><th>Elevation</th><th>Tags</th><th>NIST</th></tr></thead>
+        <thead><tr>
+          <th title="MITRE ATT&CK technique ID (e.g. T1046)">ID</th>
+          <th title="Technique name from the MITRE ATT&CK framework">Name</th>
+          <th title="ATT&CK tactic category (e.g. Discovery, Lateral Movement)">Tactic</th>
+          <th title="Simulation phase: discovery runs first, then attack techniques">Phase</th>
+          <th title="Realism tier: T1 = real tool execution, T2 = partial simulation, T3 = stub/placeholder">Tier</th>
+          <th title="Whether the technique requires administrator/elevated privileges to execute">Elevation</th>
+          <th title="Technique tags (e.g. safe, network, persistence)">Tags</th>
+          <th title="Mapped NIST 800-53 security controls">NIST</th>
+        </tr></thead>
         <tbody id="techniqueTable"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
       </table>
     </div>
@@ -1373,11 +1388,25 @@ async function loadResults() {
           Tactic: <strong style="color:var(--text)">${r.tactic_id}</strong> |
           Cleanup: <strong style="color:var(--text)">${r.cleanup_run ? 'Executed ✓' : 'Not run'}</strong>
         </div>
-        ${r.output ? `<div class="result-output">${escapeHtml(r.output.substring(0,3000))}${r.output.length>3000?'
-... (truncated)':''}</div>` : '<div style="color:var(--muted);font-size:12px">(no output)</div>'}
+        ${r.output ? `<div class="result-output">${escapeHtml(r.output.substring(0,3000))}${r.output.length>3000?' ... (truncated)':''}</div>` : '<div style="color:var(--muted);font-size:12px">(no output)</div>'}
         ${r.error_output ? `<div style="color:var(--red);font-size:12px;margin-top:6px;font-family:monospace">${escapeHtml(r.error_output)}</div>` : ''}
       </div>
     </div>`;
+  }).join('');
+
+  if (logAutoScroll) container.scrollTop = container.scrollHeight;
+}
+
+async function loadLogs() {
+  const entries = await api('/api/logs');
+  if (!entries || entries.error || entries.length === 0) return;
+  if (entries.length === lastLogCount) return;
+  lastLogCount = entries.length;
+
+  const container = document.getElementById('logContainer');
+  container.innerHTML = entries.map(e => {
+    const cls = 'log-line log-' + (e.type || 'INFO');
+    return `<div class="${cls}">${escapeHtml(`[${e.timestamp}] [${e.type.padEnd(12)}] ${e.message}`)}</div>`;
   }).join('');
 
   if (logAutoScroll) container.scrollTop = container.scrollHeight;
