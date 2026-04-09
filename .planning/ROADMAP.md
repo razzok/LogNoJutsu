@@ -56,10 +56,11 @@ Plans:
 **Goal:** Add DayDigest struct to engine for per-day PoC tracking, expose via API, and apply campaign delay_after during Phase 2 execution.
 **Requirements:** TRACK-01, TRACK-02, TRACK-03, TRACK-04, CAMP-01
 **Depends on:** Phase 10
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 11 to break down)
+- [ ] 11-01-PLAN.md — DayDigest struct, pre-population, lifecycle mutations, heartbeat, campaign delay, getter + tests
+- [ ] 11-02-PLAN.md — GET /api/poc/days endpoint and server tests
 
 ### Phase 12: Daily Digest & Timeline Calendar UI
 
@@ -95,6 +96,6 @@ Plans:
 | 8 | Backend Correctness | v1.1 | 2/2 | Complete | 2026-03-26 |
 | 9 | UI Polish | v1.1 | 3/3 | Complete | 2026-03-26 |
 | 10 | PoC Engine Fixes & Clock Injection | v1.2 | 2/2 | Complete | 2026-04-08 |
-| 11 | Daily Tracking Backend & Campaign Delay | v1.2 | 0/? | Not started | — |
+| 11 | Daily Tracking Backend & Campaign Delay | v1.2 | 0/2 | Not started | — |
 | 12 | Daily Digest & Timeline Calendar UI | v1.2 | 0/? | Not started | — |
 | 13 | PoC Scheduling Tests | v1.2 | 0/? | Not started | — |
