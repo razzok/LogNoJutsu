@@ -1,6 +1,9 @@
 package playbooks
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestExpectedEvents(t *testing.T) {
 	reg, err := LoadEmbedded()
@@ -225,6 +228,49 @@ func TestAzureTechniques(t *testing.T) {
 		}
 		if !found {
 			t.Error("AZURE_dcsync sentinel should contain 'Non Domain Controller Active Directory Replication'")
+		}
+	}
+}
+
+func TestTierClassified(t *testing.T) {
+	reg, err := LoadEmbedded()
+	if err != nil {
+		t.Fatalf("LoadEmbedded() failed: %v", err)
+	}
+	for id, tech := range reg.Techniques {
+		if tech.Tier < 1 || tech.Tier > 3 {
+			t.Errorf("technique %q (%s) has invalid tier %d — must be 1, 2, or 3", id, tech.Name, tech.Tier)
+		}
+	}
+}
+
+func TestWriteArtifactsHaveCleanup(t *testing.T) {
+	reg, err := LoadEmbedded()
+	if err != nil {
+		t.Fatalf("LoadEmbedded() failed: %v", err)
+	}
+	// Techniques that write persistent artifacts (disk, registry, scheduled tasks, services)
+	// and therefore require a cleanup command.
+	// Excluded from this list:
+	//   T1059.001 — no persistent artifacts written; only PowerShell invocation patterns
+	//   T1550.002 — inline self-cleanup (cmdkey /delete, net use /delete) within the command body
+	//   T1070.001 — cleanup added in Plan 02 (custom log channel rewrite)
+	writeArtifacts := map[string]bool{
+		"T1053.005": true, "T1543.003": true, "T1547.001": true,
+		"T1546.003": true, "T1562.002": true, "T1548.002": true,
+		"T1036.005": true, "T1134.001": true, "T1574.002": true,
+		"T1490": true, "T1027": true,
+		"T1005": true, "T1560.001": true, "T1119": true,
+		"T1041": true, "T1047": true, "T1021.001": true,
+		"T1021.002": true, "T1136.001": true,
+		"T1486": true,
+		"UEBA-DATA-STAGING": true, "UEBA-LATERAL-NEW-ASSET": true,
+		"FALCON_process_injection": true, "FALCON_lsass_access": true,
+		"FALCON_lateral_movement_psexec": true,
+	}
+	for id, tech := range reg.Techniques {
+		if writeArtifacts[id] && strings.TrimSpace(tech.Cleanup) == "" {
+			t.Errorf("technique %q (%s) writes artifacts but has empty cleanup", id, tech.Name)
 		}
 	}
 }

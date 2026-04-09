@@ -27,15 +27,19 @@ func RunAs(t *playbooks.Technique, profile *userstore.UserProfile, password stri
 }
 
 // RunWithCleanup executes a technique (optionally as another user) and runs cleanup.
-func RunWithCleanup(t *playbooks.Technique, profile *userstore.UserProfile, password string) playbooks.ExecutionResult {
-	result := runInternal(t, profile, password)
+// Cleanup is registered via defer — it fires even if runInternal panics.
+func RunWithCleanup(t *playbooks.Technique, profile *userstore.UserProfile, password string) (result playbooks.ExecutionResult) {
+	// Register cleanup as deferred action — fires even on panic
 	if strings.TrimSpace(t.Cleanup) != "" {
-		simlog.TechCleanup(t.ID, t.Cleanup, false)
-		// Cleanup always runs as the launching user (we own the artifacts)
-		_, _, cleanErr := runCommand(t.Executor.Type, t.Cleanup)
-		result.CleanupRun = true
-		simlog.TechCleanup(t.ID, "(cleanup completed)", cleanErr == nil)
+		defer func() {
+			simlog.TechCleanup(t.ID, t.Cleanup, false)
+			// Cleanup always runs as the launching user (we own the artifacts)
+			_, _, cleanErr := runCommand(t.Executor.Type, t.Cleanup)
+			result.CleanupRun = true
+			simlog.TechCleanup(t.ID, "(cleanup completed)", cleanErr == nil)
+		}()
 	}
+	result = runInternal(t, profile, password)
 	return result
 }
 
@@ -58,6 +62,7 @@ func runInternal(t *playbooks.Technique, profile *userstore.UserProfile, passwor
 		TechniqueName: t.Name,
 		TacticID:      t.Tactic,
 		StartTime:     start.Format(time.RFC3339),
+		Tier:          t.Tier,
 	}
 
 	userLabel := "current user"

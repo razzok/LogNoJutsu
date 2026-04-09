@@ -69,7 +69,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SAFE-01 | Phase 14 | Complete |
-| SAFE-02 | Phase 14 | Pending |
+| SAFE-02 | Phase 14 | In progress (14-01: Tier field added; 14-03: YAML annotation + classification doc) |
 | SAFE-03 | Phase 14 | Complete |
 | SCAN-01 | Phase 17 | Pending |
 | SCAN-02 | Phase 17 | Pending |

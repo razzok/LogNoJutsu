@@ -43,6 +43,7 @@ type Technique struct {
 	Tags              []string          `yaml:"tags"               json:"tags"`
 	InputArgs         map[string]string   `yaml:"input_args"         json:"input_args,omitempty"`
 	NistControls      []string            `yaml:"nist_controls"      json:"nist_controls,omitempty"`
+	Tier              int                 `yaml:"tier"               json:"tier"`
 	SIEMCoverage      map[string][]string `yaml:"siem_coverage,omitempty"  json:"siem_coverage,omitempty"`
 }
 
@@ -84,4 +85,5 @@ type ExecutionResult struct {
 	VerifiedEvents     []VerifiedEvent     `json:"verified_events,omitempty"`
 	VerifyTime         string              `json:"verify_time,omitempty"`
 	SIEMCoverage       map[string][]string `json:"siem_coverage,omitempty"`
+	Tier               int                 `json:"tier,omitempty"`
 }

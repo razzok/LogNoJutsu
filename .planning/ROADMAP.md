@@ -48,7 +48,7 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 
 ### v1.3 Realistic Attack Simulation
 
-- [ ] **Phase 14: Safety Audit** — All existing techniques audited, classified, and made safe before any upgrades
+- [ ] **Phase 14: Safety Audit** — All existing techniques audited, classified, and made safe before any upgrades (1/3 plans complete)
 - [ ] **Phase 15: Native Go Architecture** — Go executor and native Go libraries in place to support realistic technique execution
 - [ ] **Phase 16: Safety Infrastructure** — AMSI classification, elevation detection, and scan safeguards protect technique execution
 - [ ] **Phase 17: Network Discovery** — Real ARP/ICMP/TCP scanning of the local /24 subnet with user-facing safeguards
@@ -65,10 +65,10 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
   2. All 57 techniques carry a Tier 1/2/3 label visible in their YAML (or classification manifest), so a consultant can instantly know which fire realistic events
   3. Every technique that writes to disk, registry, or scheduled tasks has a cleanup command that runs even when the technique body fails or is interrupted
   4. The tier classification document exists and covers all 57 techniques with a rationale for each assignment
-**Plans**: 3 plans
+**Plans**: 3 plans (1 complete)
 Plans:
-- [ ] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
-- [x] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
+- [x] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds (completed 2026-04-09)
+- [x] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit (completed 2026-04-09)
 - [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
 
 ### Phase 15: Native Go Architecture
