@@ -91,8 +91,10 @@ type htmlData struct {
 	TacticStats    []tacticStat
 	Results        []playbooks.ExecutionResult
 	VerifPassed    int
-	VerifFailed    int
-	HasCrowdStrike bool
+	VerifFailed       int
+	VerifAMSIBlocked  int
+	VerifElevRequired int
+	HasCrowdStrike    bool
 	HasSentinel    bool
 	HasTier        bool
 }
@@ -146,11 +148,17 @@ func saveHTML(r Report, filename string) error {
 
 	verifPassed := 0
 	verifFailed := 0
+	verifAMSIBlocked := 0
+	verifElevRequired := 0
 	for _, res := range r.Results {
 		if res.VerificationStatus == playbooks.VerifPass {
 			verifPassed++
 		} else if res.VerificationStatus == playbooks.VerifFail {
 			verifFailed++
+		} else if res.VerificationStatus == playbooks.VerifAMSIBlocked {
+			verifAMSIBlocked++
+		} else if res.VerificationStatus == playbooks.VerifElevationRequired {
+			verifElevRequired++
 		}
 	}
 
@@ -188,9 +196,11 @@ func saveHTML(r Report, filename string) error {
 		WhatIf:         r.WhatIf,
 		TacticStats:    tactics,
 		Results:        r.Results,
-		VerifPassed:    verifPassed,
-		VerifFailed:    verifFailed,
-		HasCrowdStrike: hasCrowdStrike,
+		VerifPassed:      verifPassed,
+		VerifFailed:      verifFailed,
+		VerifAMSIBlocked: verifAMSIBlocked,
+		VerifElevRequired: verifElevRequired,
+		HasCrowdStrike:   hasCrowdStrike,
 		HasSentinel:    hasSentinel,
 		HasTier:        hasTier,
 	}
@@ -285,6 +295,8 @@ tr:hover td{background:#161b22}
 .verif-pass{color:#3fb950;font-weight:600}
 .verif-fail{color:#f85149;font-weight:600}
 .verif-skip{color:#8b949e}
+.verif-amsi{color:#d29922;font-weight:600}
+.verif-elev{color:#8b949e;font-weight:600}
 .verif-list{font-size:11px;margin-top:4px;padding-left:0;list-style:none}
 .verif-list li{margin:1px 0}
 .footer{text-align:center;color:#8b949e;font-size:12px;padding:24px;border-top:1px solid #30363d;margin-top:32px}
@@ -314,6 +326,10 @@ tr:hover td{background:#161b22}
     <div class="stat-box"><div class="val c-ok">{{.Succeeded}}</div><div class="lbl">Erfolgreich</div></div>
     <div class="stat-box"><div class="val c-fail">{{.Failed}}</div><div class="lbl">Fehlgeschlagen</div></div>
     <div class="stat-box"><div class="val c-pct">{{.SuccessRate}}%</div><div class="lbl">Erfolgsquote</div></div>
+    {{if gt .VerifPassed 0}}<div class="stat-box"><div class="val" style="color:#3fb950">{{.VerifPassed}}</div><div class="lbl">Verified Pass</div></div>{{end}}
+    {{if gt .VerifFailed 0}}<div class="stat-box"><div class="val" style="color:#f85149">{{.VerifFailed}}</div><div class="lbl">Verified Fail</div></div>{{end}}
+    {{if gt .VerifAMSIBlocked 0}}<div class="stat-box"><div class="val" style="color:#d29922">{{.VerifAMSIBlocked}}</div><div class="lbl">AMSI Blocked</div></div>{{end}}
+    {{if gt .VerifElevRequired 0}}<div class="stat-box"><div class="val" style="color:#8b949e">{{.VerifElevRequired}}</div><div class="lbl">Elevation Skipped</div></div>{{end}}
   </div>
 
   <h2>📊 MITRE ATT&amp;CK Taktiken</h2>
@@ -363,6 +379,10 @@ tr:hover td{background:#161b22}
           <span class="verif-fail">&#10007; Fail</span>
         {{else if eq (verifStr .VerificationStatus) "not_executed"}}
           <span class="verif-skip">&mdash; Nicht ausgeführt</span>
+        {{else if eq (verifStr .VerificationStatus) "amsi_blocked"}}
+          <span class="verif-amsi">&#9888; AMSI Blocked</span>
+        {{else if eq (verifStr .VerificationStatus) "elevation_required"}}
+          <span class="verif-elev">&#8593; Elevation Required</span>
         {{else}}
           <span class="verif-skip">&mdash;</span>
         {{end}}

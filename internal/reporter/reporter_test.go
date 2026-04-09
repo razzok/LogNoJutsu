@@ -255,6 +255,36 @@ func TestTacticColor(t *testing.T) {
 	}
 }
 
+// TestHTMLVerificationAMSIBlocked checks that amsi_blocked status renders with verif-amsi class and "AMSI Blocked" text.
+func TestHTMLVerificationAMSIBlocked(t *testing.T) {
+	results := []playbooks.ExecutionResult{
+		makeResult(playbooks.VerifAMSIBlocked, nil),
+	}
+	html := saveHTMLToDir(t, results)
+
+	if !strings.Contains(html, "verif-amsi") {
+		t.Error("expected HTML to contain 'verif-amsi'")
+	}
+	if !strings.Contains(html, "AMSI Blocked") {
+		t.Error("expected HTML to contain 'AMSI Blocked'")
+	}
+}
+
+// TestHTMLVerificationElevationRequired checks that elevation_required status renders with verif-elev class and "Elevation Required" text.
+func TestHTMLVerificationElevationRequired(t *testing.T) {
+	results := []playbooks.ExecutionResult{
+		makeResult(playbooks.VerifElevationRequired, nil),
+	}
+	html := saveHTMLToDir(t, results)
+
+	if !strings.Contains(html, "verif-elev") {
+		t.Error("expected HTML to contain 'verif-elev'")
+	}
+	if !strings.Contains(html, "Elevation Required") {
+		t.Error("expected HTML to contain 'Elevation Required'")
+	}
+}
+
 // TestHTMLVerificationEventList checks per-event checkmark/X rendering.
 func TestHTMLVerificationEventList(t *testing.T) {
 	results := []playbooks.ExecutionResult{
