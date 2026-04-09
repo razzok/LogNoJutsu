@@ -682,6 +682,24 @@
     </div>
   </div>
 
+  <!-- Scan Confirmation Modal -->
+  <div id="scanConfirmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+       background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+                padding:24px; max-width:480px; width:90%; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);">
+      <h2 style="font-size:15px; font-weight:600; margin:0 0 16px 0; color:var(--text);">Network Scan Confirmation</h2>
+      <p style="font-size:13px; color:var(--orange); margin:0 0 12px 0;">&#9888; This will perform active network reconnaissance on your local subnet.</p>
+      <div id="scanModalBody" style="font-size:13px; color:var(--text); display:flex; flex-direction:column; gap:8px;">
+        <!-- Populated by JS -->
+      </div>
+      <div id="scanModalError" style="display:none; font-size:13px; color:var(--red); margin-top:8px;"></div>
+      <div style="display:flex; gap:8px; margin-top:20px; justify-content:flex-end;">
+        <button class="btn" onclick="cancelScanConfirm()" style="background:var(--bg3); color:var(--text); border:1px solid var(--border); padding:8px 16px; border-radius:6px; cursor:pointer;">Cancel Scan</button>
+        <button class="btn" onclick="confirmScanAction()" style="background:var(--accent); color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Confirm Scan</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <script>
@@ -840,6 +858,8 @@ function updateDashboard(s) {
         ${succeeded}/${results.length} techniques succeeded
       </div>`;
     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    stopScanPoll();
+    hideScanModal();
     loadResults();
   }
 }
@@ -982,6 +1002,73 @@ function updateDayPanels(days) {
   }
 }
 
+// ── Scan confirmation modal ─────────────────────────────────────
+let scanPollInterval = null;
+
+function startScanPoll() {
+  if (scanPollInterval) return;
+  scanPollInterval = setInterval(pollScanPending, 1000);
+}
+
+function stopScanPoll() {
+  if (scanPollInterval) {
+    clearInterval(scanPollInterval);
+    scanPollInterval = null;
+  }
+}
+
+async function pollScanPending() {
+  try {
+    const res = await fetch(API + '/api/scan/pending');
+    if (res.status === 204) {
+      hideScanModal();
+      return;
+    }
+    if (res.ok) {
+      const info = await res.json();
+      showScanModal(info);
+    }
+  } catch (e) {
+    // silently ignore poll errors
+  }
+}
+
+function showScanModal(info) {
+  const body = document.getElementById('scanModalBody');
+  body.innerHTML = `
+    <div><strong>Target subnet:</strong> ${info.target_subnet}</div>
+    <div><strong>${info.rate_limit_note}</strong></div>
+    <div style="color:var(--orange);">${info.ids_warning}</div>
+    <div><strong>Scan techniques:</strong> ${info.techniques.join(', ')}</div>
+  `;
+  document.getElementById('scanModalError').style.display = 'none';
+  document.getElementById('scanConfirmModal').style.display = 'flex';
+}
+
+function hideScanModal() {
+  document.getElementById('scanConfirmModal').style.display = 'none';
+}
+
+async function confirmScanAction() {
+  const r = await api('/api/scan/confirm', 'POST');
+  if (r && r.error) {
+    const errEl = document.getElementById('scanModalError');
+    errEl.textContent = 'Scan confirmation failed: ' + r.error;
+    errEl.style.display = 'block';
+  } else {
+    hideScanModal();
+  }
+}
+
+async function cancelScanConfirm() {
+  try {
+    await api('/api/scan/cancel', 'POST');
+  } catch (e) {
+    // best-effort cancel
+  }
+  hideScanModal();
+}
+
 // ── Simulation controls ─────────────────────────────────────────
 async function quickStart() {
   const r = await api('/api/start', 'POST', {
@@ -990,6 +1077,7 @@ async function quickStart() {
   });
   if (r.error) { showInlineError('schedulerFeedback', 'Quick start failed: ' + r.error); return; }
   startPolling();
+  startScanPoll();
 }
 
 async function startSimulation() {
@@ -1037,6 +1125,7 @@ async function startSimulation() {
   const r = await api('/api/start', 'POST', cfg);
   if (r.error) { showInlineError('schedulerFeedback', 'Simulation start failed: ' + r.error); return; }
   startPolling();
+  startScanPoll();
 }
 
 async function stopSimulation() {
