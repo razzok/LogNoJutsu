@@ -48,7 +48,7 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 
 ### v1.3 Realistic Attack Simulation
 
-- [x] **Phase 14: Safety Audit** — All existing techniques audited, classified, and made safe before any upgrades (1/3 plans complete) (completed 2026-04-09)
+- [x] **Phase 14: Safety Audit** — All existing techniques audited, classified, and made safe before any upgrades (1/3 plans complete) (completed 2026-04-09)
 - [ ] **Phase 15: Native Go Architecture** — Go executor and native Go libraries in place to support realistic technique execution
 - [ ] **Phase 16: Safety Infrastructure** — AMSI classification, elevation detection, and scan safeguards protect technique execution
 - [ ] **Phase 17: Network Discovery** — Real ARP/ICMP/TCP scanning of the local /24 subnet with user-facing safeguards
@@ -65,7 +65,7 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
   2. All 57 techniques carry a Tier 1/2/3 label visible in their YAML (or classification manifest), so a consultant can instantly know which fire realistic events
   3. Every technique that writes to disk, registry, or scheduled tasks has a cleanup command that runs even when the technique body fails or is interrupted
   4. The tier classification document exists and covers all 57 techniques with a rationale for each assignment
-**Plans**: 3 plans (1 complete)
+**Plans**: 3 plans (3 complete)
 Plans:
 - [x] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds (completed 2026-04-09)
 - [x] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit (completed 2026-04-09)
@@ -80,11 +80,10 @@ Plans:
   2. The internal/native registry exists with at least one Go-implemented technique that compiles and runs in the test suite
   3. LDAP enumeration runs against a reachable DC and returns results; when no DC is reachable it logs a graceful fallback message instead of crashing
   4. WMI queries execute via pure Go (no CGO) and return process or system data that appears in the technique result log
-**Plans**: 3 plans
+**Plans**: 2 plans
 Plans:
-- [x] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
-- [x] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
-- [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
+- [ ] 15-01-PLAN.md — Native registry package and type:go executor dispatch
+- [ ] 15-02-PLAN.md — T1482 LDAP and T1057 WMI techniques with YAML updates
 
 ### Phase 16: Safety Infrastructure
 **Goal**: The engine detects AMSI blocks and missing elevation, and network scans require explicit user acknowledgment before running
@@ -150,8 +149,8 @@ Plans:
 | 11 | Daily Tracking Backend & Campaign Delay | v1.2 | 2/2 | Complete | 2026-04-09 |
 | 12 | Daily Digest & Timeline Calendar UI | v1.2 | 1/1 | Complete | 2026-04-09 |
 | 13 | PoC Scheduling Tests | v1.2 | 1/1 | Complete | 2026-04-09 |
-| 14 | Safety Audit | v1.3 | 0/3 | Planned | - |
-| 15 | Native Go Architecture | v1.3 | 0/? | Not started | - |
+| 14 | Safety Audit | v1.3 | 3/3 | Complete | 2026-04-09 |
+| 15 | Native Go Architecture | v1.3 | 0/2 | Planned | - |
 | 16 | Safety Infrastructure | v1.3 | 0/? | Not started | - |
 | 17 | Network Discovery | v1.3 | 0/? | Not started | - |
 | 18 | Technique Realism | v1.3 | 0/? | Not started | - |
