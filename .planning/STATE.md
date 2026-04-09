@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: PoC Mode Fix & Overhaul
-current_phase: 13
-current_plan: Not started
+milestone: v1.0
+milestone_name: milestone
+current_phase: Complete
+current_plan: N/A
 status: v1.2 milestone complete
-last_updated: "2026-04-09T10:43:08.429Z"
+last_updated: "2026-04-09T17:05:03.279Z"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 6
+  total_phases: 3
+  completed_phases: 2
+  total_plans: 5
   completed_plans: 6
 ---
 
@@ -93,6 +93,12 @@ Key decisions carried forward:
 - stopOnNthClock generalizes blockingClock with configurable block-at-N: fires immediately for calls < N, blocks on call >= N
 - No production code changes — all 6 tests verify existing runPoC() behavior via clock injection only
 
+## Decisions (Phase 16 Plan 01)
+
+- AMSI detection only fires for powershell/psh executor types; returns early before verifier to avoid misleading Fail status
+- checkIsElevated() split into engine_windows.go (real Windows token API) and engine_other.go (permissive stub) — platform build tags avoid cross-compilation issues
+- isAdmin set once at Start() not per-technique — admin status doesn't change mid-run; SetAdmin() test helper mirrors SetRunner() injection pattern
+
 ## Roadmap Evolution
 
 - Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
@@ -116,4 +122,4 @@ Key decisions carried forward:
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
-*Last session: 2026-04-09 — Milestone v1.2 archived*
+*Last session: 2026-04-09 — Completed 16-safety-infrastructure 16-01-PLAN.md*

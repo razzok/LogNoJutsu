@@ -62,3 +62,4 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 | 11 | Daily Tracking Backend & Campaign Delay | v1.2 | 2/2 | Complete | 2026-04-09 |
 | 12 | Daily Digest & Timeline Calendar UI | v1.2 | 1/1 | Complete | 2026-04-09 |
 | 13 | PoC Scheduling Tests | v1.2 | 1/1 | Complete | 2026-04-09 |
+| 16 | Safety Infrastructure | v1.3 | 1/3 | In Progress | — |
