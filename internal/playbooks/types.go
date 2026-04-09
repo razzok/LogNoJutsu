@@ -45,6 +45,7 @@ type Technique struct {
 	Tags              []string          `yaml:"tags"               json:"tags"`
 	InputArgs         map[string]string   `yaml:"input_args"         json:"input_args,omitempty"`
 	NistControls      []string            `yaml:"nist_controls"      json:"nist_controls,omitempty"`
+	Tier                 int                 `yaml:"tier"                     json:"tier,omitempty"`
 	SIEMCoverage         map[string][]string `yaml:"siem_coverage,omitempty"  json:"siem_coverage,omitempty"`
 	RequiresConfirmation bool                `yaml:"requires_confirmation"    json:"requires_confirmation,omitempty"`
 	Tier                 int                 `yaml:"tier"                     json:"tier,omitempty"`
