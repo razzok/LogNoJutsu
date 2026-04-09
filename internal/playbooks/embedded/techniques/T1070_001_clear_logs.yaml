@@ -1,56 +1,41 @@
 id: T1070.001
 name: Clear Windows Event Logs
-description: "Clears event logs using wevtutil, Clear-EventLog, and .NET EventLog.Clear() — all three methods generate EID 1102 (Security log cleared) or EID 104 (other logs cleared). EID 1102 is generated BEFORE the Security log is cleared, so it always survives. This is one of the highest-confidence attacker indicators."
+description: "Creates a custom LogNoJutsu-Test event log channel, writes a test entry, then clears it via wevtutil — generating authentic System EID 104 (event log cleared) without destroying real Security/Application/System logs. The custom channel approach is safe for client machines while producing the same SIEM detection signature."
 tactic: defense-evasion
 technique_id: T1070.001
 platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - event_id: 1102
-    channel: "Security"
-    description: "Audit log cleared — generated BEFORE clear, always survives"
   - event_id: 104
     channel: "System"
-    description: "Event log cleared — for non-Security logs"
+    description: "Event log cleared — fired when LogNoJutsu-Test channel is cleared via wevtutil"
   - event_id: 4688
     channel: "Security"
-    description: "wevtutil.exe with 'cl' subcommand"
+    description: "wevtutil.exe process creation with 'cl' subcommand"
+    contains: "wevtutil"
 tags:
   - defense-evasion
   - requires-elevation
 executor:
   type: powershell
   command: |-
-    Write-Host "[T1070.001] Clear Windows Event Logs — wevtutil + Clear-EventLog + .NET"
+    Write-Host "[T1070.001] Clear Windows Event Logs — safe custom channel approach"
 
-    # Method 1: wevtutil cl (canonical log clearing — EID 1102 for Security, EID 104 for others)
-    Write-Host "--- Method 1: wevtutil cl (EID 4688 for wevtutil.exe with 'cl' subcommand) ---"
-    wevtutil.exe cl Application 2>&1 | Write-Host
-    Write-Host "Application log cleared — System EID 104 fired"
-    wevtutil.exe cl "Windows PowerShell" 2>&1 | Write-Host
-    Write-Host "PowerShell log cleared — System EID 104 fired"
+    $logName = "LogNoJutsu-Test"
 
-    # Security log clear — generates EID 1102 (highest-value attacker indicator)
-    Write-Host "--- Clearing Security log (EID 1102 generated BEFORE clear — always survives) ---"
-    wevtutil.exe cl Security 2>&1 | Write-Host
-    Write-Host "Security log cleared — EID 1102 fired (note: EID 1102 written first, then log is cleared)"
+    # Step 1: Create custom event log channel
+    Write-Host "--- Step 1: Create custom event log '$logName' ---"
+    New-EventLog -LogName $logName -Source "LNJSource" -ErrorAction SilentlyContinue
+    Write-EventLog -LogName $logName -Source "LNJSource" -EventId 1000 -Message "LogNoJutsu T1070.001 test entry" -EntryType Information
+    Write-Host "Custom log created and test entry written"
 
-    # Method 2: PowerShell Clear-EventLog (same 1102/104 events, different EID 4688 parent)
-    Write-Host "--- Method 2: Clear-EventLog PowerShell cmdlet ---"
-    Clear-EventLog -LogName "System" -ErrorAction SilentlyContinue
-    Write-Host "System log cleared via PowerShell — EID 104 fired"
+    # Step 2: Clear via wevtutil (generates authentic System EID 104)
+    Write-Host "--- Step 2: wevtutil cl (EID 104 in System log — authentic SIEM trigger) ---"
+    wevtutil.exe cl $logName
+    Write-Host "EID 104 fired for '$logName' clear — authentic event, no real log destroyed"
 
-    # Method 3: .NET direct (bypasses Clear-EventLog cmdlet detection — tests event-log-only detection)
-    Write-Host "--- Method 3: .NET EventLog.Clear() (no PowerShell cmdlet — event-log-only detection test) ---"
-    try {
-        [System.Diagnostics.EventLog]::GetEventLogs() | ForEach-Object {
-            if ($_.Log -match "Application|Setup") {
-                $_.Clear()
-                Write-Host "Cleared via .NET: $($_.Log)"
-            }
-        }
-    } catch { Write-Host ".NET clear: $_" }
-
-    Write-Host "[T1070.001] Complete. EID 1102 (Security cleared) and EID 104 (others cleared) generated."
-cleanup: ""
+    Write-Host "[T1070.001] Complete. System EID 104 generated. No real logs were cleared."
+cleanup: |-
+  Remove-EventLog -LogName "LogNoJutsu-Test" -ErrorAction Ignore
+  Write-Host "Cleanup: Custom event log channel 'LogNoJutsu-Test' removed."

