@@ -175,6 +175,10 @@
     .digest-chevron.open { transform:rotate(90deg); }
     .digest-body { padding:12px 14px; background:var(--bg2); display:none; }
     .digest-body.open { display:block; }
+    .tier-badge{border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;display:inline-block}
+    .tier1{background:rgba(63,185,80,0.15);color:var(--green);border:1px solid var(--green)}
+    .tier2{background:rgba(210,153,34,0.15);color:var(--orange);border:1px solid var(--orange)}
+    .tier3{background:rgba(139,148,158,0.15);color:var(--muted);border:1px solid var(--muted)}
   </style>
 </head>
 <body>
@@ -370,8 +374,8 @@
     <div class="card">
       <h2>🔧 All Techniques</h2>
       <table>
-        <thead><tr><th>ID</th><th>Name</th><th>Tactic</th><th>Phase</th><th>Elevation</th><th>Tags</th><th>NIST</th></tr></thead>
-        <tbody id="techniqueTable"><tr><td colspan="7" class="empty-state">Loading...</td></tr></tbody>
+        <thead><tr><th>ID</th><th>Name</th><th>Tactic</th><th>Phase</th><th>Tier</th><th>Elevation</th><th>Tags</th><th>NIST</th></tr></thead>
+        <tbody id="techniqueTable"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -1073,6 +1077,7 @@ async function loadPlaybooks() {
       <td>${t.name}</td>
       <td style="color:var(--muted)">${t.tactic}</td>
       <td><span class="tag ${t.phase === 'discovery' ? 'tag-discovery' : t.phase === 'ueba-scenario' ? 'tag-ueba' : 'tag-attack'}">${t.phase}</span></td>
+      <td>${t.tier === 1 ? '<span class="tier-badge tier1">T1</span>' : t.tier === 2 ? '<span class="tier-badge tier2">T2</span>' : t.tier === 3 ? '<span class="tier-badge tier3">T3</span>' : '<span style="color:var(--muted)">\u2014</span>'}</td>
       <td>${t.elevation_required ? '<span class="tag tag-elevation">admin</span>' : '<span style="color:var(--muted)">—</span>'}</td>
       <td>${(t.tags||[]).filter(x=>!['no-prereqs','requires-elevation'].includes(x)).map(x=>`<span class="tag">${x}</span>`).join('')}</td>
       <td>${(t.nist_controls||[]).map(n=>`<span class="tag" style="color:var(--cyan);border-color:var(--cyan)">${n}</span>`).join('') || '<span style="color:var(--muted)">—</span>'}</td>

@@ -94,6 +94,7 @@ type htmlData struct {
 	VerifFailed    int
 	HasCrowdStrike bool
 	HasSentinel    bool
+	HasTier        bool
 }
 
 func fmtTime(s string) string {
@@ -169,6 +170,14 @@ func saveHTML(r Report, filename string) error {
 		}
 	}
 
+	hasTier := false
+	for _, res := range r.Results {
+		if res.Tier > 0 {
+			hasTier = true
+			break
+		}
+	}
+
 	data := htmlData{
 		GeneratedAt:    fmtTime(r.GeneratedAt),
 		LogFile:        r.LogFile,
@@ -183,6 +192,7 @@ func saveHTML(r Report, filename string) error {
 		VerifFailed:    verifFailed,
 		HasCrowdStrike: hasCrowdStrike,
 		HasSentinel:    hasSentinel,
+		HasTier:        hasTier,
 	}
 
 	funcMap := template.FuncMap{
@@ -286,6 +296,7 @@ tr:hover td{background:#161b22}
 .ms-na{color:#8b949e;font-size:11px}
 .ms-list{font-size:11px;margin-top:4px;padding-left:0;list-style:none}
 .ms-list li{margin:1px 0;color:#e6edf3}{{end}}
+{{if .HasTier}}.tier1-badge{background:rgba(63,185,80,0.15);color:#3fb950;border:1px solid #3fb950;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;display:inline-block}.tier2-badge{background:rgba(210,153,34,0.15);color:#d29922;border:1px solid #d29922;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;display:inline-block}.tier3-badge{background:rgba(139,148,158,0.15);color:#8b949e;border:1px solid #8b949e;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;display:inline-block}{{end}}
 @media print{.hdr{background:#fff;color:#000}.body{background:#fff}}
 </style>
 </head>
@@ -329,6 +340,7 @@ tr:hover td{background:#161b22}
         <th>Verifikation</th>
         {{if .HasCrowdStrike}}<th>CrowdStrike</th>{{end}}
         {{if .HasSentinel}}<th>Microsoft Sentinel</th>{{end}}
+        {{if .HasTier}}<th>Tier</th>{{end}}
         <th>Benutzer</th>
       </tr>
     </thead>
@@ -388,6 +400,7 @@ tr:hover td{background:#161b22}
         {{end}}
       </td>
       {{end}}
+      {{if $.HasTier}}<td>{{if eq .Tier 1}}<span class="tier1-badge">T1</span>{{else if eq .Tier 2}}<span class="tier2-badge">T2</span>{{else if eq .Tier 3}}<span class="tier3-badge">T3</span>{{else}}&mdash;{{end}}</td>{{end}}
       <td style="color:#bc8cff;font-size:12px;">{{.RunAsUser}}</td>
     </tr>
     {{end}}
