@@ -68,28 +68,28 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SAFE-01 | — | Pending |
-| SAFE-02 | — | Pending |
-| SAFE-03 | — | Pending |
-| SCAN-01 | — | Pending |
-| SCAN-02 | — | Pending |
-| SCAN-03 | — | Pending |
-| TECH-01 | — | Pending |
-| TECH-02 | — | Pending |
-| TECH-03 | — | Pending |
-| TECH-04 | — | Pending |
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
-| ARCH-01 | — | Pending |
-| ARCH-02 | — | Pending |
-| ARCH-03 | — | Pending |
+| SAFE-01 | Phase 14 | Pending |
+| SAFE-02 | Phase 14 | Pending |
+| SAFE-03 | Phase 14 | Pending |
+| SCAN-01 | Phase 17 | Pending |
+| SCAN-02 | Phase 17 | Pending |
+| SCAN-03 | Phase 17 | Pending |
+| TECH-01 | Phase 18 | Pending |
+| TECH-02 | Phase 18 | Pending |
+| TECH-03 | Phase 18 | Pending |
+| TECH-04 | Phase 18 | Pending |
+| INFRA-01 | Phase 16 | Pending |
+| INFRA-02 | Phase 16 | Pending |
+| INFRA-03 | Phase 16 | Pending |
+| ARCH-01 | Phase 15 | Pending |
+| ARCH-02 | Phase 15 | Pending |
+| ARCH-03 | Phase 15 | Pending |
 
 **Coverage:**
 - v1.3 requirements: 16 total
-- Mapped to phases: 0
-- Unmapped: 16
+- Mapped to phases: 16
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-09 after initial definition*
+*Last updated: 2026-04-09 — traceability complete (Phases 14-18)*

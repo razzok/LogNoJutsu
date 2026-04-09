@@ -4,10 +4,10 @@ milestone: v1.3
 milestone_name: Realistic Attack Simulation
 current_phase: 14
 current_plan: Not started
-status: Defining requirements
+status: Roadmap defined
 last_updated: "2026-04-09"
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,32 +21,43 @@ See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** v1.3 Realistic Attack Simulation — defining requirements
+**Current focus:** v1.3 Realistic Attack Simulation — Phase 14: Safety Audit
 
 ## Current Status
 
 **Milestone:** v1.3 — Realistic Attack Simulation
-**Current phase:** Not started (defining requirements)
-**Current plan:** —
-**Last activity:** 2026-04-09 — Milestone v1.3 started
+**Current phase:** 14 — Safety Audit
+**Current plan:** Not started
+**Last activity:** 2026-04-09 — Roadmap defined (5 phases, 16 requirements mapped)
+
+## Milestone Progress
+
+```
+v1.3 [                    ] 0% — 0/5 phases complete
+```
 
 ## Phase Progress
 
-| Phase | Title | Status | Completed |
-|-------|-------|--------|-----------|
-| 1 | Events Manifest & Verification Engine | Complete | 2026-03-24 |
-| 2 | Code Structure & Test Coverage | Complete | 2026-03-25 |
-| 3 | Additional Techniques | Complete | 2026-03-25 |
-| 4 | CrowdStrike SIEM Coverage | Complete | 2026-03-25 |
-| 5 | Microsoft Sentinel Coverage | Complete | 2026-03-25 |
-| 6 | Documentation Consistency | Complete | 2026-03-26 |
-| 7 | Nyquist Validation | Complete | 2026-03-26 |
-| 8 | Backend Correctness | Complete | 2026-03-26 |
-| 9 | UI Polish | Complete | 2026-03-26 |
-| 10 | PoC Engine Fixes & Clock Injection | Complete | 2026-04-08 |
-| 11 | Daily Tracking Backend & Campaign Delay | Complete | 2026-04-09 |
-| 12 | Daily Digest & Timeline Calendar UI | Complete | 2026-04-09 |
-| 13 | PoC Scheduling Tests | Complete | 2026-04-09 |
+| Phase | Title | Milestone | Status | Completed |
+|-------|-------|-----------|--------|-----------|
+| 1 | Events Manifest & Verification Engine | v1.0 | Complete | 2026-03-24 |
+| 2 | Code Structure & Test Coverage | v1.0 | Complete | 2026-03-25 |
+| 3 | Additional Techniques | v1.0 | Complete | 2026-03-25 |
+| 4 | CrowdStrike SIEM Coverage | v1.0 | Complete | 2026-03-25 |
+| 5 | Microsoft Sentinel Coverage | v1.0 | Complete | 2026-03-25 |
+| 6 | Documentation Consistency | v1.0 | Complete | 2026-03-26 |
+| 7 | Nyquist Validation | v1.0 | Complete | 2026-03-26 |
+| 8 | Backend Correctness | v1.1 | Complete | 2026-03-26 |
+| 9 | UI Polish | v1.1 | Complete | 2026-03-26 |
+| 10 | PoC Engine Fixes & Clock Injection | v1.2 | Complete | 2026-04-08 |
+| 11 | Daily Tracking Backend & Campaign Delay | v1.2 | Complete | 2026-04-09 |
+| 12 | Daily Digest & Timeline Calendar UI | v1.2 | Complete | 2026-04-09 |
+| 13 | PoC Scheduling Tests | v1.2 | Complete | 2026-04-09 |
+| 14 | Safety Audit | v1.3 | Not started | - |
+| 15 | Native Go Architecture | v1.3 | Not started | - |
+| 16 | Safety Infrastructure | v1.3 | Not started | - |
+| 17 | Network Discovery | v1.3 | Not started | - |
+| 18 | Technique Realism | v1.3 | Not started | - |
 
 ## Decisions (v1.0)
 
@@ -100,11 +111,17 @@ Key decisions carried forward:
 - Phase 11 added: Daily Tracking Backend & Campaign Delay (TRACK-01..04, CAMP-01)
 - Phase 12 added: Daily Digest & Timeline Calendar UI (DIGEST-01..03, CAL-01..04)
 - Phase 13 added: PoC Scheduling Tests (TEST-02..04)
+- v1.3 roadmap defined (2026-04-09): Phases 14-18, 16 requirements
 
 ## Known Technical Debt
 
 - Windows Defender quarantine of playbooks.test.exe — add `%LOCALAPPDATA%\Temp\go-build*` exclusion before running playbooks tests
 - HTML report tactic colors (UI-04): funcMap fix shipped (09-01), but could not be visually verified during UAT — no report was available at verification time
+- `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
+- German strings remain in `reporter.go` htmlTemplate (HTML reports)
+- Two audit GUIDs need on-machine validation on non-English Windows
+- engine.go:165 — `time.Now()` in Start() status init not clock-injected (cosmetic, doesn't affect scheduling)
+- engine.go:634 — Pre-existing German WhatIf string (consider full English localization in future milestone)
 
 ## Quick Tasks Completed
 
@@ -117,4 +134,5 @@ Key decisions carried forward:
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
-*Last session: 2026-04-09 — Milestone v1.2 archived*
+*v1.3 roadmap defined: 2026-04-09*
+*Last session: 2026-04-09 — v1.3 roadmap created (Phases 14-18)*
