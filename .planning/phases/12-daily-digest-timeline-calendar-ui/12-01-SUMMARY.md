@@ -3,49 +3,70 @@ phase: 12-daily-digest-timeline-calendar-ui
 plan: "01"
 subsystem: frontend/dashboard
 tags: [ui, dashboard, calendar, digest, polling, poc]
-dependency_graph:
-  requires: [Phase 11 /api/poc/days endpoint]
-  provides: [dayCalendarPanel, dayDigestPanel, updateDayPanels, pollStatus day integration]
-  affects: [internal/server/static/index.html]
-tech_stack:
+
+requires:
+  - phase: 11-daily-tracking-backend-campaign-delay
+    provides: "GET /api/poc/days API returning DayDigest JSON array"
+provides:
+  - "Timeline calendar panel with phase-grouped, color-coded day cells"
+  - "Daily digest accordion panel with per-day execution summaries"
+  - "Polling integration fetching /api/poc/days inside pollStatus()"
+  - "Calendar-to-digest click linking via focusDayInDigest()"
+affects: [ui-polish, poc-testing]
+
+tech-stack:
   added: []
   patterns: [innerHTML render pattern (existing), custom JS accordion (.open class toggle), pollStatus piggyback fetch]
-key_files:
+
+key-files:
   created: []
   modified:
     - internal/server/static/index.html
-decisions:
-  - Custom JS accordion (classList.toggle open) over details/summary — required for programmatic auto-expand (D-04) and calendar-to-digest link (D-11)
-  - Panels inserted as .card siblings inside Simulation Status card, below pocInfoPanel — per plan spec D-01
-  - hasDayData flag tracks whether days were previously received so panels persist after PoC ends
-  - pollStatus() redeclares pocPhases locally — simpler than module-level extraction, matches existing function-local patterns
-metrics:
-  duration: "~15 minutes"
-  completed: "2026-04-09"
-  tasks_completed: 1
-  tasks_total: 2
-  files_modified: 1
+
+key-decisions:
+  - "Custom JS accordion (classList.toggle open) over details/summary — required for programmatic auto-expand (D-04) and calendar-to-digest link (D-11)"
+  - "Panels placed as independent top-level cards in page-dashboard — not nested inside simulation status card"
+  - "hasDayData flag persists panel visibility after PoC completion — not gated on isPocRunning"
+  - "pollStatus() redeclares pocPhases locally — matches self-contained function pattern"
+
+patterns-established:
+  - "day-strip flex layout with day-group phase grouping"
+  - "digest accordion with wasOpen Set for expanded state preservation"
+
+requirements-completed: [DIGEST-01, DIGEST-02, DIGEST-03, CAL-01, CAL-02, CAL-03, CAL-04]
+
+duration: 45min
+completed: 2026-04-09
 ---
 
 # Phase 12 Plan 01: Timeline Calendar and Daily Digest Panels Summary
 
-**One-liner:** Horizontal phase-grouped day strip calendar and collapsible daily digest accordion wired to `/api/poc/days` polling inside `pollStatus()`.
+**Horizontal phase-grouped day strip calendar and collapsible daily digest accordion wired to `/api/poc/days` polling inside `pollStatus()`.**
 
-## What Was Built
+## Performance
 
-Task 1 added two new panels to the Dashboard tab in `internal/server/static/index.html`:
+- **Duration:** ~45 min
+- **Started:** 2026-04-09T10:50:00Z
+- **Completed:** 2026-04-09T11:35:00Z
+- **Tasks:** 2
+- **Files modified:** 1
 
-**Timeline Calendar Panel (`#dayCalendarPanel`):** A horizontal day strip grouped by PoC phase (Phase 1 / Gap / Phase 2). Each day cell is color-coded by status — accent blue for active, green for complete, muted gray for pending, translucent gray for gap days. Cells carry `title` tooltips with technique count and pass/fail. Active and complete cells are clickable and call `focusDayInDigest(dayNum)` to scroll and expand the corresponding digest row.
+## Accomplishments
+- Timeline calendar panel renders horizontal day strip grouped by phase (Phase 1 / Gap / Phase 2) with color-coded cells, tooltips, and click-to-digest linking
+- Daily digest accordion shows active/complete days newest-first with auto-expand for active day and expanded state preservation across polling re-renders
+- Polling integration in pollStatus() fetches /api/poc/days when PoC active or hasDayData is true; panels persist after PoC completion
 
-**Daily Digest Panel (`#dayDigestPanel`):** A collapsible accordion listing active and complete days in newest-first order. Each row shows a phase badge, status label, pass/fail counts, and time window when collapsed. Expanded rows show technique count, start time, and last heartbeat. The active day auto-expands on each render cycle. Expanded state is preserved across polling re-renders via a `wasOpen` Set collected before innerHTML rebuild.
+## Task Commits
 
-**Polling integration:** `pollStatus()` fetches `/api/poc/days` when `isPocActive || hasDayData`. The `hasDayData` flag persists after PoC completion so panels remain visible.
+Each task was committed atomically:
 
-## Commits
+1. **Task 1: Add CSS, HTML markup, and JS rendering functions** - `c0ec5ba` (feat)
+2. **Task 2: Visual verification + DOM placement fix** - `3d66d2d` (fix — moved panels to correct DOM position)
 
-| Task | Commit | Description |
-|------|--------|-------------|
-| 1 | c0ec5ba | feat(12-01): add timeline calendar and daily digest panels to dashboard |
+**Plan metadata:** `058e2be` (docs: complete plan)
+
+## Files Created/Modified
+- `internal/server/static/index.html` - CSS classes for day-strip/day-cell/digest-row, HTML panels, JS rendering functions, polling integration
 
 ## Acceptance Criteria Verification
 
@@ -70,22 +91,47 @@ All acceptance criteria from Task 1 met:
 - `scrollIntoView` — present
 - `go test ./internal/server/... -v -run TestHandlePoCDays` — PASS
 - `go test ./...` — PASS (all packages)
+- Human visual verification — APPROVED
 
-## Task 2: Pending Human Verification
-
-Task 2 is a `checkpoint:human-verify` requiring visual inspection of both panels in a live WhatIf PoC run. Binary has been built (`lognojutsu.exe` in repo root). Awaiting user approval.
+## Decisions Made
+- Panels placed as independent cards at page-dashboard level (not nested inside simulation status card) to ensure proper rendering and visibility
+- Custom accordion with classList.toggle('open') for programmatic control
+- hasDayData module-level flag for post-PoC panel persistence
 
 ## Deviations from Plan
 
-None — plan executed exactly as written.
+### Auto-fixed Issues
 
-## Known Stubs
+**1. [Rule 3 - Blocking] Panels nested inside wrong parent element**
+- **Found during:** Task 2 (Visual verification)
+- **Issue:** HTML panels were inserted inside the first .card (Simulation Status), causing zero height and invisibility
+- **Fix:** Moved panels to top-level within page-dashboard, between simulation status and execution timeline cards
+- **Files modified:** internal/server/static/index.html
+- **Verification:** User confirmed panels visible after rebuild
+- **Committed in:** 3d66d2d
 
-None — all data is fetched from the live `/api/poc/days` API. No hardcoded placeholder values flow to rendering.
+---
+
+**Total deviations:** 1 auto-fixed (1 blocking)
+**Impact on plan:** DOM placement fix essential for visibility. No scope creep.
+
+## Issues Encountered
+- Windows exe locking: binary could not be overwritten while running, required full stop before rebuild
+
+## User Setup Required
+None - no external service configuration required.
+
+## Next Phase Readiness
+- Calendar and digest panels complete, ready for PoC scheduling tests (Phase 13)
+- All 7 requirements (DIGEST-01..03, CAL-01..04) verified via human visual inspection
 
 ## Self-Check: PASSED
 
-- `internal/server/static/index.html` — modified and staged (commit c0ec5ba)
-- Commit c0ec5ba — confirmed present in git log
-- All 17 acceptance criteria — verified via grep
+- `internal/server/static/index.html` — modified (commits c0ec5ba, 3d66d2d)
+- All 19 acceptance criteria — verified
 - All Go tests — PASS
+- Human visual verification — APPROVED
+
+---
+*Phase: 12-daily-digest-timeline-calendar-ui*
+*Completed: 2026-04-09*
