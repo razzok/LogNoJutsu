@@ -34,7 +34,7 @@ Requirements for milestone v1.3: Realistic Attack Simulation.
 
 ### Architecture
 
-- [ ] **ARCH-01**: Native Go executor (type: go) added to executor with internal/native/ registry for Go-implemented techniques
+- [x] **ARCH-01**: Native Go executor (type: go) added to executor with internal/native/ registry for Go-implemented techniques
 - [ ] **ARCH-02**: LDAP enumeration implemented via go-ldap/v3 with graceful fallback when no DC is reachable
 - [ ] **ARCH-03**: WMI queries implemented via go-ole/wmi (pure Go, no CGO) for native technique execution
 
@@ -81,7 +81,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-01 | Phase 16 | Pending |
 | INFRA-02 | Phase 16 | Pending |
 | INFRA-03 | Phase 16 | Pending |
-| ARCH-01 | Phase 15 | Pending |
+| ARCH-01 | Phase 15 | Complete |
 | ARCH-02 | Phase 15 | Pending |
 | ARCH-03 | Phase 15 | Pending |
 

@@ -82,7 +82,7 @@ Plans:
   4. WMI queries execute via pure Go (no CGO) and return process or system data that appears in the technique result log
 **Plans**: 2 plans
 Plans:
-- [ ] 15-01-PLAN.md — Native registry package and type:go executor dispatch
+- [x] 15-01-PLAN.md — Native registry package and type:go executor dispatch
 - [ ] 15-02-PLAN.md — T1482 LDAP and T1057 WMI techniques with YAML updates
 
 ### Phase 16: Safety Infrastructure

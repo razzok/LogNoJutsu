@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Realistic Attack Simulation
 current_phase: 15
-current_plan: Not started
-status: Ready to plan
-last_updated: "2026-04-09T13:42:32.668Z"
+current_plan: 2
+status: Executing Phase 15
+last_updated: "2026-04-09T14:21:29.432Z"
 last_activity: 2026-04-09
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # Project State
@@ -22,13 +22,13 @@ See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 14 — safety-audit
+**Current focus:** Phase 15 — native-go-architecture
 
 ## Current Status
 
 **Milestone:** v1.3 — Realistic Attack Simulation
 **Current phase:** 15
-**Current plan:** Not started
+**Current plan:** 2
 **Last activity:** 2026-04-09
 
 ## Milestone Progress
@@ -122,6 +122,12 @@ Key decisions carried forward:
 - T1550.002 already self-cleans IPC$ and cmdkey inline in command block — empty cleanup field is correct by design
 - T1558.003 and all 5 UEBA chain techniques are read-only/query-only — empty cleanup fields are correct
 
+## Decisions (Phase 15, Plan 01)
+
+- NativeFunc signature is func() (NativeResult, error) — Go techniques close over their own state; no technique argument needed
+- type:go RunAs emits log note and proceeds as current user — Go functions cannot change user context
+- RunCleanupOnly handles Go techniques with early return to keep shell cleanup path clean
+
 ## Decisions (Phase 14, Plan 03)
 
 - Tier 1/2/3 classification applied to all 58 techniques: T1=real attacker tools/APIs, T2=simulation shortcuts, T3=enumeration stubs; distribution: 30/15/13
@@ -159,4 +165,4 @@ Key decisions carried forward:
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
 *v1.3 roadmap defined: 2026-04-09*
-*Last session: 2026-04-09 — 14-03 complete: tier annotations on all 58 YAMLs, classification doc, tier badges in HTML report + web UI*
+*Last session: 2026-04-09 — 15-01 complete: native Go registry package + type:go dispatch in executor*
