@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: PoC Mode Fix & Overhaul
-current_phase: 13
+milestone: v1.3
+milestone_name: Realistic Attack Simulation
+current_phase: 14
 current_plan: Not started
-status: v1.2 milestone complete
-last_updated: "2026-04-09T10:43:08.429Z"
+status: Defining requirements
+last_updated: "2026-04-09"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 6
-  completed_plans: 6
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -21,13 +21,14 @@ See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** v1.2 shipped — planning next milestone
+**Current focus:** v1.3 Realistic Attack Simulation — defining requirements
 
 ## Current Status
 
-**Milestone:** v1.2 — PoC Mode Fix & Overhaul — Shipped (2026-04-09)
-**Current phase:** Complete
-**Current plan:** N/A
+**Milestone:** v1.3 — Realistic Attack Simulation
+**Current phase:** Not started (defining requirements)
+**Current plan:** —
+**Last activity:** 2026-04-09 — Milestone v1.3 started
 
 ## Phase Progress
 

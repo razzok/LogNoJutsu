@@ -46,13 +46,16 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 
 <!-- Current scope for next milestone. -->
 
-(None yet — define with `/gsd:new-milestone`)
+- [ ] Real network discovery (ARP/ICMP + TCP port scan on local /24 subnet)
+- [ ] Realistic technique execution (real LDAP queries, authentic tool usage instead of PowerShell echo stubs)
+- [ ] Expanded technique repertoire with diverse attack patterns
+- [ ] Research-driven implementation based on open-source BAS platforms (Atomic Red Team, Caldera, MITRE tooling)
 
 ### Out of Scope
 
 - SIEM API queries at runtime — adds external dependency, breaks standalone deployment model
 - Non-Windows platforms — techniques are fundamentally Windows Event Log / Sysmon based
-- Real credential extraction or actual exploitation — tool simulates artifacts only, never real attacks
+- Destructive attacks or exploitation causing actual damage — techniques must generate real artifacts without causing harm or disruption
 
 ## Context
 
@@ -93,6 +96,16 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | captureClock pattern | Synchronous state capture on each After() call prevents race conditions in fast fake-clock tests | ✓ Good — reused across Phase 10 and 13 tests |
 | Custom JS accordion over details/summary | Programmatic open/close needed for auto-expand and calendar-to-digest linking | ✓ Good — D-04 and D-11 features work cleanly |
 
+## Current Milestone: v1.3 Realistic Attack Simulation
+
+**Goal:** Upgrade techniques from obvious test scenarios to realistic attack simulations that generate authentic SIEM artifacts — without causing damage or disruption.
+
+**Target features:**
+- Real network discovery (ARP/ICMP + TCP port scan on local /24 subnet)
+- Realistic technique execution (real LDAP queries, authentic tool usage instead of PowerShell echo stubs)
+- Expanded technique repertoire with diverse attack patterns
+- Research-driven implementation based on open-source BAS platforms (Atomic Red Team, Caldera, MITRE tooling)
+
 ## Current State
 
 **Latest shipped:** v1.2 PoC Mode Fix & Overhaul (2026-04-09)
@@ -124,4 +137,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after v1.2 milestone*
+*Last updated: 2026-04-09 after v1.3 milestone started*
