@@ -67,6 +67,7 @@ Exceptions:
 - Modal overlay uses `position: fixed; inset: 0` — no spacing token applies to overlay itself
 - Modal content box: `padding: 24px` (2xl), `max-width: 480px`, centered via flex
 - Touch targets: not applicable (desktop-only tool used by security consultants)
+- Badge inline padding: `1px 7px` — inherited from existing `.tier-badge` production CSS; not modified in this phase
 
 ---
 
@@ -77,13 +78,13 @@ Source: existing index.html CSS. All font sizes already in production — do not
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 (regular) | 1.5 |
-| Label / muted | 12px | 400 (regular) | 1.4 |
 | UI / table text | 13px | 400 (regular) | 1.5 |
+| Label / muted / badge | 12px | 400 (regular) / 600 (semibold) | 1.4 |
 | Heading (card h2, modal title) | 15px | 600 (semibold) | 1.2 |
 
 Weights used: 400 (regular) and 600 (semibold) only. No other weights.
 
-Badge text (`.tier-badge`, new status badges): 11px, weight 600 — matches existing tier badge pattern.
+Badge text (`.tier-badge`, new status badges): 12px, weight 600 — collapsed from the former 11px badge-only size into the existing 12px label/muted tier. The `.status-badge` CSS rule uses `font-size: 12px`.
 
 ---
 
@@ -114,7 +115,7 @@ These two new badge classes follow the exact shape of `.tier-badge` / `.tier1` /
 .status-amsi    { background: rgba(210,153,34,0.15); color: var(--orange); border: 1px solid var(--orange); }
 .status-elev    { background: rgba(88,166,255,0.08); color: var(--muted);  border: 1px solid var(--muted);  }
 /* Shared badge shape (already exists as .tier-badge) */
-.status-badge   { border-radius: 4px; padding: 1px 7px; font-size: 11px; font-weight: 600; display: inline-block; }
+.status-badge   { border-radius: 4px; padding: 1px 7px; font-size: 12px; font-weight: 600; display: inline-block; }
 ```
 
 ---
@@ -141,7 +142,7 @@ Triggered: when a campaign contains at least one technique with `requires_confir
       3. IDS/IPS notice: "Active scanning may trigger IDS/IPS alerts on monitored networks."
       4. Techniques: comma-separated list of technique IDs with requires_confirmation flag
     [button row: gap 8px, justify-content:flex-end, margin-top:20px]
-      [Cancel — .btn .btn-secondary]
+      [Cancel Scan — .btn .btn-secondary]
       [Confirm Scan — .btn .btn-primary]
 ```
 
@@ -156,7 +157,7 @@ Triggered: when a campaign contains at least one technique with `requires_confir
 Location: Techniques table in web UI (source: D-12), technique result rows.
 Text: "AMSI Blocked"
 Color: `--orange` (#d29922) on `rgba(210,153,34,0.15)` background
-Shape: matches `.tier-badge` — `border-radius:4px; padding:1px 7px; font-size:11px; font-weight:600`
+Shape: matches `.tier-badge` — `border-radius:4px; padding:1px 7px; font-size:12px; font-weight:600`
 
 ### 3. Elevation Required Status Badge (`.status-badge .status-elev`)
 
@@ -193,7 +194,7 @@ New CSS classes in htmlTemplate:
 | IDS warning line | "Active scanning may trigger IDS/IPS alerts on monitored networks." |
 | Techniques label | "Scan techniques:" |
 | Confirm CTA | "Confirm Scan" |
-| Cancel action | "Cancel" |
+| Cancel action | "Cancel Scan" |
 | AMSI badge text | "AMSI Blocked" |
 | Elevation badge text | "Elev. Required" |
 | Empty state (no scan techniques in campaign) | Modal does not appear — no empty state needed |
@@ -201,7 +202,7 @@ New CSS classes in htmlTemplate:
 | Elevation-skipped technique row tooltip (optional) | "This technique requires administrator privileges. Run LogNoJutsu as admin to execute it." |
 
 **Copywriting notes:**
-- "Confirm Scan" not "OK" or "Proceed" — specificity reduces accidental confirmation
+- "Confirm Scan" / "Cancel Scan" are a symmetric verb+noun pair — specificity reduces accidental confirmation and the pair reads as a deliberate choice between two named actions
 - "Elev. Required" abbreviated to fit badge width; full phrase "Elevation Required" used in HTML report
 - No destructive actions in this phase — no destructive confirmation copy needed
 - Report summary line follows D-06 pattern: "45/58 passed, 8 skipped (elevation required), 5 failed" — phrasing set by backend, not UI
@@ -213,7 +214,7 @@ New CSS classes in htmlTemplate:
 | Component | States | Visual Treatment |
 |-----------|--------|-----------------|
 | Confirm Scan button | default, hover (opacity 0.85), disabled (opacity 0.4) | Follows existing `.btn .btn-primary` rules |
-| Cancel button | default, hover (opacity 0.85) | Follows existing `.btn .btn-secondary` rules |
+| Cancel Scan button | default, hover (opacity 0.85) | Follows existing `.btn .btn-secondary` rules |
 | Modal overlay | visible / hidden | `display: flex` / `display: none` toggled by JS |
 | AMSI badge | static display only | No hover state needed — informational |
 | Elevation badge | static display only | No hover state needed — informational |
