@@ -41,6 +41,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - ✓ DayDigest per-day execution tracking with heartbeat and campaign delay — v1.2
 - ✓ Daily digest panel and timeline calendar in web UI — v1.2
 - ✓ 6 deterministic PoC scheduling tests (day counter, stop-signal, DayDigest lifecycle) — v1.2
+- ✓ Safety audit: destructive techniques rewritten, all 58 techniques classified Tier 1/2/3, defer-style cleanup — v1.3
 
 ### Active
 
@@ -95,6 +96,9 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | DayDigest as separate Engine field | Keep /api/status JSON surface clean; dedicated /api/poc/days endpoint | ✓ Good — clean separation of concerns |
 | captureClock pattern | Synchronous state capture on each After() call prevents race conditions in fast fake-clock tests | ✓ Good — reused across Phase 10 and 13 tests |
 | Custom JS accordion over details/summary | Programmatic open/close needed for auto-expand and calendar-to-digest linking | ✓ Good — D-04 and D-11 features work cleanly |
+| Tier classification (1/2/3) | Consultants need instant visibility into which techniques fire realistic vs stub events | ✓ Good — badges in HTML report + web UI, classification doc for reference |
+| Defer-style RunWithCleanup | Named return + defer ensures cleanup fires even on panic | ✓ Good — prevents orphaned artifacts on client machines |
+| Custom LogNoJutsu-Test channel for T1070.001 | Generates authentic EID 104 without clearing real Security/Application/System logs | ✓ Good — safe for client machines |
 
 ## Current Milestone: v1.3 Realistic Attack Simulation
 
@@ -111,6 +115,8 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 **Latest shipped:** v1.2 PoC Mode Fix & Overhaul (2026-04-09)
 
 v1.2 delivered reliable PoC/Multiday mode with per-day execution tracking, timeline calendar UI, and deterministic scheduling tests. Consultants can now trust the multi-week engagement tool with clear daily feedback.
+
+**Phase 14 complete:** Safety Audit (2026-04-09) — All 58 techniques classified Tier 1/2/3, destructive techniques (T1070.001, T1490) rewritten for safety, defer-style cleanup guarantees, tier badges in HTML report + web UI.
 
 **Known tech debt (carried forward):**
 - `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
