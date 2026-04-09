@@ -205,6 +205,46 @@ func TestRegisterRoutes_infoNoAuth(t *testing.T) {
 	}
 }
 
+// TestHandlePoCDays_idle verifies GET /api/poc/days returns 200 with empty JSON array when engine is idle.
+func TestHandlePoCDays_idle(t *testing.T) {
+	s := testServer(t, "")
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/poc/days", nil)
+	s.handlePoCDays(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	body := strings.TrimSpace(rec.Body.String())
+	if body != "[]" {
+		t.Errorf("expected empty JSON array [], got: %s", body)
+	}
+}
+
+// TestHandlePoCDays_auth verifies /api/poc/days requires authentication when password is set.
+func TestHandlePoCDays_auth(t *testing.T) {
+	s := testServer(t, "secret123")
+	mux := http.NewServeMux()
+	s.registerRoutes(mux)
+
+	// Without auth — should get 401
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/poc/days", nil)
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 without auth, got %d", rec.Code)
+	}
+
+	// With auth — should get 200
+	rec2 := httptest.NewRecorder()
+	req2 := httptest.NewRequest(http.MethodGet, "/api/poc/days", nil)
+	req2.SetBasicAuth("", "secret123")
+	mux.ServeHTTP(rec2, req2)
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("expected 200 with auth, got %d", rec2.Code)
+	}
+}
+
 // TestAuthMiddleware_rejectsWrongPassword verifies auth middleware returns 401 for wrong password
 // and 200 for correct password.
 func TestAuthMiddleware_rejectsWrongPassword(t *testing.T) {
