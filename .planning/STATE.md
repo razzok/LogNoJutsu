@@ -4,8 +4,8 @@ milestone: v1.2
 milestone_name: PoC Mode Fix & Overhaul
 current_phase: 13
 current_plan: Not started
-status: Milestone complete
-last_updated: "2026-04-09T10:29:06.675Z"
+status: v1.2 milestone complete
+last_updated: "2026-04-09T10:43:08.429Z"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -17,17 +17,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-26)
+See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 13 complete — v1.2 all phases done
+**Current focus:** v1.2 shipped — planning next milestone
 
 ## Current Status
 
-**Milestone:** v1.2 — PoC Mode Fix & Overhaul — In Progress (2026-04-08)
-**Current phase:** 13
-**Current plan:** Not started
+**Milestone:** v1.2 — PoC Mode Fix & Overhaul — Shipped (2026-04-09)
+**Current phase:** Complete
+**Current plan:** N/A
 
 ## Phase Progress
 
@@ -115,4 +115,5 @@ Key decisions carried forward:
 *Initialized: 2026-03-24*
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
-*Last session: 2026-04-09 — Stopped at: Completed 13-poc-scheduling-tests/13-01-PLAN.md*
+*v1.2 complete: 2026-04-09*
+*Last session: 2026-04-09 — Milestone v1.2 archived*

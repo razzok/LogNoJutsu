@@ -46,6 +46,47 @@
 
 ---
 
+## Milestone: v1.2 — PoC Mode Fix & Overhaul
+
+**Shipped:** 2026-04-09
+**Phases:** 4 | **Plans:** 6 | **Commits:** 37
+
+### What Was Built
+- Clock interface injected into Engine for deterministic testing — fakeClock eliminates real sleeps in all PoC tests
+- DayDigest per-day execution tracking with pending pre-population, lifecycle mutations (pending→active→complete), heartbeat timestamps, and campaign DelayAfter support
+- GET /api/poc/days endpoint behind authMiddleware for daily digest data consumption
+- Timeline calendar strip (horizontal phase-grouped day grid with color-coded status) and daily digest accordion (auto-expand current day, collapsed completed days)
+- 6 deterministic PoC scheduling tests: day counter monotonicity, 4 stop-signal scenarios, DayDigest lifecycle transitions
+
+### What Worked
+- **Clock injection pattern:** Enabled 10+ fake-clock tests across two phases (10 and 13) with zero flakiness — the captureClock wrapper solved race conditions between fast fake timers and polling goroutines
+- **Phase dependency chain:** P10→P11→P12 built cleanly on each other — Clock interface enabled DayDigest testing, DayDigest enabled API endpoint, API endpoint enabled UI polling
+- **UI-SPEC design contract:** Phase 12 UI-SPEC caught typography and spacing issues before implementation, preventing rework
+- **Milestone audit:** Caught all tech debt items (4 minor) and confirmed 19/19 requirements satisfied before closing — no surprises
+
+### What Was Inefficient
+- VALIDATION.md files still created in draft state and never promoted — same v1.0 lesson not yet enforced
+- Phase 10 one-liner field missing from SUMMARY.md frontmatter — minor but broke automated extraction
+- v1.1 retrospective section was skipped entirely — milestone went straight from v1.0 to v1.2 in RETROSPECTIVE.md
+
+### Patterns Established
+- **captureClock pattern:** Wrap fakeClock to synchronously capture engine state on each After() call — prevents race conditions in fast-timer tests. Variants: dayCaptureClock (PoCDay+Phase), digestCaptureClock (full []DayDigest snapshot), stopOnNthClock (configurable block-at-N)
+- **DayDigest pre-population:** Pre-populate all days as "pending" at runPoC() start so schedule is visible from first poll — eliminates progressive discovery UX problem
+- **hasDayData persistence:** UI panels persist visibility after PoC completion using a flag set once data arrives — not gated on running status
+
+### Key Lessons
+1. **captureClock is the go-to pattern for fake-clock testing** — direct polling of engine status after fake timer fires is inherently racy; synchronous capture eliminates it
+2. **Pre-populate schedules at start, not progressively** — users need the full picture from the first poll, not gradual revelation
+3. **VALIDATION.md promotion at phase close still not enforced** — third milestone with this lesson; needs a structural fix (hook or checklist gate)
+4. **Don't skip milestone retrospectives** — v1.1 was missed entirely, losing 2 phases of process observations
+
+### Cost Observations
+- Model mix: ~90% sonnet (executors/verifiers), ~10% opus (orchestration, UI-SPEC)
+- Sessions: ~6 (planning + execution per phase)
+- Notable: Phase 12 UI-SPEC checker caught 3 issues pre-implementation; 37 commits across 2 days is efficient for 4 phases
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -53,14 +94,21 @@
 | Milestone | Phases | Plans | Key Change |
 |-----------|--------|-------|------------|
 | v1.0 | 7 | 17 | First GSD milestone — established SIEMCoverage pattern, Nyquist sign-off, QueryFn injection |
+| v1.1 | 2 | 5 | Bug fixes & UI polish — GUID audit policy, version injection, inline error panels |
+| v1.2 | 4 | 6 | PoC overhaul — Clock injection, DayDigest tracking, timeline calendar UI, scheduling tests |
 
 ### Cumulative Quality
 
 | Milestone | Test Functions | Packages Tested | Notes |
 |-----------|---------------|-----------------|-------|
 | v1.0 | 14 | 5/9 | playbooks blocked by Defender; executor/preparation/simlog/userstore have no testable logic |
+| v1.1 | 20 | 5/9 | +6 tests from backend correctness and UI polish phases |
+| v1.2 | 26 | 5/9 | +6 PoC scheduling tests via fake clock injection (poc_test.go) |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Sign off VALIDATION.md at phase close — not as a batch at milestone close
+1. Sign off VALIDATION.md at phase close — not as a batch at milestone close (v1.0, v1.2 — still not enforced)
 2. Document environment constraints (Defender, no CGO) in CLAUDE.md before first phase
+3. captureClock pattern eliminates race conditions in fake-timer tests (v1.2 — validated across 10+ tests)
+4. Pre-populate schedules at start for immediate visibility (v1.2)
+5. Don't skip milestone retrospectives — process observations get lost (v1.2)

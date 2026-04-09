@@ -1,5 +1,19 @@
 # Milestones
 
+## v1.2 PoC Mode Fix & Overhaul (Shipped: 2026-04-09)
+
+**Phases completed:** 4 phases, 6 plans, 11 tasks
+
+**Key accomplishments:**
+
+- Four deterministic PoC engine tests using fakeClock and captureClock — validating day counter monotonicity, English-only CurrentStep strings, simlog.Phase separators, and fake clock eliminating real sleeps
+- Per-day execution digest with pending pre-population, lifecycle mutations, heartbeat tracking, and interruptible campaign DelayAfter — all backed by 9 new unit tests using existing fakeClock/captureClock infrastructure.
+- GET /api/poc/days endpoint wired to engine.GetDayDigests() behind authMiddleware, returning [] when idle and full DayDigest array during a PoC run — with two tests covering idle response and auth enforcement.
+- Horizontal phase-grouped day strip calendar and collapsible daily digest accordion wired to `/api/poc/days` polling inside `pollStatus()`.
+- 6 deterministic PoC scheduling tests using fake clock injection covering monotonic day counter (TEST-02), stop-signal handling in 4 scenarios (TEST-03), and DayDigest pending->active->complete lifecycle (TEST-04)
+
+---
+
 ## v1.0 Verified & Expanded (Shipped: 2026-03-26)
 
 **Phases completed:** 7 phases, 17 plans, 28 tasks

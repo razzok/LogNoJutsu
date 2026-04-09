@@ -36,16 +36,17 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - ✓ Full English UI — all German strings in index.html replaced — v1.1
 - ✓ Preparation tab: inline error panels replace alert() dialogs — v1.1
 - ✓ Dashboard technique count wired to live /api/techniques count — v1.1
+- ✓ PoC mode bugs fixed: day counter, German strings, missing log separators — v1.2
+- ✓ Clock interface injected for deterministic PoC engine testing — v1.2
+- ✓ DayDigest per-day execution tracking with heartbeat and campaign delay — v1.2
+- ✓ Daily digest panel and timeline calendar in web UI — v1.2
+- ✓ 6 deterministic PoC scheduling tests (day counter, stop-signal, DayDigest lifecycle) — v1.2
 
 ### Active
 
-<!-- Current scope for v1.2 milestone. -->
+<!-- Current scope for next milestone. -->
 
-- ✓ PoC mode bugs fixed: stale PoCDay counter during Gap/Phase2, missing simlog.Phase() calls, German CurrentStep strings — Validated in Phase 10
-- ✓ Daily digest panel: per-day summary showing which techniques ran, when, and success/failure — Validated in Phase 12
-- ✓ Timeline calendar: visual day-by-day schedule showing completed/current/future days with technique counts — Validated in Phase 12
-- ✓ Test coverage for runPoC() scheduling logic — Validated in Phase 10
-- ✓ Campaign delay_after support applied during PoC Phase 2 execution — Validated in Phase 11
+(None yet — define with `/gsd:new-milestone`)
 
 ### Out of Scope
 
@@ -62,9 +63,10 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - README written in German (target user base), translated to English in v1.0
 - **v1.0 shipped 2026-03-26:** 57 techniques (43 base + 5 ATT&CK + 4 UEBA + 3 Falcon + 3 Azure), 38k LOC Go, 17 plans across 7 phases
 - **v1.1 shipped 2026-03-26:** Locale-independent audit policy (GUID migration), build-time version injection, full English UI, inline error panels, tactic badge colors — 5 plans across 2 phases, 33 commits
+- **v1.2 shipped 2026-04-09:** PoC engine fixes, Clock injection, DayDigest tracking, timeline calendar UI, 6 scheduling tests — 6 plans across 4 phases, 37 commits
 - **Codebase packages:** cmd/lognojutsu, internal/{engine,executor,playbooks,preparation,reporter,server,simlog,userstore,verifier}
-- **Test coverage:** 20 test functions across engine_test, poc_test, server_test, verifier_test, reporter_test, loader_test; playbooks blocked by Windows Defender quarantine
-- **Tactic badge colors:** `command-and-control` → red (#f85149), `ueba-scenario` → purple (#bc8cff) — fixed in Phase 09
+- **Test coverage:** 26 test functions across engine_test, poc_test, server_test, verifier_test, reporter_test, loader_test; playbooks blocked by Windows Defender quarantine
+- **Codebase size:** ~56k LOC Go
 - Codebase map available at `.planning/codebase/`
 
 ## Constraints
@@ -86,22 +88,23 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | Conditional report columns | CS/Sentinel columns appear only when results carry mappings | ✓ Good — clean report for single-SIEM engagements |
 | Race detector skip (no CGO/gcc) | TestEngineRace validates mutex discipline structurally; -race requires CGO | ✓ Acceptable — documented in STATE.md and Phase 2 VALIDATION.md |
 | EventSpec format for expected_events | Typed struct (Channel+ID+Description) over plain strings | ✓ Good — enables per-event pass/fail reporting in HTML |
+| Clock interface injection | Injectable clock for deterministic PoC testing without real sleeps | ✓ Good — enabled 10 fake-clock tests across poc_test.go |
+| DayDigest as separate Engine field | Keep /api/status JSON surface clean; dedicated /api/poc/days endpoint | ✓ Good — clean separation of concerns |
+| captureClock pattern | Synchronous state capture on each After() call prevents race conditions in fast fake-clock tests | ✓ Good — reused across Phase 10 and 13 tests |
+| Custom JS accordion over details/summary | Programmatic open/close needed for auto-expand and calendar-to-digest linking | ✓ Good — D-04 and D-11 features work cleanly |
 
-## Current Milestone: v1.2 PoC Mode Fix & Overhaul
+## Current State
 
-**Goal:** Make PoC/Multiday mode work reliably with clear daily feedback — fix bugs that make it appear broken, add per-day execution tracking, and improve schedule visualization so consultants trust the tool during multi-week engagements.
+**Latest shipped:** v1.2 PoC Mode Fix & Overhaul (2026-04-09)
 
-**Target features:**
-- Fix PoC mode bugs: stale day counter, missing log separators, German strings in CurrentStep
-- Daily digest panel: per-day summary showing which techniques ran, when, success/failure
-- Timeline calendar: visual day-by-day schedule (completed/current/future) with technique counts
-- Test coverage for runPoC() scheduling logic
-- Campaign delay_after support
+v1.2 delivered reliable PoC/Multiday mode with per-day execution tracking, timeline calendar UI, and deterministic scheduling tests. Consultants can now trust the multi-week engagement tool with clear daily feedback.
 
 **Known tech debt (carried forward):**
 - `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
 - German strings remain in `reporter.go` htmlTemplate (HTML reports)
 - Two audit GUIDs need on-machine validation on non-English Windows
+- engine.go:165 — `time.Now()` in Start() status init not clock-injected (cosmetic, doesn't affect scheduling)
+- engine.go:634 — Pre-existing German WhatIf string (consider full English localization in future milestone)
 
 ## Evolution
 
@@ -121,4 +124,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 — Phase 13 complete: 6 deterministic PoC scheduling tests (day counter monotonicity, stop-signal handling, DayDigest lifecycle) in poc_test.go*
+*Last updated: 2026-04-09 after v1.2 milestone*
