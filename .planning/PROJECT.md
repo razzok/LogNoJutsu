@@ -42,8 +42,8 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 <!-- Current scope for v1.2 milestone. -->
 
 - ✓ PoC mode bugs fixed: stale PoCDay counter during Gap/Phase2, missing simlog.Phase() calls, German CurrentStep strings — Validated in Phase 10
-- [ ] Daily digest panel: per-day summary showing which techniques ran, when, and success/failure
-- [ ] Timeline calendar: visual day-by-day schedule showing completed/current/future days with technique counts
+- ✓ Daily digest panel: per-day summary showing which techniques ran, when, and success/failure — Validated in Phase 12
+- ✓ Timeline calendar: visual day-by-day schedule showing completed/current/future days with technique counts — Validated in Phase 12
 - ✓ Test coverage for runPoC() scheduling logic — Validated in Phase 10
 - ✓ Campaign delay_after support applied during PoC Phase 2 execution — Validated in Phase 11
 
