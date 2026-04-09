@@ -244,6 +244,43 @@ func TestTierClassified(t *testing.T) {
 	}
 }
 
+func TestT1482ExecutorType(t *testing.T) {
+	reg, err := LoadEmbedded()
+	if err != nil {
+		t.Fatalf("LoadEmbedded() failed: %v", err)
+	}
+	tech, ok := reg.Techniques["T1482"]
+	if !ok {
+		t.Fatal("T1482 not found in registry")
+	}
+	if tech.Executor.Type != "go" {
+		t.Errorf("T1482 executor.type = %q, want \"go\"", tech.Executor.Type)
+	}
+	if tech.Executor.Command != "" {
+		t.Errorf("T1482 executor.command should be empty for type:go, got %q", tech.Executor.Command)
+	}
+}
+
+func TestT1057ExecutorType(t *testing.T) {
+	reg, err := LoadEmbedded()
+	if err != nil {
+		t.Fatalf("LoadEmbedded() failed: %v", err)
+	}
+	tech, ok := reg.Techniques["T1057"]
+	if !ok {
+		t.Fatal("T1057 not found in registry")
+	}
+	if tech.Executor.Type != "go" {
+		t.Errorf("T1057 executor.type = %q, want \"go\"", tech.Executor.Type)
+	}
+	if tech.Executor.Command != "" {
+		t.Errorf("T1057 executor.command should be empty for type:go, got %q", tech.Executor.Command)
+	}
+	if tech.Tier != 1 {
+		t.Errorf("T1057 tier = %d, want 1 (upgraded from stub to real WMI)", tech.Tier)
+	}
+}
+
 func TestWriteArtifactsHaveCleanup(t *testing.T) {
 	reg, err := LoadEmbedded()
 	if err != nil {
