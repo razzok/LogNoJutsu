@@ -68,7 +68,7 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 **Plans**: 3 plans
 Plans:
 - [ ] 14-01-PLAN.md — Tier field, executor defer cleanup, test scaffolds
-- [ ] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
+- [x] 14-02-PLAN.md — Destructive technique rewrites and cleanup audit
 - [ ] 14-03-PLAN.md — Tier YAML classification, classification doc, UI/report badges
 
 ### Phase 15: Native Go Architecture

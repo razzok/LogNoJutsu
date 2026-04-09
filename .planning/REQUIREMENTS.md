@@ -9,9 +9,9 @@ Requirements for milestone v1.3: Realistic Attack Simulation.
 
 ### Safety & Audit
 
-- [ ] **SAFE-01**: All potentially destructive techniques (T1490, T1070.001, T1546.003) are audited and fixed to prevent damage on client machines
+- [x] **SAFE-01**: All potentially destructive techniques (T1490, T1070.001, T1546.003) are audited and fixed to prevent damage on client machines
 - [ ] **SAFE-02**: All 57 existing techniques are classified as Tier 1 (realistic) / Tier 2 (partial) / Tier 3 (stub) with documented assessment
-- [ ] **SAFE-03**: All persistence and write techniques have verified cleanup commands that execute regardless of technique body success/failure
+- [x] **SAFE-03**: All persistence and write techniques have verified cleanup commands that execute regardless of technique body success/failure
 
 ### Network Discovery
 
@@ -68,9 +68,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SAFE-01 | Phase 14 | Pending |
+| SAFE-01 | Phase 14 | Complete |
 | SAFE-02 | Phase 14 | Pending |
-| SAFE-03 | Phase 14 | Pending |
+| SAFE-03 | Phase 14 | Complete |
 | SCAN-01 | Phase 17 | Pending |
 | SCAN-02 | Phase 17 | Pending |
 | SCAN-03 | Phase 17 | Pending |

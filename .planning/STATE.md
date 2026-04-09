@@ -3,14 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Realistic Attack Simulation
 current_phase: 14
-current_plan: Not started
-status: Roadmap defined
-last_updated: "2026-04-09"
+current_plan: 2
+status: Executing Phase 14
+last_updated: "2026-04-09T13:30:00.000Z"
+last_activity: 2026-04-09
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
 ---
 
 # Project State
@@ -21,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** v1.3 Realistic Attack Simulation — Phase 14: Safety Audit
+**Current focus:** Phase 14 — safety-audit
 
 ## Current Status
 
 **Milestone:** v1.3 — Realistic Attack Simulation
-**Current phase:** 14 — Safety Audit
-**Current plan:** Not started
-**Last activity:** 2026-04-09 — Roadmap defined (5 phases, 16 requirements mapped)
+**Current phase:** 14
+**Current plan:** 2
+**Last activity:** 2026-04-09
 
 ## Milestone Progress
 
@@ -105,6 +106,13 @@ Key decisions carried forward:
 - stopOnNthClock generalizes blockingClock with configurable block-at-N: fires immediately for calls < N, blocks on call >= N
 - No production code changes — all 6 tests verify existing runPoC() behavior via clock injection only
 
+## Decisions (Phase 14, Plan 02)
+
+- T1070.001 uses LogNoJutsu-Test custom channel: generates authentic EID 104 without clearing real Security/Application/System logs
+- T1490 drops vssadmin/wmic/wbadmin: VSS shadow deletion is irreversible on client machines; bcdedit + registry steps are sufficient SIEM triggers
+- T1550.002 already self-cleans IPC$ and cmdkey inline in command block — empty cleanup field is correct by design
+- T1558.003 and all 5 UEBA chain techniques are read-only/query-only — empty cleanup fields are correct
+
 ## Roadmap Evolution
 
 - Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
@@ -135,4 +143,4 @@ Key decisions carried forward:
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
 *v1.3 roadmap defined: 2026-04-09*
-*Last session: 2026-04-09 — v1.3 roadmap created (Phases 14-18)*
+*Last session: 2026-04-09 — Completed 14-02: destructive technique rewrite (T1070.001 safe channel, T1490 scope-limited)*
