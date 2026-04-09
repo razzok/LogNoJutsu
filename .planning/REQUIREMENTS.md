@@ -17,7 +17,7 @@ Requirements for PoC Mode Fix & Overhaul. Each maps to roadmap phases.
 
 - [x] **TRACK-01**: Engine records a DayDigest struct per PoC day containing: day number, phase, status, techniques executed, pass/fail counts, start/end timestamps
 - [x] **TRACK-02**: DayDigest entries are pre-populated as "pending" at runPoC() start so the full schedule is visible from first poll
-- [ ] **TRACK-03**: GET /api/poc/days endpoint returns the DayDigest array (behind authMiddleware)
+- [x] **TRACK-03**: GET /api/poc/days endpoint returns the DayDigest array (behind authMiddleware)
 - [x] **TRACK-04**: DayDigest includes a "last heartbeat" timestamp proving the engine was alive during each day's execution window
 
 ### UI — Daily Digest
@@ -76,7 +76,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-01 | Phase 10 | Complete |
 | TRACK-01 | Phase 11 | Complete |
 | TRACK-02 | Phase 11 | Complete |
-| TRACK-03 | Phase 11 | Pending |
+| TRACK-03 | Phase 11 | Complete |
 | TRACK-04 | Phase 11 | Complete |
 | CAMP-01 | Phase 11 | Complete |
 | DIGEST-01 | Phase 12 | Pending |

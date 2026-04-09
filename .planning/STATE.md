@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: PoC Mode Fix & Overhaul
 current_phase: 11
-current_plan: 1
+current_plan: 2
 status: Executing Phase 11
-last_updated: "2026-04-09T07:40:04.342Z"
+last_updated: "2026-04-09T08:00:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -76,6 +76,7 @@ Key decisions carried forward:
 - Phase 2 inlines campaign.Steps iteration to preserve DelayAfter metadata discarded by getTechniquesForCampaign()
 - TechniqueCount pre-populated from len(campaign.Steps) or len(registry.GetTechniquesByPhase("attack")) at runPoC() start
 - GetDayDigests() returns []DayDigest{} (never nil) for safe JSON encoding as [] not null
+- handlePoCDays delegates entirely to engine — no nil-check needed; route placed in Simulation API section of registerRoutes()
 
 ## Roadmap Evolution
 
@@ -99,4 +100,4 @@ Key decisions carried forward:
 *Initialized: 2026-03-24*
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
-*Last session: 2026-04-09 — Stopped at: Completed 11-daily-tracking-backend-campaign-delay/11-01-PLAN.md*
+*Last session: 2026-04-09 — Stopped at: Completed 11-daily-tracking-backend-campaign-delay/11-02-PLAN.md*
