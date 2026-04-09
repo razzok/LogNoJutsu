@@ -63,7 +63,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - **v1.0 shipped 2026-03-26:** 57 techniques (43 base + 5 ATT&CK + 4 UEBA + 3 Falcon + 3 Azure), 38k LOC Go, 17 plans across 7 phases
 - **v1.1 shipped 2026-03-26:** Locale-independent audit policy (GUID migration), build-time version injection, full English UI, inline error panels, tactic badge colors — 5 plans across 2 phases, 33 commits
 - **Codebase packages:** cmd/lognojutsu, internal/{engine,executor,playbooks,preparation,reporter,server,simlog,userstore,verifier}
-- **Test coverage:** 14 test functions across engine_test, server_test, verifier_test, reporter_test, loader_test; playbooks blocked by Windows Defender quarantine
+- **Test coverage:** 20 test functions across engine_test, poc_test, server_test, verifier_test, reporter_test, loader_test; playbooks blocked by Windows Defender quarantine
 - **Tactic badge colors:** `command-and-control` → red (#f85149), `ueba-scenario` → purple (#bc8cff) — fixed in Phase 09
 - Codebase map available at `.planning/codebase/`
 
@@ -121,4 +121,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 — Phase 11 complete: DayDigest per-day tracking, /api/poc/days endpoint, campaign delay_after, 11 new tests*
+*Last updated: 2026-04-09 — Phase 13 complete: 6 deterministic PoC scheduling tests (day counter monotonicity, stop-signal handling, DayDigest lifecycle) in poc_test.go*
