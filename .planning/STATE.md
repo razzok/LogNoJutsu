@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: PoC Mode Fix & Overhaul
 current_phase: 11
-current_plan: Not started
-status: executing
-last_updated: "2026-04-08T20:10:18.933Z"
+current_plan: 1
+status: Executing Phase 11
+last_updated: "2026-04-09T07:40:04.342Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
 ---
 
 # Project State
@@ -21,13 +21,13 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 11 — Daily Tracking Backend & Campaign Delay
+**Current focus:** Phase 11 — daily-tracking-backend-campaign-delay
 
 ## Current Status
 
 **Milestone:** v1.2 — PoC Mode Fix & Overhaul — In Progress (2026-04-08)
-**Current phase:** 11 — Daily Tracking Backend & Campaign Delay
-**Current plan:** Not started
+**Current phase:** 11
+**Current plan:** 1
 
 ## Phase Progress
 
@@ -42,7 +42,8 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 | 7 | Nyquist Validation | Complete | 2026-03-26 |
 | 8 | Backend Correctness | Complete | 2026-03-26 |
 | 9 | UI Polish | Complete | 2026-03-26 |
-| 10 | PoC Engine Fixes & Clock Injection | In Progress | — |
+| 10 | PoC Engine Fixes & Clock Injection | Complete | 2026-04-08 |
+| 11 | Daily Tracking Backend & Campaign Delay | In Progress | — |
 
 ## Decisions (v1.0)
 
@@ -69,6 +70,13 @@ Key decisions carried forward:
 - Clock interface defined inline in engine.go (not clock.go) — single file, minimal surface area
 - captureClock pattern for reliable state capture: when fake clock fires too fast for polling goroutines, embed fakeClock in a wrapper that reads engine status synchronously on each After() call
 
+## Decisions (Phase 11)
+
+- DayDigest stored as separate Engine field (not inside Status) to keep /api/status JSON surface clean
+- Phase 2 inlines campaign.Steps iteration to preserve DelayAfter metadata discarded by getTechniquesForCampaign()
+- TechniqueCount pre-populated from len(campaign.Steps) or len(registry.GetTechniquesByPhase("attack")) at runPoC() start
+- GetDayDigests() returns []DayDigest{} (never nil) for safe JSON encoding as [] not null
+
 ## Roadmap Evolution
 
 - Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
@@ -91,4 +99,4 @@ Key decisions carried forward:
 *Initialized: 2026-03-24*
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
-*Last session: 2026-04-08 — Stopped at: Completed 10-poc-engine-fixes-clock-injection/10-02-PLAN.md*
+*Last session: 2026-04-09 — Stopped at: Completed 11-daily-tracking-backend-campaign-delay/11-01-PLAN.md*

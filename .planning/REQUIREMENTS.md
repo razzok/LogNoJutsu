@@ -15,10 +15,10 @@ Requirements for PoC Mode Fix & Overhaul. Each maps to roadmap phases.
 
 ### Daily Tracking
 
-- [ ] **TRACK-01**: Engine records a DayDigest struct per PoC day containing: day number, phase, status, techniques executed, pass/fail counts, start/end timestamps
-- [ ] **TRACK-02**: DayDigest entries are pre-populated as "pending" at runPoC() start so the full schedule is visible from first poll
+- [x] **TRACK-01**: Engine records a DayDigest struct per PoC day containing: day number, phase, status, techniques executed, pass/fail counts, start/end timestamps
+- [x] **TRACK-02**: DayDigest entries are pre-populated as "pending" at runPoC() start so the full schedule is visible from first poll
 - [ ] **TRACK-03**: GET /api/poc/days endpoint returns the DayDigest array (behind authMiddleware)
-- [ ] **TRACK-04**: DayDigest includes a "last heartbeat" timestamp proving the engine was alive during each day's execution window
+- [x] **TRACK-04**: DayDigest includes a "last heartbeat" timestamp proving the engine was alive during each day's execution window
 
 ### UI — Daily Digest
 
@@ -42,7 +42,7 @@ Requirements for PoC Mode Fix & Overhaul. Each maps to roadmap phases.
 
 ### Campaign Execution
 
-- [ ] **CAMP-01**: Campaign delay_after field is applied between technique steps during PoC Phase 2 execution
+- [x] **CAMP-01**: Campaign delay_after field is applied between technique steps during PoC Phase 2 execution
 
 ## Future Requirements
 
@@ -74,11 +74,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | POCFIX-02 | Phase 10 | Complete |
 | POCFIX-03 | Phase 10 | Complete |
 | TEST-01 | Phase 10 | Complete |
-| TRACK-01 | Phase 11 | Pending |
-| TRACK-02 | Phase 11 | Pending |
+| TRACK-01 | Phase 11 | Complete |
+| TRACK-02 | Phase 11 | Complete |
 | TRACK-03 | Phase 11 | Pending |
-| TRACK-04 | Phase 11 | Pending |
-| CAMP-01 | Phase 11 | Pending |
+| TRACK-04 | Phase 11 | Complete |
+| CAMP-01 | Phase 11 | Complete |
 | DIGEST-01 | Phase 12 | Pending |
 | DIGEST-02 | Phase 12 | Pending |
 | DIGEST-03 | Phase 12 | Pending |
