@@ -99,6 +99,15 @@ Key decisions carried forward:
 - checkIsElevated() split into engine_windows.go (real Windows token API) and engine_other.go (permissive stub) — platform build tags avoid cross-compilation issues
 - isAdmin set once at Start() not per-technique — admin status doesn't change mid-run; SetAdmin() test helper mirrors SetRunner() injection pattern
 
+## Decisions (Phase 16 Plan 02)
+
+- Channel-based scan gate: scanConfirmCh/scanCancelCh closed to signal confirm/cancel — simpler than condition variables, idiomatic Go select pattern
+- runScanConfirmation() extracts pre-flight logic from run()/runPoC() — avoids duplication and keeps loop bodies clean
+- Local channel copies before select block in runScanConfirmation() — prevents race when ConfirmScan() nils scanConfirmCh while select is evaluating
+- scanPendingInfo cleared before abort() call on cancel/stop — prevents stale modal data appearing after simulation ends
+- Scan state reset at Start() alongside stopCh reset — clean state on each simulation start, no leakage from prior runs
+- Modal uses existing api() helper for fetch — consistent with established auth pattern; no separate authHeaders needed
+
 ## Roadmap Evolution
 
 - Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
@@ -122,4 +131,4 @@ Key decisions carried forward:
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
-*Last session: 2026-04-09 — Completed 16-safety-infrastructure 16-01-PLAN.md*
+*Last session: 2026-04-09 — Completed 16-safety-infrastructure 16-02-PLAN.md*

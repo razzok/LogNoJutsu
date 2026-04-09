@@ -30,7 +30,7 @@ Requirements for milestone v1.3: Realistic Attack Simulation.
 
 - [ ] **INFRA-01**: AMSI-blocked technique failures are classified separately from execution errors in verification results
 - [ ] **INFRA-02**: Admin vs non-admin execution is detected; techniques requiring elevation are skipped gracefully with clear status
-- [ ] **INFRA-03**: Network scan has target range confirmation, rate limiting, and IDS warning displayed before execution
+- [x] **INFRA-03**: Network scan has target range confirmation, rate limiting, and IDS warning displayed before execution
 
 ### Architecture
 
@@ -80,7 +80,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TECH-04 | Phase 18 | Pending |
 | INFRA-01 | Phase 16 | Pending |
 | INFRA-02 | Phase 16 | Pending |
-| INFRA-03 | Phase 16 | Pending |
+| INFRA-03 | Phase 16 | Complete |
 | ARCH-01 | Phase 15 | Complete |
 | ARCH-02 | Phase 15 | Complete |
 | ARCH-03 | Phase 15 | Complete |
