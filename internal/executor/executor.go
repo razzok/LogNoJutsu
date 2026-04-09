@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"lognojutsu/internal/native"
 	"lognojutsu/internal/playbooks"
 	"lognojutsu/internal/simlog"
 	"lognojutsu/internal/userstore"
@@ -30,7 +31,17 @@ func RunAs(t *playbooks.Technique, profile *userstore.UserProfile, password stri
 // Cleanup is registered via defer — it fires even if runInternal panics.
 func RunWithCleanup(t *playbooks.Technique, profile *userstore.UserProfile, password string) (result playbooks.ExecutionResult) {
 	// Register cleanup as deferred action — fires even on panic
-	if strings.TrimSpace(t.Cleanup) != "" {
+	if strings.ToLower(t.Executor.Type) == "go" {
+		// Native Go technique: use registered CleanupFunc if present
+		if cleanFn := native.LookupCleanup(t.ID); cleanFn != nil {
+			defer func() {
+				simlog.TechCleanup(t.ID, "(go native cleanup)", false)
+				cleanErr := cleanFn()
+				result.CleanupRun = true
+				simlog.TechCleanup(t.ID, "(go cleanup completed)", cleanErr == nil)
+			}()
+		}
+	} else if strings.TrimSpace(t.Cleanup) != "" {
 		defer func() {
 			simlog.TechCleanup(t.ID, t.Cleanup, false)
 			// Cleanup always runs as the launching user (we own the artifacts)
@@ -45,6 +56,14 @@ func RunWithCleanup(t *playbooks.Technique, profile *userstore.UserProfile, pass
 
 // RunCleanupOnly runs only the cleanup command for a technique (after abort).
 func RunCleanupOnly(t *playbooks.Technique) {
+	if strings.ToLower(t.Executor.Type) == "go" {
+		if cleanFn := native.LookupCleanup(t.ID); cleanFn != nil {
+			simlog.TechCleanup(t.ID, "(go native cleanup)", false)
+			cleanErr := cleanFn()
+			simlog.TechCleanup(t.ID, "(go cleanup-only run)", cleanErr == nil)
+		}
+		return
+	}
 	if strings.TrimSpace(t.Cleanup) == "" {
 		return
 	}
@@ -75,6 +94,32 @@ func runInternal(t *playbooks.Technique, profile *userstore.UserProfile, passwor
 		simlog.Info(fmt.Sprintf("  Running as: %s (%s)", profile.QualifiedName(), profile.UserType))
 	}
 	simlog.TechCommand(t.ID, t.Executor.Type, t.Executor.Command)
+
+	// Native Go technique dispatch — no child process spawned
+	if strings.ToLower(t.Executor.Type) == "go" {
+		if profile != nil && profile.UserType != userstore.UserTypeCurrent {
+			simlog.Info(fmt.Sprintf("[%s] type:go does not support RunAs — executing as current user", t.ID))
+		}
+		fn := native.Lookup(t.ID)
+		if fn == nil {
+			result.ErrorOutput = fmt.Sprintf("no native Go function registered for %s", t.ID)
+			result.Success = false
+		} else {
+			nr, nErr := fn()
+			result.Output = nr.Output
+			result.ErrorOutput = nr.ErrorOutput
+			result.Success = nr.Success
+			if nErr != nil {
+				result.ErrorOutput = nErr.Error() + "\n" + result.ErrorOutput
+				result.Success = false
+			}
+		}
+		result.EndTime = time.Now().Format(time.RFC3339)
+		result.RunAsUser = userLabel
+		simlog.TechOutput(t.ID, result.Output, result.ErrorOutput)
+		simlog.TechEnd(t.ID, result.Success, time.Since(start))
+		return result
+	}
 
 	var out, errOut string
 	var err error
