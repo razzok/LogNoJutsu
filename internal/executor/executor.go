@@ -130,6 +130,22 @@ func runInternal(t *playbooks.Technique, profile *userstore.UserProfile, passwor
 		out, errOut, err = runCommandAs(t.Executor.Type, t.Executor.Command, profile, password)
 	}
 
+	// AMSI detection — PowerShell only (per D-02)
+	if strings.ToLower(t.Executor.Type) == "powershell" || strings.ToLower(t.Executor.Type) == "psh" {
+		if isAMSIBlocked(errOut, err) {
+			result.Output = out
+			result.ErrorOutput = errOut
+			result.Success = false
+			result.EndTime = time.Now().Format(time.RFC3339)
+			result.RunAsUser = userLabel
+			result.VerificationStatus = playbooks.VerifAMSIBlocked
+			simlog.Info(fmt.Sprintf("[AMSI] %s — blocked by antimalware scan", t.ID))
+			simlog.TechOutput(t.ID, out, errOut)
+			simlog.TechEnd(t.ID, false, time.Since(start))
+			return result
+		}
+	}
+
 	result.Output = out
 	result.ErrorOutput = errOut
 	result.Success = (err == nil)
@@ -140,6 +156,27 @@ func runInternal(t *playbooks.Technique, profile *userstore.UserProfile, passwor
 	simlog.TechEnd(t.ID, result.Success, time.Since(start))
 
 	return result
+}
+
+// isAMSIBlocked returns true if the error output or exit code indicates that
+// Windows Antimalware Scan Interface (AMSI) blocked the PowerShell script.
+func isAMSIBlocked(errOut string, err error) bool {
+	amsiPatterns := []string{
+		"ScriptContainedMaliciousContent",
+		"This script contains malicious content",
+		"has been blocked by your antivirus software",
+	}
+	for _, p := range amsiPatterns {
+		if strings.Contains(errOut, p) {
+			return true
+		}
+	}
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr.ExitCode() == -196608 {
+			return true
+		}
+	}
+	return false
 }
 
 // runCommandAs executes a command in the context of another user via

@@ -125,6 +125,7 @@ type Engine struct {
 	rotationIndex      int
 	runner             RunnerFunc // nil = real executor
 	clock              Clock     // injectable; defaults to realClock{}
+	isAdmin            bool      // set once at Start(); guards per-technique elevation skip
 }
 
 type resolvedProfile struct {
@@ -169,6 +170,11 @@ func (e *Engine) SetRunner(fn RunnerFunc) {
 	e.runner = fn
 }
 
+// SetAdmin overrides the admin check result for testing.
+func (e *Engine) SetAdmin(admin bool) {
+	e.isAdmin = admin
+}
+
 func (e *Engine) Start(cfg Config) error {
 	e.mu.Lock()
 	if e.status.Phase != PhaseIdle && e.status.Phase != PhaseDone && e.status.Phase != PhaseAborted {
@@ -198,6 +204,9 @@ func (e *Engine) Start(cfg Config) error {
 	if err := e.resolveProfiles(); err != nil {
 		return fmt.Errorf("resolving user profiles: %w", err)
 	}
+
+	e.isAdmin = checkIsElevated()
+	simlog.Info(fmt.Sprintf("Elevation check: isAdmin=%v", e.isAdmin))
 
 	simlog.Start(cfg.CampaignID)
 	simlog.Info(fmt.Sprintf("Configuration: delay_discovery=%ds delay_attack=%ds cleanup=%v campaign=%q rotation=%s profiles=%d",
@@ -621,6 +630,29 @@ func (e *Engine) runTechnique(t *playbooks.Technique) {
 	e.mu.Unlock()
 
 	var result playbooks.ExecutionResult
+
+	// Elevation gating (per D-05) — before any execution attempt
+	if t.ElevationRequired && !e.isAdmin {
+		simlog.Info(fmt.Sprintf("[ElevationSkip] %s — requires elevation, skipping", t.ID))
+		now := e.clock.Now().Format(time.RFC3339)
+		result = playbooks.ExecutionResult{
+			TechniqueID:        t.ID,
+			TechniqueName:      t.Name,
+			TacticID:           t.Tactic,
+			StartTime:          now,
+			EndTime:            now,
+			Success:            false,
+			Output:             "Elevation required — technique skipped (not running as Administrator)",
+			RunAsUser:          userLabel,
+			VerificationStatus: playbooks.VerifElevationRequired,
+			SIEMCoverage:       t.SIEMCoverage,
+		}
+		e.mu.Lock()
+		e.status.Results = append(e.status.Results, result)
+		e.mu.Unlock()
+		return
+	}
+
 	if e.cfg.WhatIf {
 		// WhatIf: record what would run without executing anything
 		now := time.Now().Format(time.RFC3339)

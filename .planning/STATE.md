@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Realistic Attack Simulation
-current_phase: 16
-current_plan: Not started
-status: Ready to plan
-last_updated: "2026-04-09T14:32:15.043Z"
-last_activity: 2026-04-09
+milestone: v1.0
+milestone_name: milestone
+current_phase: Complete
+current_plan: N/A
+status: v1.2 milestone complete
+last_updated: "2026-04-09T17:05:03.279Z"
 progress:
-  total_phases: 5
+  total_phases: 3
   completed_phases: 2
   total_plans: 5
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -22,43 +21,31 @@ See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 15 — native-go-architecture
+**Current focus:** v1.2 shipped — planning next milestone
 
 ## Current Status
 
-**Milestone:** v1.3 — Realistic Attack Simulation
-**Current phase:** 16
-**Current plan:** Not started
-**Last activity:** 2026-04-09
-
-## Milestone Progress
-
-```
-v1.3 [                    ] 0% — 0/5 phases complete
-```
+**Milestone:** v1.2 — PoC Mode Fix & Overhaul — Shipped (2026-04-09)
+**Current phase:** Complete
+**Current plan:** N/A
 
 ## Phase Progress
 
-| Phase | Title | Milestone | Status | Completed |
-|-------|-------|-----------|--------|-----------|
-| 1 | Events Manifest & Verification Engine | v1.0 | Complete | 2026-03-24 |
-| 2 | Code Structure & Test Coverage | v1.0 | Complete | 2026-03-25 |
-| 3 | Additional Techniques | v1.0 | Complete | 2026-03-25 |
-| 4 | CrowdStrike SIEM Coverage | v1.0 | Complete | 2026-03-25 |
-| 5 | Microsoft Sentinel Coverage | v1.0 | Complete | 2026-03-25 |
-| 6 | Documentation Consistency | v1.0 | Complete | 2026-03-26 |
-| 7 | Nyquist Validation | v1.0 | Complete | 2026-03-26 |
-| 8 | Backend Correctness | v1.1 | Complete | 2026-03-26 |
-| 9 | UI Polish | v1.1 | Complete | 2026-03-26 |
-| 10 | PoC Engine Fixes & Clock Injection | v1.2 | Complete | 2026-04-08 |
-| 11 | Daily Tracking Backend & Campaign Delay | v1.2 | Complete | 2026-04-09 |
-| 12 | Daily Digest & Timeline Calendar UI | v1.2 | Complete | 2026-04-09 |
-| 13 | PoC Scheduling Tests | v1.2 | Complete | 2026-04-09 |
-| 14 | Safety Audit | v1.3 | Not started | - |
-| 15 | Native Go Architecture | v1.3 | Not started | - |
-| 16 | Safety Infrastructure | v1.3 | Not started | - |
-| 17 | Network Discovery | v1.3 | Not started | - |
-| 18 | Technique Realism | v1.3 | Not started | - |
+| Phase | Title | Status | Completed |
+|-------|-------|--------|-----------|
+| 1 | Events Manifest & Verification Engine | Complete | 2026-03-24 |
+| 2 | Code Structure & Test Coverage | Complete | 2026-03-25 |
+| 3 | Additional Techniques | Complete | 2026-03-25 |
+| 4 | CrowdStrike SIEM Coverage | Complete | 2026-03-25 |
+| 5 | Microsoft Sentinel Coverage | Complete | 2026-03-25 |
+| 6 | Documentation Consistency | Complete | 2026-03-26 |
+| 7 | Nyquist Validation | Complete | 2026-03-26 |
+| 8 | Backend Correctness | Complete | 2026-03-26 |
+| 9 | UI Polish | Complete | 2026-03-26 |
+| 10 | PoC Engine Fixes & Clock Injection | Complete | 2026-04-08 |
+| 11 | Daily Tracking Backend & Campaign Delay | Complete | 2026-04-09 |
+| 12 | Daily Digest & Timeline Calendar UI | Complete | 2026-04-09 |
+| 13 | PoC Scheduling Tests | Complete | 2026-04-09 |
 
 ## Decisions (v1.0)
 
@@ -106,40 +93,11 @@ Key decisions carried forward:
 - stopOnNthClock generalizes blockingClock with configurable block-at-N: fires immediately for calls < N, blocks on call >= N
 - No production code changes — all 6 tests verify existing runPoC() behavior via clock injection only
 
-## Decisions (Phase 14 Plan 01)
+## Decisions (Phase 16 Plan 01)
 
-- Tier field added to Technique struct between NistControls and SIEMCoverage, matching existing aligned struct tag convention
-- Tier added to ExecutionResult with json:"tier,omitempty" so HTML report can access it from results
-- TestTierClassified scaffold intentionally fails — it is the gate Plan 03 must satisfy by adding tier: N to all 58 YAMLs
-- T1059.001 and T1550.002 excluded from writeArtifacts map: no persistent artifacts / inline self-cleanup respectively
-- T1070.001 excluded from writeArtifacts in Plan 01 — cleanup added in Plan 02 (custom log channel rewrite per D-06)
-- Named return variable 'result' in RunWithCleanup is required for defer closure to write CleanupRun = true to caller's copy
-
-## Decisions (Phase 14, Plan 02)
-
-- T1070.001 uses LogNoJutsu-Test custom channel: generates authentic EID 104 without clearing real Security/Application/System logs
-- T1490 drops vssadmin/wmic/wbadmin: VSS shadow deletion is irreversible on client machines; bcdedit + registry steps are sufficient SIEM triggers
-- T1550.002 already self-cleans IPC$ and cmdkey inline in command block — empty cleanup field is correct by design
-- T1558.003 and all 5 UEBA chain techniques are read-only/query-only — empty cleanup fields are correct
-
-## Decisions (Phase 15, Plan 01)
-
-- NativeFunc signature is func() (NativeResult, error) — Go techniques close over their own state; no technique argument needed
-- type:go RunAs emits log note and proceeds as current user — Go functions cannot change user context
-- RunCleanupOnly handles Go techniques with early return to keep shell cleanup path clean
-
-## Decisions (Phase 15, Plan 02)
-
-- Pass WMI class name explicitly to wmi.CreateQuery when Go struct name differs from WMI class name (win32Process vs Win32_Process)
-- T1057 tier promoted from 3 to 1 — WMI Win32_Process query is a real implementation, not a stub
-- T1482 expected_events retained as-is; will be refined in Phase 18 when discovery techniques are overhauled
-
-## Decisions (Phase 14, Plan 03)
-
-- Tier 1/2/3 classification applied to all 58 techniques: T1=real attacker tools/APIs, T2=simulation shortcuts, T3=enumeration stubs; distribution: 30/15/13
-- AZURE_kerberoasting classified Tier 1: real System.IdentityModel TGS requests trigger real EID 4769 per SPN on DC
-- AZURE_dcsync classified Tier 2: LDAP ACL queries only, no actual replication tool
-- HasTier computed from results slice (result.Tier > 0) — mirrors existing HasCrowdStrike/HasSentinel pattern in reporter
+- AMSI detection only fires for powershell/psh executor types; returns early before verifier to avoid misleading Fail status
+- checkIsElevated() split into engine_windows.go (real Windows token API) and engine_other.go (permissive stub) — platform build tags avoid cross-compilation issues
+- isAdmin set once at Start() not per-technique — admin status doesn't change mid-run; SetAdmin() test helper mirrors SetRunner() injection pattern
 
 ## Roadmap Evolution
 
@@ -147,17 +105,11 @@ Key decisions carried forward:
 - Phase 11 added: Daily Tracking Backend & Campaign Delay (TRACK-01..04, CAMP-01)
 - Phase 12 added: Daily Digest & Timeline Calendar UI (DIGEST-01..03, CAL-01..04)
 - Phase 13 added: PoC Scheduling Tests (TEST-02..04)
-- v1.3 roadmap defined (2026-04-09): Phases 14-18, 16 requirements
 
 ## Known Technical Debt
 
 - Windows Defender quarantine of playbooks.test.exe — add `%LOCALAPPDATA%\Temp\go-build*` exclusion before running playbooks tests
 - HTML report tactic colors (UI-04): funcMap fix shipped (09-01), but could not be visually verified during UAT — no report was available at verification time
-- `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
-- German strings remain in `reporter.go` htmlTemplate (HTML reports)
-- Two audit GUIDs need on-machine validation on non-English Windows
-- engine.go:165 — `time.Now()` in Start() status init not clock-injected (cosmetic, doesn't affect scheduling)
-- engine.go:634 — Pre-existing German WhatIf string (consider full English localization in future milestone)
 
 ## Quick Tasks Completed
 
@@ -170,5 +122,4 @@ Key decisions carried forward:
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
-*v1.3 roadmap defined: 2026-04-09*
-*Last session: 2026-04-09 — 15-02 complete: T1482 LDAP and T1057 WMI native Go techniques*
+*Last session: 2026-04-09 — Completed 16-safety-infrastructure 16-01-PLAN.md*
