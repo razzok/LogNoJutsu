@@ -88,6 +88,11 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/report", s.authMiddleware(s.handleReport))
 	mux.HandleFunc("/api/poc/days", s.authMiddleware(s.handlePoCDays))
 
+	// Scan confirmation API
+	mux.HandleFunc("/api/scan/pending", s.authMiddleware(s.handleScanPending))
+	mux.HandleFunc("/api/scan/confirm", s.authMiddleware(s.handleScanConfirm))
+	mux.HandleFunc("/api/scan/cancel", s.authMiddleware(s.handleScanCancel))
+
 	// Preparation API
 	mux.HandleFunc("/api/prepare", s.authMiddleware(s.handlePrepare))
 	mux.HandleFunc("/api/prepare/step", s.authMiddleware(s.handlePrepareStep))
@@ -135,6 +140,39 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePoCDays(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, s.eng.GetDayDigests())
+}
+
+func (s *Server) handleScanPending(w http.ResponseWriter, r *http.Request) {
+	info := s.eng.GetScanPending()
+	if info == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	writeJSON(w, info)
+}
+
+func (s *Server) handleScanConfirm(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, "POST required", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := s.eng.ConfirmScan(); err != nil {
+		writeError(w, err.Error(), http.StatusConflict)
+		return
+	}
+	writeJSON(w, map[string]string{"status": "confirmed"})
+}
+
+func (s *Server) handleScanCancel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, "POST required", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := s.eng.CancelScan(); err != nil {
+		writeError(w, err.Error(), http.StatusConflict)
+		return
+	}
+	writeJSON(w, map[string]string{"status": "cancelled"})
 }
 
 func (s *Server) handleTechniques(w http.ResponseWriter, r *http.Request) {

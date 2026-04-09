@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"math/rand"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -110,6 +111,14 @@ type DayDigest struct {
 	LastHeartbeat  string    `json:"last_heartbeat,omitempty"`
 }
 
+// ScanInfo holds what the scan confirmation modal displays.
+type ScanInfo struct {
+	TargetSubnet  string   `json:"target_subnet"`
+	RateLimitNote string   `json:"rate_limit_note"`
+	IDSWarning    string   `json:"ids_warning"`
+	Techniques    []string `json:"techniques"`
+}
+
 // Engine manages the simulation lifecycle.
 type Engine struct {
 	mu                 sync.RWMutex
@@ -126,6 +135,12 @@ type Engine struct {
 	runner             RunnerFunc // nil = real executor
 	clock              Clock     // injectable; defaults to realClock{}
 	isAdmin            bool      // set once at Start(); guards per-technique elevation skip
+
+	// Scan confirmation state (D-07, D-08, D-09)
+	scanConfirmCh   chan struct{} // closed when consultant confirms; nil = no scan pending
+	scanCancelCh    chan struct{} // closed when consultant cancels scan
+	scanConfirmMu   sync.Mutex   // guards scanConfirmCh and scanPendingInfo
+	scanPendingInfo *ScanInfo    // non-nil when confirmation is pending
 }
 
 type resolvedProfile struct {
@@ -186,6 +201,11 @@ func (e *Engine) Start(cfg Config) error {
 	e.executedTechniques = nil
 	e.dayDigests = nil
 	e.rotationIndex = 0
+	e.scanConfirmMu.Lock()
+	e.scanConfirmCh = nil
+	e.scanCancelCh = nil
+	e.scanPendingInfo = nil
+	e.scanConfirmMu.Unlock()
 	initialPhase := PhaseDiscovery
 	if cfg.PoCMode {
 		initialPhase = PhasePoCPhase1
@@ -236,6 +256,115 @@ func (e *Engine) Stop() {
 	case e.stopCh <- struct{}{}:
 	default:
 	}
+}
+
+// ConfirmScan unblocks the engine after scan confirmation.
+func (e *Engine) ConfirmScan() error {
+	e.scanConfirmMu.Lock()
+	defer e.scanConfirmMu.Unlock()
+	if e.scanConfirmCh == nil {
+		return fmt.Errorf("no scan confirmation pending")
+	}
+	close(e.scanConfirmCh)
+	e.scanConfirmCh = nil
+	return nil
+}
+
+// CancelScan aborts the simulation from the scan confirmation modal.
+func (e *Engine) CancelScan() error {
+	e.scanConfirmMu.Lock()
+	defer e.scanConfirmMu.Unlock()
+	if e.scanCancelCh == nil {
+		return fmt.Errorf("no scan confirmation pending")
+	}
+	close(e.scanCancelCh)
+	e.scanCancelCh = nil
+	return nil
+}
+
+// GetScanPending returns the current scan info if confirmation is pending, nil otherwise.
+func (e *Engine) GetScanPending() *ScanInfo {
+	e.scanConfirmMu.Lock()
+	defer e.scanConfirmMu.Unlock()
+	return e.scanPendingInfo
+}
+
+// runScanConfirmation collects all requires_confirmation techniques and blocks until
+// the consultant confirms or cancels via the API. Returns nil if confirmed or no scan
+// techniques exist; returns an error (after calling abort()) if cancelled or stopped.
+func (e *Engine) runScanConfirmation() error {
+	allTechniques := append(
+		e.filterByTactics(e.registry.GetTechniquesByPhase("discovery")),
+		e.getTechniquesForPhase()...,
+	)
+	var confirmTechs []string
+	for _, t := range allTechniques {
+		if t.RequiresConfirmation {
+			confirmTechs = append(confirmTechs, t.ID)
+		}
+	}
+	if len(confirmTechs) == 0 {
+		return nil
+	}
+
+	info := &ScanInfo{
+		TargetSubnet:  detectLocalSubnet(),
+		RateLimitNote: "Rate limit: 50 connections/second",
+		IDSWarning:    "Active scanning may trigger IDS/IPS alerts on monitored networks.",
+		Techniques:    confirmTechs,
+	}
+	e.scanConfirmMu.Lock()
+	e.scanPendingInfo = info
+	e.scanConfirmCh = make(chan struct{})
+	e.scanCancelCh = make(chan struct{})
+	confirmCh := e.scanConfirmCh
+	cancelCh := e.scanCancelCh
+	e.scanConfirmMu.Unlock()
+
+	simlog.Info("[ScanConfirm] Waiting for consultant confirmation...")
+	select {
+	case <-confirmCh:
+		simlog.Info("[ScanConfirm] Confirmed — proceeding with simulation")
+		e.scanConfirmMu.Lock()
+		e.scanPendingInfo = nil
+		e.scanConfirmMu.Unlock()
+		return nil
+	case <-cancelCh:
+		simlog.Info("[ScanConfirm] Cancelled by consultant")
+		e.scanConfirmMu.Lock()
+		e.scanPendingInfo = nil
+		e.scanConfirmMu.Unlock()
+		e.abort()
+		return fmt.Errorf("scan cancelled")
+	case <-e.stopCh:
+		e.scanConfirmMu.Lock()
+		e.scanPendingInfo = nil
+		e.scanConfirmMu.Unlock()
+		e.abort()
+		return fmt.Errorf("stopped")
+	}
+}
+
+// detectLocalSubnet returns the /24 subnet of the first non-loopback IPv4 interface.
+func detectLocalSubnet() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "unknown"
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+		addrs, _ := iface.Addrs()
+		for _, addr := range addrs {
+			if ipNet, ok := addr.(*net.IPNet); ok {
+				if ip4 := ipNet.IP.To4(); ip4 != nil {
+					return fmt.Sprintf("%d.%d.%d.0/24", ip4[0], ip4[1], ip4[2])
+				}
+			}
+		}
+	}
+	return "unknown"
 }
 
 func (e *Engine) GetStatus() Status {
@@ -315,6 +444,14 @@ func (e *Engine) run() {
 		simlog.Info(fmt.Sprintf("Waiting %ds before Discovery phase...", e.cfg.DelayBeforeDiscovery))
 		if !e.waitOrStop(time.Duration(e.cfg.DelayBeforeDiscovery) * time.Second) {
 			e.abort()
+			return
+		}
+	}
+
+	// Scan confirmation pre-flight — fires once per simulation (per D-07)
+	if !e.cfg.WhatIf {
+		if err := e.runScanConfirmation(); err != nil {
+			// Cancelled or stopped during confirmation
 			return
 		}
 	}
@@ -421,6 +558,14 @@ func (e *Engine) runPoC() {
 		e.mu.Lock()
 		e.dayDigests = digests
 		e.mu.Unlock()
+	}
+
+	// Scan confirmation pre-flight — fires once per PoC simulation (per D-07)
+	if !cfg.WhatIf {
+		if err := e.runScanConfirmation(); err != nil {
+			// Cancelled or stopped during confirmation
+			return
+		}
 	}
 
 	// ── Phase 1: Discovery ──────────────────────────────────────────

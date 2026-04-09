@@ -47,6 +47,7 @@ type Technique struct {
 	NistControls      []string            `yaml:"nist_controls"      json:"nist_controls,omitempty"`
 	SIEMCoverage         map[string][]string `yaml:"siem_coverage,omitempty"  json:"siem_coverage,omitempty"`
 	RequiresConfirmation bool                `yaml:"requires_confirmation"    json:"requires_confirmation,omitempty"`
+	Tier                 int                 `yaml:"tier"                     json:"tier,omitempty"`
 }
 
 type Executor struct {
@@ -87,4 +88,5 @@ type ExecutionResult struct {
 	VerifiedEvents     []VerifiedEvent     `json:"verified_events,omitempty"`
 	VerifyTime         string              `json:"verify_time,omitempty"`
 	SIEMCoverage       map[string][]string `json:"siem_coverage,omitempty"`
+	Tier               int                 `json:"tier,omitempty"`
 }
