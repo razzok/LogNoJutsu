@@ -46,10 +46,13 @@ Declared values (must be multiples of 4):
 
 Exceptions:
 - Day cell touch target: 32×32px (not 44px — desktop-only internal tool, no mobile requirement)
-- Digest row header padding: 10px top/bottom, 14px left/right (inherits from `.result-header` pattern — source: index.html line 89)
-- Digest row body padding: 12px top/bottom, 14px left/right (inherits from `.result-body` pattern — source: index.html line 90)
-- Day group label: 10px font-size (below scale — established pattern for meta labels, matches `.lbl` at 11px)
 - Calendar strip bottom padding: 4px (overflow-x scroll clearance)
+
+Inherited class padding (not new spacing decisions — carried forward unchanged from existing `.result-header` / `.result-body` CSS rules in index.html lines 89–90):
+- `.digest-header` inherits `.result-header` padding (`10px 14px`) — no new spacing value introduced
+- `.digest-body` inherits `.result-body` padding (`12px 14px`) — no new spacing value introduced
+
+These values are not part of the spacing contract. Executor must not redefine them — copy the existing CSS rule verbatim.
 
 ---
 
@@ -57,19 +60,25 @@ Exceptions:
 
 Source: index.html line 15 — body font-size 14px established project-wide.
 
+Consolidated to 4 sizes (checker maximum):
+
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 (regular) | 1.5 |
-| Label / meta | 11–12px | 400 (regular) | 1.4 |
-| Heading (card h2) | 15px | 600 (semibold) | 1.2 |
+| Secondary info | 12px | 400 (regular) | 1.4 |
+| Label / meta | 11px | 400 (regular) | 1.4 |
 | Day cell number | 11px | 600 (semibold) | 1 (single-line centered) |
 
-Notes:
-- Day group phase labels ("Phase 1", "Gap", "Phase 2"): 10px, weight 400, uppercase, letter-spacing 0.5px, color `var(--muted)` — matches existing `.lbl` meta pattern
-- Status labels in digest header (● Active, ✓ Done): 13px, weight 400 — matches existing `.result-header` font-size
-- Pass/fail counts in digest header: 12px, weight 400, color `var(--green)` / `var(--red)`
-- Time window in digest header: 12px, weight 400, color `var(--muted)`
-- Expanded body values: 12px, weight 400, color `var(--muted)` — matches `.result-body` pattern
+Size consolidation decisions:
+- 13px status labels (● Active, ✓ Done) consolidated into 12px — the existing `.result-header` renders these fine at 12px; the weight distinction is not needed here
+- 15px heading consolidated into 14px at weight 600 — semibold at 14px is visually distinct from regular 14px body without requiring a separate size step
+- 10px day group phase labels consolidated into 11px — use 11px uppercase with `letter-spacing: 0.5px` and `color: var(--muted)` to achieve the same compact meta treatment as the previous 10px approach; this matches the existing `.lbl` pattern at 11px
+
+Applied roles:
+- Body (14px, 400): digest row heading text; technique/pass/fail counts in collapsed header
+- Secondary info (12px, 400): pass/fail counts; time window; expanded body values; status labels (● Active, ✓ Done, ○ Pending)
+- Label / meta (11px, 400, uppercase, letter-spacing 0.5px): day group phase labels ("Phase 1", "Gap", "Phase 2") — color `var(--muted)`
+- Day cell number (11px, 600): day number centered inside `.day-cell` — same size as label/meta but distinguished by weight 600
 
 ---
 
@@ -108,6 +117,8 @@ Color-to-status mapping (CAL-02):
 
 Transition: `background-color 0.4s ease` on `.day-cell` (D-13 — pure CSS, no JS animation).
 
+Primary visual anchor: the active day cell (accent-colored) in the calendar strip and the auto-expanded active digest row. These two elements draw the eye first on every render — the calendar strip shows where today is in the schedule, the digest below provides the detail. All other visual elements are subordinate to this pair.
+
 ---
 
 ## Component Inventory
@@ -120,7 +131,7 @@ New CSS classes required (all follow existing naming conventions in index.html):
 #dayCalendarPanel          Panel container (display:none when no data)
 .day-strip                 Flex row, overflow-x:auto, gap:4px, padding-bottom:4px
 .day-group                 Flex column, gap:4px — one per phase group
-.day-group-label           10px, uppercase, var(--muted), letter-spacing:.5px
+.day-group-label           11px, uppercase, var(--muted), letter-spacing:.5px
 .day-cells                 Flex row, gap:4px — contains day cells for a group
 .day-cell                  32×32px square, border-radius:4px, font-size:11px, weight:600
                            transition:background-color .4s ease
@@ -136,11 +147,11 @@ New CSS classes required (all follow existing naming conventions in index.html):
 #dayDigestPanel            Panel container (display:none when no data)
 .digest-row                border:1px solid var(--border), border-radius:6px, margin-bottom:6px
 .digest-row.active-day     border-color:var(--accent) — static accent border, no animation
-.digest-header             display:flex, align-items:center, gap:10px, padding:10px 14px
+.digest-header             display:flex, align-items:center, gap:10px — inherits padding from .result-header
                            background:var(--bg3), cursor:pointer
-.digest-chevron            Unicode ▶ glyph, font-size:10px, transition:transform .2s
+.digest-chevron            Unicode ▶ glyph, font-size:11px, transition:transform .2s
 .digest-chevron.open       transform:rotate(90deg) — points down when expanded
-.digest-body               padding:12px 14px, background:var(--bg2), display:none
+.digest-body               inherits padding from .result-body, background:var(--bg2), display:none
 .digest-body.open          display:block
 ```
 
@@ -277,6 +288,8 @@ No third-party registries. No shadcn. No npm packages introduced in this phase.
 | hasDayData detection pattern | RESEARCH.md Open Questions |
 | Static accent border for active-day (no pulse animation) | RESEARCH.md Open Questions |
 | All color values (hex + rgba) | index.html lines 8–13 (direct read) |
-| All font sizes and weights | index.html lines 15–158 (direct read) |
+| Typography: 6→4 size consolidation (13px→12px, 15px→14px, 10px→11px) | Checker revision 2026-04-09 |
+| Spacing: inherited padding removed from contract | Checker revision 2026-04-09 |
+| Focal point statement added (active day cell + digest row) | Checker revision 2026-04-09 |
 | All spacing values | index.html lines 15–158 (direct read) |
 | Timestamp format | index.html line 806 renderTimeline pattern |
