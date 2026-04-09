@@ -254,12 +254,11 @@ func TestWriteArtifactsHaveCleanup(t *testing.T) {
 	// Excluded from this list:
 	//   T1059.001 — no persistent artifacts written; only PowerShell invocation patterns
 	//   T1550.002 — inline self-cleanup (cmdkey /delete, net use /delete) within the command body
-	//   T1070.001 — cleanup added in Plan 02 (custom log channel rewrite)
 	writeArtifacts := map[string]bool{
 		"T1053.005": true, "T1543.003": true, "T1547.001": true,
 		"T1546.003": true, "T1562.002": true, "T1548.002": true,
 		"T1036.005": true, "T1134.001": true, "T1574.002": true,
-		"T1490": true, "T1027": true,
+		"T1490": true, "T1070.001": true, "T1027": true,
 		"T1005": true, "T1560.001": true, "T1119": true,
 		"T1041": true, "T1047": true, "T1021.001": true,
 		"T1021.002": true, "T1136.001": true,
