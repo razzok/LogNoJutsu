@@ -5,12 +5,12 @@ milestone_name: milestone
 current_phase: Complete
 current_plan: N/A
 status: v1.2 milestone complete
-last_updated: "2026-04-09T17:05:03.279Z"
+last_updated: "2026-04-09T17:35:00.000Z"
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 6
+  total_phases: 5
+  completed_phases: 4
+  total_plans: 13
+  completed_plans: 13
 ---
 
 # Project State
@@ -99,6 +99,12 @@ Key decisions carried forward:
 - checkIsElevated() split into engine_windows.go (real Windows token API) and engine_other.go (permissive stub) — platform build tags avoid cross-compilation issues
 - isAdmin set once at Start() not per-technique — admin status doesn't change mid-run; SetAdmin() test helper mirrors SetRunner() injection pattern
 
+## Decisions (Phase 16 Plan 03)
+
+- AMSI stat boxes shown conditionally (gt 0) — consistent with HasCrowdStrike/HasSentinel pattern
+- Elevation-skipped rows use inline opacity:0.6 via JS rowOpacity variable — simpler than CSS class for single property
+- verifHtml computed before template literal in loadResults() for clean conditional badge rendering
+
 ## Roadmap Evolution
 
 - Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
@@ -122,4 +128,4 @@ Key decisions carried forward:
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
-*Last session: 2026-04-09 — Completed 16-safety-infrastructure 16-01-PLAN.md*
+*Last session: 2026-04-09 — Completed 16-03-PLAN.md*
