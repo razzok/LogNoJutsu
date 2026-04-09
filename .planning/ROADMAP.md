@@ -49,7 +49,7 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 ### v1.3 Realistic Attack Simulation
 
 - [x] **Phase 14: Safety Audit** — All existing techniques audited, classified, and made safe before any upgrades (1/3 plans complete) (completed 2026-04-09)
-- [ ] **Phase 15: Native Go Architecture** — Go executor and native Go libraries in place to support realistic technique execution
+- [x] **Phase 15: Native Go Architecture** — Go executor and native Go libraries in place to support realistic technique execution (completed 2026-04-09)
 - [ ] **Phase 16: Safety Infrastructure** — AMSI classification, elevation detection, and scan safeguards protect technique execution
 - [ ] **Phase 17: Network Discovery** — Real ARP/ICMP/TCP scanning of the local /24 subnet with user-facing safeguards
 - [ ] **Phase 18: Technique Realism** — Discovery stubs replaced with real tool execution; persistence, defense evasion, and C2 technique sets added
@@ -83,7 +83,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 15-01-PLAN.md — Native registry package and type:go executor dispatch
-- [ ] 15-02-PLAN.md — T1482 LDAP and T1057 WMI techniques with YAML updates
+- [x] 15-02-PLAN.md — T1482 LDAP and T1057 WMI techniques with YAML updates
 
 ### Phase 16: Safety Infrastructure
 **Goal**: The engine detects AMSI blocks and missing elevation, and network scans require explicit user acknowledgment before running

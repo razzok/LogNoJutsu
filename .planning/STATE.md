@@ -5,11 +5,11 @@ milestone_name: Realistic Attack Simulation
 current_phase: 15
 current_plan: 2
 status: Executing Phase 15
-last_updated: "2026-04-09T14:21:29.432Z"
+last_updated: "2026-04-09T14:27:53.088Z"
 last_activity: 2026-04-09
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
   completed_plans: 5
 ---
@@ -128,6 +128,12 @@ Key decisions carried forward:
 - type:go RunAs emits log note and proceeds as current user — Go functions cannot change user context
 - RunCleanupOnly handles Go techniques with early return to keep shell cleanup path clean
 
+## Decisions (Phase 15, Plan 02)
+
+- Pass WMI class name explicitly to wmi.CreateQuery when Go struct name differs from WMI class name (win32Process vs Win32_Process)
+- T1057 tier promoted from 3 to 1 — WMI Win32_Process query is a real implementation, not a stub
+- T1482 expected_events retained as-is; will be refined in Phase 18 when discovery techniques are overhauled
+
 ## Decisions (Phase 14, Plan 03)
 
 - Tier 1/2/3 classification applied to all 58 techniques: T1=real attacker tools/APIs, T2=simulation shortcuts, T3=enumeration stubs; distribution: 30/15/13
@@ -165,4 +171,4 @@ Key decisions carried forward:
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
 *v1.3 roadmap defined: 2026-04-09*
-*Last session: 2026-04-09 — 15-01 complete: native Go registry package + type:go dispatch in executor*
+*Last session: 2026-04-09 — 15-02 complete: T1482 LDAP and T1057 WMI native Go techniques*
