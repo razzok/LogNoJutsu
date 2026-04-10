@@ -5,12 +5,12 @@ milestone_name: Realistic Attack Simulation
 current_phase: 17
 current_plan: 2
 status: Executing Phase 17
-last_updated: "2026-04-10T17:29:00.000Z"
+last_updated: "2026-04-10T18:09:00.000Z"
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 15
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -106,6 +106,13 @@ Key decisions carried forward:
 - dialTimeout=300ms per research recommendation — covers LAN hosts without excessive delay
 - UDP results are best-effort — Windows Firewall suppresses ICMP port-unreachable; noted in output
 
+## Decisions (Phase 17 Plan 02)
+
+- T1018 ICMP fallback: net.ListenPacket("ip4:icmp") error signals non-admin; delegates to tcpAliveCheck() on ports 445/135 — no separate privilege check needed
+- strings.Fields ARP parsing: handles varied whitespace from arp -a; net.ParseIP(fields[0]) == nil skips header lines
+- nltest fallback: distinguish "binary not found" (exec error) from "non-domain exit" (non-zero exit code) for accurate error messages
+- DNS target union: merge ICMP alive hosts and ARP IP entries with seen-map dedup to avoid duplicate lookups
+
 ## Decisions (Phase 16 Plan 03)
 
 - AMSI stat boxes shown conditionally (gt 0) — consistent with HasCrowdStrike/HasSentinel pattern
@@ -135,4 +142,4 @@ Key decisions carried forward:
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
-*Last session: 2026-04-10 — Completed 17-01-PLAN.md*
+*Last session: 2026-04-10 — Completed 17-02-PLAN.md*
