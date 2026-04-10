@@ -478,9 +478,13 @@
               <span style="font-size:11px; color:var(--muted); margin-top:3px;">2–5 Discovery techniques/day for an organic baseline pattern.</span>
             </div>
             <div class="form-group">
-              <label>Time (hour, 0–23)</label>
-              <input type="number" id="pocP1Hour" value="9" min="0" max="23" oninput="updatePoCSchedule()" />
-              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Time of day for daily execution. Recommendation: business hours (8–10).</span>
+              <label>Window (hours, 0–23)</label>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="number" id="pocP1WindowStart" value="8" min="0" max="23" oninput="updatePoCSchedule()" style="width:70px;" />
+                <span style="color:var(--muted);">to</span>
+                <input type="number" id="pocP1WindowEnd" value="17" min="0" max="23" oninput="updatePoCSchedule()" style="width:70px;" />
+              </div>
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Techniques distributed randomly within this window. Default: business hours (08:00–17:00).</span>
             </div>
           </div>
 
@@ -509,9 +513,13 @@
               <span style="font-size:11px; color:var(--muted); margin-top:3px;">This campaign is fully executed every day of Phase 2.</span>
             </div>
             <div class="form-group">
-              <label>Time (hour, 0–23)</label>
-              <input type="number" id="pocP2Hour" value="10" min="0" max="23" oninput="updatePoCSchedule()" />
-              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Recommendation: shortly after Phase 1 time or other business hour.</span>
+              <label>Window (hours, 0–23)</label>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="number" id="pocP2WindowStart" value="8" min="0" max="23" oninput="updatePoCSchedule()" style="width:70px;" />
+                <span style="color:var(--muted);">to</span>
+                <input type="number" id="pocP2WindowEnd" value="17" min="0" max="23" oninput="updatePoCSchedule()" style="width:70px;" />
+              </div>
+              <span style="font-size:11px; color:var(--muted); margin-top:3px;">Techniques distributed randomly within this window. Default: business hours (08:00–17:00).</span>
             </div>
           </div>
         </div>
@@ -1115,10 +1123,12 @@ async function startSimulation() {
       poc_mode: true,
       phase1_duration_days: parseInt(document.getElementById('pocP1Days').value) || 7,
       phase1_techs_per_day: parseInt(document.getElementById('pocP1TechsPerDay').value) || 3,
-      phase1_daily_hour: parseInt(document.getElementById('pocP1Hour').value) || 9,
+      phase1_window_start: parseInt(document.getElementById('pocP1WindowStart').value) || 8,
+      phase1_window_end:   parseInt(document.getElementById('pocP1WindowEnd').value)   || 17,
       gap_days: parseInt(document.getElementById('pocGapDays').value) || 0,
       phase2_duration_days: parseInt(document.getElementById('pocP2Days').value) || 7,
-      phase2_daily_hour: parseInt(document.getElementById('pocP2Hour').value) || 10,
+      phase2_window_start: parseInt(document.getElementById('pocP2WindowStart').value) || 8,
+      phase2_window_end:   parseInt(document.getElementById('pocP2WindowEnd').value)   || 17,
       campaign_id: document.getElementById('pocP2Campaign').value,
       run_cleanup: document.getElementById('cfgCleanup').checked,
       whatif: whatIf,
@@ -1289,8 +1299,10 @@ function updatePoCSchedule() {
   const p1Days = parseInt(document.getElementById('pocP1Days')?.value) || 7;
   const gapDays = parseInt(document.getElementById('pocGapDays')?.value) || 0;
   const p2Days = parseInt(document.getElementById('pocP2Days')?.value) || 7;
-  const p1Hour = parseInt(document.getElementById('pocP1Hour')?.value) || 9;
-  const p2Hour = parseInt(document.getElementById('pocP2Hour')?.value) || 10;
+  const p1WinStart = parseInt(document.getElementById('pocP1WindowStart')?.value) || 8;
+  const p1WinEnd   = parseInt(document.getElementById('pocP1WindowEnd')?.value)   || 17;
+  const p2WinStart = parseInt(document.getElementById('pocP2WindowStart')?.value) || 8;
+  const p2WinEnd   = parseInt(document.getElementById('pocP2WindowEnd')?.value)   || 17;
 
   const rows = [];
   const today = new Date();
@@ -1301,7 +1313,7 @@ function updatePoCSchedule() {
   // Phase 1 dates
   const p1Start = new Date(today); p1Start.setDate(today.getDate() + 1);
   const p1End = new Date(p1Start); p1End.setDate(p1Start.getDate() + p1Days - 1);
-  rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--accent)"></div><div style="min-width:120px;color:var(--accent);font-weight:500;">Phase 1: Discovery</div><div style="color:var(--text);">${fmt(p1Start)} – ${fmt(p1End)}</div><div style="margin-left:auto;color:var(--muted);">${p1Days} days • daily ${p1Hour}:00</div></div>`);
+  rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--accent)"></div><div style="min-width:120px;color:var(--accent);font-weight:500;">Phase 1: Discovery</div><div style="color:var(--text);">${fmt(p1Start)} – ${fmt(p1End)}</div><div style="margin-left:auto;color:var(--muted);">${p1Days} days \u2022 ${String(p1WinStart).padStart(2,'0')}:00\u2013${String(p1WinEnd).padStart(2,'0')}:00</div></div>`);
 
   // Gap dates
   if (gapDays > 0) {
@@ -1313,7 +1325,7 @@ function updatePoCSchedule() {
   // Phase 2 dates
   const p2Start = new Date(p1End); p2Start.setDate(p1End.getDate() + gapDays + 1);
   const p2End = new Date(p2Start); p2End.setDate(p2Start.getDate() + p2Days - 1);
-  rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--red)"></div><div style="min-width:120px;color:var(--red);font-weight:500;">Phase 2: Attack</div><div style="color:var(--text);">${fmt(p2Start)} – ${fmt(p2End)}</div><div style="margin-left:auto;color:var(--muted);">${p2Days} days • daily ${p2Hour}:00</div></div>`);
+  rows.push(`<div class="poc-schedule-row"><div class="poc-schedule-dot" style="background:var(--red)"></div><div style="min-width:120px;color:var(--red);font-weight:500;">Phase 2: Attack</div><div style="color:var(--text);">${fmt(p2Start)} – ${fmt(p2End)}</div><div style="margin-left:auto;color:var(--muted);">${p2Days} days \u2022 ${String(p2WinStart).padStart(2,'0')}:00\u2013${String(p2WinEnd).padStart(2,'0')}:00</div></div>`);
 
   // Total
   const totalDays = p1Days + gapDays + p2Days;
