@@ -1,0 +1,28 @@
+id: T1018
+name: Remote System Discovery
+description: Native Go remote system discovery — chains ICMP ping sweep (admin) or TCP alive check (non-admin), ARP table enumeration, nltest DC discovery, and DNS reverse lookups across the local /24 subnet. Generates Sysmon EID 3 from network connections and Security EID 4688 from nltest.exe process creation.
+tactic: discovery
+technique_id: T1018
+platform: windows
+phase: discovery
+elevation_required: false
+tier: 1
+requires_confirmation: true
+expected_events:
+  - event_id: 3
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "NetworkConnect - ICMP/TCP alive checks from lognojutsu.exe"
+  - event_id: 4688
+    channel: "Security"
+    description: "Process Creation - nltest.exe DC discovery"
+  - event_id: 4688
+    channel: "Security"
+    description: "Process Creation - arp.exe table dump"
+tags:
+  - discovery
+  - no-prereqs
+  - network
+executor:
+  type: go
+  command: ""
+cleanup: ""
