@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Realistic Attack Simulation
-current_phase: 18
-current_plan: Not started
-status: v1.3 milestone complete
-last_updated: "2026-04-10T19:54:54.213Z"
+milestone: v1.4
+milestone_name: PoC Technique Distribution
+current_phase: null
+current_plan: null
+status: Defining requirements
+last_updated: "2026-04-10T22:30:00.000Z"
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 16
-  completed_plans: 16
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -21,12 +21,12 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Planning next milestone
+**Current focus:** v1.4 — PoC Technique Distribution
 
 ## Current Status
 
-**Milestone:** v1.3 — Realistic Attack Simulation — Shipped (2026-04-10)
-**Current phase:** —
+**Milestone:** v1.4 — PoC Technique Distribution
+**Current phase:** Not started (defining requirements)
 **Current plan:** —
 
 ## Phase Progress

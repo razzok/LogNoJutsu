@@ -49,9 +49,10 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 
 ### Active
 
-<!-- Current scope for next milestone — to be defined in /gsd:new-milestone. -->
+<!-- Current scope for v1.4. -->
 
-(No active requirements — next milestone not yet started)
+- [ ] Technique execution distributed across the day with random jitter (not all at scheduled hour)
+- [ ] Phase 2 batching: 2-3 techniques per slot with jittered delays between batches
 
 ### Out of Scope
 
@@ -103,6 +104,15 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | Custom LogNoJutsu-Test channel for T1070.001 | Generates authentic EID 104 without clearing real Security/Application/System logs | ✓ Good — safe for client machines |
 | Native Go technique registry | In-process execution via type:go dispatch — no child process for native techniques | ✓ Good — eliminates shell overhead, enables real library calls (LDAP, WMI) |
 
+## Current Milestone: v1.4 PoC Technique Distribution
+
+**Goal:** Spread technique execution across the day with random jitter instead of firing all techniques at once at the scheduled hour.
+
+**Target features:**
+- Phase 1 (Discovery): Techniques distributed throughout the day with random jitter, one at a time
+- Phase 2 (Campaign/Attack): Techniques distributed in small batches (2-3), with jittered delays between batches
+- Configurable time window within which techniques are spread
+
 ## Current State
 
 **Latest shipped:** v1.3 Realistic Attack Simulation (2026-04-10)
@@ -136,4 +146,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-10 after v1.3 Realistic Attack Simulation milestone*
+*Last updated: 2026-04-10 after v1.4 PoC Technique Distribution milestone started*
