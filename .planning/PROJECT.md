@@ -51,8 +51,8 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 
 <!-- Current scope for v1.4. -->
 
-- [ ] Technique execution distributed across the day with random jitter (not all at scheduled hour)
-- [ ] Phase 2 batching: 2-3 techniques per slot with jittered delays between batches
+- ✓ Technique execution distributed across the day with random jitter (not all at scheduled hour) — Validated in Phase 19
+- ✓ Phase 2 batching: 2-3 techniques per slot with jittered delays between batches — Validated in Phase 19
 
 ### Out of Scope
 
@@ -119,6 +119,8 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 
 v1.3 delivered realistic attack simulation capabilities: all 59 techniques classified by realism tier (29 Tier 1 / 19 Tier 2 / 10 Tier 3), native Go execution for network scanning (T1046 TCP/UDP subnet scan, T1018 ICMP/ARP/nltest/DNS discovery), safety infrastructure (AMSI detection, elevation gating, scan confirmation), and destructive technique rewrites ensuring client machine safety. All 16 v1.3 requirements verified and closed.
 
+**Phase 19 complete:** Distributed technique scheduling — `randomSlotsInWindow()` distributes techniques across configurable time windows with random jitter. Phase 1 fires one technique per slot, Phase 2 fires batches of 2-3. UI updated with window start/end inputs.
+
 **Known tech debt (carried forward):**
 - `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
 - German strings remain in `reporter.go` htmlTemplate (HTML reports) and engine.go WhatIf strings
@@ -146,4 +148,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-10 after v1.4 PoC Technique Distribution milestone started*
+*Last updated: 2026-04-10 after Phase 19 (distributed technique scheduling) completed*
