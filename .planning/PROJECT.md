@@ -43,12 +43,13 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - ✓ 6 deterministic PoC scheduling tests (day counter, stop-signal, DayDigest lifecycle) — v1.2
 - ✓ Safety audit: destructive techniques rewritten, all 58 techniques classified Tier 1/2/3, defer-style cleanup — v1.3
 - ✓ Native Go architecture: type:go executor dispatch, technique registry, T1482 LDAP + T1057 WMI native implementations — v1.3
+- ✓ Network discovery: T1046 TCP/UDP /24 subnet scanner + T1018 ICMP/ARP/nltest/DNS discovery chain — v1.3
 
 ### Active
 
 <!-- Current scope for next milestone. -->
 
-- [ ] Real network discovery (ARP/ICMP + TCP port scan on local /24 subnet)
+- [x] Real network discovery (ARP/ICMP + TCP port scan on local /24 subnet)
 - [ ] Realistic technique execution (real LDAP queries, authentic tool usage instead of PowerShell echo stubs)
 - [ ] Expanded technique repertoire with diverse attack patterns
 - [ ] Research-driven implementation based on open-source BAS platforms (Atomic Red Team, Caldera, MITRE tooling)
@@ -123,6 +124,8 @@ v1.2 delivered reliable PoC/Multiday mode with per-day execution tracking, timel
 **Phase 15 complete:** Native Go Architecture (2026-04-09) — Thread-safe technique registry, `type: go` executor dispatch (no child process spawning), T1482 LDAP trust discovery and T1057 WMI process discovery as first native Go techniques. Foundation for realistic technique execution in Phases 17-18.
 
 **Phase 16 complete:** Safety Infrastructure (2026-04-09) — AMSI block detection in PowerShell executor, elevation gating for admin-required techniques, scan confirmation modal with subnet/IDS warning, and color-coded status badges (AMSI Blocked / Elevation Required) in both HTML reports and web UI. INFRA-01, INFRA-02, INFRA-03 all verified.
+
+**Phase 17 complete:** Network Discovery (2026-04-10) — T1046 TCP/UDP /24 subnet scanner (15-worker goroutine pool, 17 TCP + 3 UDP ports) and T1018 four-method remote system discovery (ICMP ping sweep with TCP fallback, ARP table dump, nltest DC discovery, DNS reverse lookups). Both Tier 1 native Go techniques with 15 unit tests. SCAN-01, SCAN-02, SCAN-03 verified.
 
 **Known tech debt (carried forward):**
 - `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
