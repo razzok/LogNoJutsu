@@ -6,20 +6,23 @@ technique_id: T1135
 platform: windows
 phase: discovery
 elevation_required: false
-tier: 3
+tier: 2
 expected_events:
   - event_id: 4688
     channel: "Security"
-    description: "net.exe with view/share arguments"
+    description: "net.exe with 'share' and 'view' arguments — share enumeration commands"
   - event_id: 5140
     channel: "Security"
-    description: "Network share accessed — admin share access"
+    description: "Network share accessed via dir \\\\COMPUTERNAME\\C$ — requires 'Object Access > File Share' audit policy enabled (not default)"
   - event_id: 5145
     channel: "Security"
-    description: "Network share object checked — file share audit"
+    description: "Network share object access checked — requires 'Object Access > File Share' audit policy enabled (not default)"
+  - event_id: 4104
+    channel: "Microsoft-Windows-PowerShell/Operational"
+    description: "ScriptBlock logging for Get-SmbShare and Get-WmiObject Win32_Share enumeration"
   - event_id: 3
     channel: "Microsoft-Windows-Sysmon/Operational"
-    description: "NetworkConnect to SMB port 445"
+    description: "NetworkConnect to SMB port 445 on loopback — admin share access via UNC path"
 tags:
   - discovery
   - no-prereqs

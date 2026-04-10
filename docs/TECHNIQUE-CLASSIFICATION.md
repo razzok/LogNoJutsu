@@ -57,19 +57,19 @@ Techniques with `requires_confirmation: true` prompt the operator for explicit a
 | T1057 | Process Discovery | 1 | **go** | No | No | Full attacker process enumeration via tasklist /v /svc, wmic process get CommandLine, Get-WmiObject Win32_Process with parent-child tree targeting lsass/csrss/winlogon |
 | T1059.001 | PowerShell Execution | 1 | ps | No | No | Real powershell.exe invocation with full attacker flag set; no persistent artifacts from invocation itself |
 | T1059.003 | Windows Command Shell (cmd.exe) | 1 | ps | No | Yes | Real cmd.exe chained recon commands with output redirection -- authentic attacker cmd.exe pattern |
-| T1069 | Permission Groups Discovery | 3 | ps | No | No | net localgroup enumeration only; no exploitation |
+| T1069 | Permission Groups Discovery | 1 | ps | No | No | Real net.exe 'localgroup Administrators' generates EID 4688 with attacker command line; whoami /groups, wmic group, .NET WindowsIdentity — no simulation shortcuts |
 | T1070.001 | Clear Windows Event Logs | 2 | ps | Yes | Yes | Creates custom LogNoJutsu-Test channel + wevtutil cl; generates real EID 104 but not clearing real Security/System logs |
 | T1071.001 | Application Layer Protocol -- Web Protocols | 2 | ps | No | No | Real Invoke-WebRequest to .invalid C2 host; Sysmon EID 3 + EID 22 fire but connection fails by design |
 | T1071.004 | Application Layer Protocol -- DNS | 2 | ps | No | No | Real nslookup + DNS subdomain loop to .invalid domain; Sysmon EID 22 fires but no real C2 channel |
-| T1082 | System Information Discovery | 3 | ps | No | No | systeminfo + hostname + whoami /all -- trivial system info discovery |
-| T1083 | File and Directory Discovery | 3 | ps | No | No | Get-ChildItem recursive enumeration; file discovery only |
+| T1082 | System Information Discovery | 1 | ps | No | No | Full attacker recon burst: systeminfo, wmic /format:csv, reg query, hostname, whoami — temporal clustering is Exabeam behavioral trigger; all real tools with real parameters |
+| T1083 | File and Directory Discovery | 1 | ps | No | No | Real cmd.exe dir /s /b on user profile paths + tree /F + Get-ChildItem recursive on sensitive locations + ADS detection — genuine attacker file enumeration artifacts |
 | T1087 | Account Discovery | 3 | ps | No | No | net user + net localgroup + ADSI queries; account enumeration only |
 | T1098 | Account Manipulation | 1 | ps | Yes | Yes | Real net user /add + net localgroup /add + password changes trigger EID 4720, EID 4732 |
 | T1110.001 | Password Brute Force | 1 | ps | No | No | Real Win32 LogonUser API calls generating EID 4625 bursts with correct SubStatus codes |
 | T1110.003 | Password Spraying | 1 | ps | No | No | Real GetLocalUser + LogonUser spray pattern generating EID 4625 across multiple accounts |
 | T1119 | Automated Collection | 3 | ps | No | Yes | Automated Get-ChildItem loop with file metadata collection; no actual data staging to C2 |
 | T1134.001 | Token Impersonation/Theft | 3 | ps | No | Yes | whoami /priv + SeDebugPrivilege check; privilege enumeration only, no actual token theft |
-| T1135 | Network Share Discovery | 3 | ps | No | No | net share + Get-SmbShare + WMI Win32_Share enumeration; discovery only |
+| T1135 | Network Share Discovery | 2 | ps | No | No | Real net share/view + Get-SmbShare enumeration but admin share access (dir \\COMPUTERNAME\C$) is loopback SMB — simulation shortcut; EID 5140/5145 require Object Access audit policy |
 | T1136.001 | Create Local Account | 1 | ps | Yes | Yes | Real net user /add + net localgroup /add trigger EID 4720 (account created) + EID 4732 (group add) |
 | T1197 | BITS Jobs Persistence | 1 | ps | No | Yes | Real bitsadmin /setnotifycmdline with Windows-masquerading job name; EID 59 fires on completion |
 | T1218.011 | Rundll32 Proxy Execution | 1 | ps | No | Yes | Real rundll32.exe LOLBin patterns (pcwutl.dll, javascript: URI, shell32.dll); Sysmon EID 1 + process chains |
@@ -99,9 +99,9 @@ Techniques with `requires_confirmation: true` prompt the operator for explicit a
 | Category | Count |
 |---|:---:|
 | Total techniques | 58 |
-| Tier 1 (Realistic) | 26 |
-| Tier 2 (Partial) | 18 |
-| Tier 3 (Stub) | 14 |
+| Tier 1 (Realistic) | 29 |
+| Tier 2 (Partial) | 19 |
+| Tier 3 (Stub) | 10 |
 | Native Go executor | 2 |
 | Elevation required | 11 |
 | Has cleanup command | 33 |

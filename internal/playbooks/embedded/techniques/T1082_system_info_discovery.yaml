@@ -6,17 +6,17 @@ technique_id: T1082
 platform: windows
 phase: discovery
 elevation_required: false
-tier: 3
+tier: 1
 expected_events:
   - event_id: 4688
     channel: "Security"
-    description: "systeminfo.exe, wmic.exe, reg.exe, hostname.exe, whoami.exe — burst"
+    description: "systeminfo.exe, hostname.exe, whoami.exe, reg.exe, wmic.exe, net.exe — rapid discovery burst pattern"
   - event_id: 1
     channel: "Microsoft-Windows-Sysmon/Operational"
-    description: "wmic.exe with /format:csv — common attacker output pattern"
+    description: "Process creation burst for systeminfo.exe, wmic.exe with /format:csv — attacker output pattern"
   - event_id: 4104
     channel: "Microsoft-Windows-PowerShell/Operational"
-    description: "PowerShell ScriptBlock - Get-CimInstance queries"
+    description: "ScriptBlock logging for Get-CimInstance Win32_OperatingSystem and Win32_ComputerSystem queries"
 tags:
   - discovery
   - no-prereqs

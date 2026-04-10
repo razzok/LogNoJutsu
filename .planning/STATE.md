@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Realistic Attack Simulation
-current_phase: 17
-current_plan: Not started
-status: Milestone complete
-last_updated: "2026-04-10T17:37:54.702Z"
+current_phase: 18
+current_plan: 1 (complete)
+status: Executing Phase 18
+last_updated: "2026-04-10T19:22:46Z"
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 6
-  total_plans: 15
-  completed_plans: 15
+  total_plans: 16
+  completed_plans: 16
 ---
 
 # Project State
@@ -21,13 +21,13 @@ See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 17 — network-discovery
+**Current focus:** Phase 18 — technique-realism-upgrades
 
 ## Current Status
 
 **Milestone:** v1.2 — PoC Mode Fix & Overhaul — Shipped (2026-04-09)
-**Current phase:** 17
-**Current plan:** Not started
+**Current phase:** 18
+**Current plan:** 1 (complete)
 
 ## Phase Progress
 
@@ -119,6 +119,13 @@ Key decisions carried forward:
 - Elevation-skipped rows use inline opacity:0.6 via JS rowOpacity variable — simpler than CSS class for single property
 - verifHtml computed before template literal in loadResults() for clean conditional badge rendering
 
+## Decisions (Phase 18 Plan 01)
+
+- T1069/T1082/T1083 reclassified to Tier 1 — all execute real Windows tools generating authentic EID 4688/4104 events; no simulation shortcuts
+- T1135 reclassified to Tier 2 — loopback admin share access (dir \\COMPUTERNAME\C$) is simulation shortcut; EID 5140/5145 require non-default Object Access audit policy
+- TECH-02/03/04 confirmed satisfied by existing Phase 14-16 techniques — no new code needed; only REQUIREMENTS.md traceability sign-off required
+- TECHNIQUE-CLASSIFICATION.md summary statistics updated: Tier 1=29, Tier 2=19, Tier 3=10 (total 58 unchanged)
+
 ## Roadmap Evolution
 
 - Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
@@ -142,4 +149,4 @@ Key decisions carried forward:
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
-*Last session: 2026-04-10 — Completed 17-02-PLAN.md*
+*Last session: 2026-04-10 — Completed 18-01-PLAN.md*

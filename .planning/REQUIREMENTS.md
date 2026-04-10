@@ -21,10 +21,10 @@ Requirements for milestone v1.3: Realistic Attack Simulation.
 
 ### Technique Realism Upgrades
 
-- [ ] **TECH-01**: Discovery stub techniques upgraded to real tool execution (T1057, T1069, T1082, T1083, T1135, T1482)
-- [ ] **TECH-02**: Persistence techniques added with mandatory cleanup (scheduled tasks, registry run keys, BITS jobs, service creation)
-- [ ] **TECH-03**: Defense evasion techniques added (encoded commands, masquerading, rundll32 LOLBin, DLL sideloading)
-- [ ] **TECH-04**: C2 and exfiltration techniques added using loopback/internal-only patterns (HTTP C2, DNS C2, data encoding, exfil-over-alt-protocol)
+- [x] **TECH-01**: Discovery stub techniques upgraded to real tool execution (T1057, T1069, T1082, T1083, T1135, T1482)
+- [x] **TECH-02**: Persistence techniques added with mandatory cleanup (scheduled tasks, registry run keys, BITS jobs, service creation)
+- [x] **TECH-03**: Defense evasion techniques added (encoded commands, masquerading, rundll32 LOLBin, DLL sideloading)
+- [x] **TECH-04**: C2 and exfiltration techniques added using loopback/internal-only patterns (HTTP C2, DNS C2, data encoding, exfil-over-alt-protocol)
 
 ### Safety Infrastructure
 
@@ -74,10 +74,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCAN-01 | Phase 17 | Complete |
 | SCAN-02 | Phase 17 | Complete |
 | SCAN-03 | Phase 17 | Complete |
-| TECH-01 | Phase 18 | Pending |
-| TECH-02 | Phase 18 | Pending |
-| TECH-03 | Phase 18 | Pending |
-| TECH-04 | Phase 18 | Pending |
+| TECH-01 | Phase 18 | Complete |
+| TECH-02 | Phase 18 | Complete |
+| TECH-03 | Phase 18 | Complete |
+| TECH-04 | Phase 18 | Complete |
 | INFRA-01 | Phase 16 | Complete |
 | INFRA-02 | Phase 16 | Complete |
 | INFRA-03 | Phase 16 | Complete |
