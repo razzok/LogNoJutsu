@@ -60,7 +60,7 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 
 </details>
 
-### 🚧 v1.4 PoC Technique Distribution (In Progress)
+### v1.4 PoC Technique Distribution (In Progress)
 
 **Milestone Goal:** Spread technique execution across the day with random jitter — Phase 1 one-at-a-time, Phase 2 in small batches — instead of firing all techniques at the scheduled hour.
 
@@ -78,7 +78,10 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
   2. Phase 2 techniques execute in batches of 2-3 at randomly spaced intervals throughout the day, not all at once at Phase2DailyHour
   3. All random intervals fall within a configurable daily time window (start hour to end hour), not beyond the window boundaries
   4. Each day's DayDigest TechniqueCount still reflects the full set of techniques scheduled for that day
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 19-01-PLAN.md — Engine rewrite: PoCConfig window fields, randomSlotsInWindow helper, distributed runPoC() loops
+- [ ] 19-02-PLAN.md — UI update: window start/end form inputs and schedule preview
 
 ### Phase 20: Scheduling Test Coverage
 **Goal**: Existing and new PoC scheduling tests validate distributed execution behavior with deterministic fake-clock control
@@ -113,5 +116,5 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 | 16 | Safety Infrastructure | v1.3 | 3/3 | Complete | 2026-04-09 |
 | 17 | Network Discovery | v1.3 | 2/2 | Complete | 2026-04-10 |
 | 18 | Technique Realism Upgrades | v1.3 | 1/1 | Complete | 2026-04-10 |
-| 19 | Distributed Technique Scheduling | v1.4 | 0/? | Not started | - |
+| 19 | Distributed Technique Scheduling | v1.4 | 0/2 | Not started | - |
 | 20 | Scheduling Test Coverage | v1.4 | 0/? | Not started | - |
