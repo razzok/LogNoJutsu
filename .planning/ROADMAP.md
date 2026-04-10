@@ -5,6 +5,7 @@
 - ✅ **v1.0 Verified & Expanded** — Phases 1-7 (shipped 2026-03-26)
 - ✅ **v1.1 Bug Fixes & UI Polish** — Phases 8-9 (shipped 2026-03-26)
 - ✅ **v1.2 PoC Mode Fix & Overhaul** — Phases 10-13 (shipped 2026-04-09)
+- 🚧 **v1.3 Realistic Attack Simulation** — Phases 14-18 (in progress)
 
 ## Phases
 
@@ -45,6 +46,14 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 
 </details>
 
+### 🚧 v1.3 Realistic Attack Simulation (Phases 14-18)
+
+- [x] Phase 14: Safety Audit (3/3 plans) — completed 2026-04-09
+- [x] Phase 15: Native Go Architecture (2/2 plans) — completed 2026-04-09
+- [x] Phase 16: Safety Infrastructure (3/3 plans) — completed 2026-04-09
+- [ ] Phase 17: Network Discovery — Native Go TCP/ICMP network scanning (T1046 subnet scan, T1018 ping sweep/ARP/DC discovery). Depends on: Phase 15. Reqs: SCAN-01, SCAN-02, SCAN-03
+- [ ] Phase 18: Technique Realism Upgrades — Discovery stub upgrades, persistence techniques, defense evasion, C2/exfiltration. Reqs: TECH-01, TECH-02, TECH-03, TECH-04
+
 ## Progress
 
 | Phase | Title | Milestone | Plans Complete | Status | Completed |
@@ -63,3 +72,5 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 | 12 | Daily Digest & Timeline Calendar UI | v1.2 | 1/1 | Complete | 2026-04-09 |
 | 13 | PoC Scheduling Tests | v1.2 | 1/1 | Complete | 2026-04-09 |
 | 16 | Safety Infrastructure | v1.3 | 3/3 | Complete | 2026-04-09 |
+| 17 | Network Discovery | v1.3 | 0/0 | Not started | — |
+| 18 | Technique Realism Upgrades | v1.3 | 0/0 | Not started | — |
