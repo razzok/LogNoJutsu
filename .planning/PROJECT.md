@@ -127,6 +127,8 @@ v1.2 delivered reliable PoC/Multiday mode with per-day execution tracking, timel
 
 **Phase 17 complete:** Network Discovery (2026-04-10) — T1046 TCP/UDP /24 subnet scanner (15-worker goroutine pool, 17 TCP + 3 UDP ports) and T1018 four-method remote system discovery (ICMP ping sweep with TCP fallback, ARP table dump, nltest DC discovery, DNS reverse lookups). Both Tier 1 native Go techniques with 15 unit tests. SCAN-01, SCAN-02, SCAN-03 verified.
 
+**Phase 18 complete:** Technique Realism Upgrades (2026-04-10) — Re-audited 4 misclassified discovery techniques: T1069/T1082/T1083 promoted Tier 3→1, T1135 promoted Tier 3→2. Enriched expected_events with Sysmon EID entries and audit policy dependency notes. Verified TECH-02/03/04 already satisfied by existing persistence, evasion, and C2 techniques. Final tier distribution: 29 Tier 1, 19 Tier 2, 10 Tier 3. TECH-01 through TECH-04 verified. **Last phase of v1.3 milestone.**
+
 **Known tech debt (carried forward):**
 - `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
 - German strings remain in `reporter.go` htmlTemplate (HTML reports)
@@ -152,4 +154,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after Phase 16 (Safety Infrastructure) completed*
+*Last updated: 2026-04-10 after Phase 18 (Technique Realism Upgrades) completed — v1.3 milestone final phase*
