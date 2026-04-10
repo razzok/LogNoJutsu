@@ -9,9 +9,9 @@ Requirements for milestone v1.4: PoC Technique Distribution.
 
 ### PoC Scheduling
 
-- [ ] **POC-01**: Phase 1 techniques execute one at a time at random intervals throughout the day instead of all at the scheduled hour
-- [ ] **POC-02**: Phase 2 techniques execute in small batches (2-3) at random intervals throughout the day instead of all at the scheduled hour
-- [ ] **POC-03**: Random jitter is bounded within a configurable daily time window (e.g., start hour to end hour)
+- [x] **POC-01**: Phase 1 techniques execute one at a time at random intervals throughout the day instead of all at the scheduled hour
+- [x] **POC-02**: Phase 2 techniques execute in small batches (2-3) at random intervals throughout the day instead of all at the scheduled hour
+- [x] **POC-03**: Random jitter is bounded within a configurable daily time window (e.g., start hour to end hour)
 - [ ] **POC-04**: Existing PoC scheduling tests updated to validate distributed execution and DayDigest accuracy
 
 ## Future Requirements
@@ -44,9 +44,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| POC-01 | Phase 19 | Pending |
-| POC-02 | Phase 19 | Pending |
-| POC-03 | Phase 19 | Pending |
+| POC-01 | Phase 19 | Complete |
+| POC-02 | Phase 19 | Complete |
+| POC-03 | Phase 19 | Complete |
 | POC-04 | Phase 20 | Pending |
 
 **Coverage:**

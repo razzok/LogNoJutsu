@@ -80,7 +80,7 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
   4. Each day's DayDigest TechniqueCount still reflects the full set of techniques scheduled for that day
 **Plans**: 3 plans
 Plans:
-- [ ] 19-00-PLAN.md — Wave 0: test stubs for poc_schedule_test.go (Nyquist compliance)
+- [x] 19-00-PLAN.md — Wave 0: test stubs for poc_schedule_test.go (Nyquist compliance)
 - [ ] 19-01-PLAN.md — Engine rewrite: PoCConfig window fields, randomSlotsInWindow helper, distributed runPoC() loops
 - [ ] 19-02-PLAN.md — UI update: window start/end form inputs and schedule preview
 
