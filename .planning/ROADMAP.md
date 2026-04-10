@@ -81,7 +81,7 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 **Plans**: 3 plans
 Plans:
 - [x] 19-00-PLAN.md — Wave 0: test stubs for poc_schedule_test.go (Nyquist compliance)
-- [ ] 19-01-PLAN.md — Engine rewrite: PoCConfig window fields, randomSlotsInWindow helper, distributed runPoC() loops
+- [x] 19-01-PLAN.md — Engine rewrite: PoCConfig window fields, randomSlotsInWindow helper, distributed runPoC() loops
 - [ ] 19-02-PLAN.md — UI update: window start/end form inputs and schedule preview
 
 ### Phase 20: Scheduling Test Coverage

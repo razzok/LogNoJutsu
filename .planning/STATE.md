@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: PoC Technique Distribution
 status: executing
-stopped_at: Completed 19-00-PLAN.md
-last_updated: "2026-04-10T20:39:41.498Z"
+stopped_at: Completed 19-01-PLAN.md
+last_updated: "2026-04-10T20:46:24.286Z"
 last_activity: 2026-04-10
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 ## Current Position
 
 Phase: 19 (distributed-technique-scheduling) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-10
 
@@ -53,6 +53,8 @@ Recent decisions affecting current work:
 - Phase 11: DayDigest stored as separate Engine field; TechniqueCount pre-populated from campaign.Steps length at runPoC() start
 - Phase 13: dayCaptureClock/digestCaptureClock snapshot patterns for race-free test assertions; stopOnNthClock generalizes blockingClock
 - [Phase 19-distributed-technique-scheduling]: Wave 0 stub pattern: t.Skip stubs in poc_schedule_test.go provide named verify targets before implementation; stub message references implementing plan (19-01/19-02)
+- [Phase 19-distributed-technique-scheduling]: Phase 1 uses no delayBetween() between slots — random window jitter IS the inter-technique delay (D-09)
+- [Phase 19-distributed-technique-scheduling]: randomSlotsInWindow: per-day rand.Source derived from top-level rng.Int63() to avoid shared mutable state
 
 ### Pending Todos
 
@@ -65,8 +67,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-10T20:39:41.492Z
-Stopped at: Completed 19-00-PLAN.md
+Last session: 2026-04-10T20:46:24.280Z
+Stopped at: Completed 19-01-PLAN.md
 Resume file: None
 
 ---
