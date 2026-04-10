@@ -64,7 +64,7 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 
 **Milestone Goal:** Spread technique execution across the day with random jitter — Phase 1 one-at-a-time, Phase 2 in small batches — instead of firing all techniques at the scheduled hour.
 
-- [ ] **Phase 19: Distributed Technique Scheduling** - Rewrite runPoC() to spread techniques across the day with jitter for both Phase 1 (single) and Phase 2 (batched) execution
+- [x] **Phase 19: Distributed Technique Scheduling** - Rewrite runPoC() to spread techniques across the day with jitter for both Phase 1 (single) and Phase 2 (batched) execution (completed 2026-04-10)
 - [ ] **Phase 20: Scheduling Test Coverage** - Update existing PoC scheduling tests to validate distributed execution behavior and DayDigest accuracy under the new logic
 
 ## Phase Details
@@ -82,7 +82,7 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 Plans:
 - [x] 19-00-PLAN.md — Wave 0: test stubs for poc_schedule_test.go (Nyquist compliance)
 - [x] 19-01-PLAN.md — Engine rewrite: PoCConfig window fields, randomSlotsInWindow helper, distributed runPoC() loops
-- [ ] 19-02-PLAN.md — UI update: window start/end form inputs and schedule preview
+- [x] 19-02-PLAN.md — UI update: window start/end form inputs and schedule preview
 
 ### Phase 20: Scheduling Test Coverage
 **Goal**: Existing and new PoC scheduling tests validate distributed execution behavior with deterministic fake-clock control
