@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -60,10 +61,12 @@ type Config struct {
 	PoCMode            bool `json:"poc_mode"`
 	Phase1DurationDays int  `json:"phase1_duration_days"` // days to run discovery phase
 	Phase1TechsPerDay  int  `json:"phase1_techs_per_day"` // discovery techniques per day
-	Phase1DailyHour    int  `json:"phase1_daily_hour"`    // 0-23: hour at which to run each day
+	Phase1WindowStart  int  `json:"phase1_window_start"`  // 0-23: window start hour (default 8)
+	Phase1WindowEnd    int  `json:"phase1_window_end"`    // 0-23: window end hour (default 17)
 	GapDays            int  `json:"gap_days"`             // silent days between phases
 	Phase2DurationDays int  `json:"phase2_duration_days"` // days to run attack phase
-	Phase2DailyHour    int  `json:"phase2_daily_hour"`    // 0-23: hour at which to run each day
+	Phase2WindowStart  int  `json:"phase2_window_start"`  // 0-23: window start hour (default 8)
+	Phase2WindowEnd    int  `json:"phase2_window_end"`    // 0-23: window end hour (default 17)
 }
 
 // Status is the current engine state.
@@ -505,15 +508,51 @@ func nextOccurrenceOfHour(hour int, now time.Time) time.Duration {
 	return next.Sub(now)
 }
 
+// randomSlotsInWindow returns sorted inter-slot wait durations for n technique slots
+// distributed randomly within the daily window [windowStart:00, windowEnd:00).
+// dayStart is the current time used as anchor. All returned durations are relative
+// to the previous slot (or dayStart for the first).
+func randomSlotsInWindow(n, windowStart, windowEnd int, dayStart time.Time, src rand.Source) []time.Duration {
+	if windowEnd <= windowStart {
+		windowEnd = windowStart + 1 // guard: minimum 1-hour window
+	}
+	windowSecs := (windowEnd - windowStart) * 3600
+	rng := rand.New(src)
+
+	// Generate n random second-offsets within the window
+	offsets := make([]int, n)
+	for i := range offsets {
+		offsets[i] = rng.Intn(windowSecs)
+	}
+	sort.Ints(offsets)
+
+	// Compute the window base time for the next occurrence of windowStart
+	base := time.Date(dayStart.Year(), dayStart.Month(), dayStart.Day(),
+		windowStart, 0, 0, 0, dayStart.Location())
+	if !base.After(dayStart) {
+		base = base.Add(24 * time.Hour) // window already passed today; use tomorrow
+	}
+
+	// Convert absolute slot times to inter-slot durations
+	cursor := dayStart
+	durations := make([]time.Duration, n)
+	for i, off := range offsets {
+		slotTime := base.Add(time.Duration(off) * time.Second)
+		durations[i] = slotTime.Sub(cursor)
+		cursor = slotTime
+	}
+	return durations
+}
+
 func (e *Engine) runPoC() {
 	cfg := e.cfg
 	totalDays := cfg.Phase1DurationDays + cfg.GapDays + cfg.Phase2DurationDays
 	globalDay := 0
 
-	simlog.Info(fmt.Sprintf("[PoC] Multi-day simulation: Phase1=%dd (%d techs/day @ %02d:00)  Gap=%dd  Phase2=%dd (campaign=%q @ %02d:00)  Total=%dd",
-		cfg.Phase1DurationDays, cfg.Phase1TechsPerDay, cfg.Phase1DailyHour,
+	simlog.Info(fmt.Sprintf("[PoC] Multi-day simulation: Phase1=%dd (%d techs/day @ %02d:00-%02d:00)  Gap=%dd  Phase2=%dd (campaign=%q @ %02d:00-%02d:00)  Total=%dd",
+		cfg.Phase1DurationDays, cfg.Phase1TechsPerDay, cfg.Phase1WindowStart, cfg.Phase1WindowEnd,
 		cfg.GapDays,
-		cfg.Phase2DurationDays, cfg.CampaignID, cfg.Phase2DailyHour,
+		cfg.Phase2DurationDays, cfg.CampaignID, cfg.Phase2WindowStart, cfg.Phase2WindowEnd,
 		totalDays))
 
 	e.mu.Lock()
@@ -577,14 +616,14 @@ func (e *Engine) runPoC() {
 			e.abort()
 			return
 		}
-		d := nextOccurrenceOfHour(cfg.Phase1DailyHour, e.clock.Now())
+		d := nextOccurrenceOfHour(cfg.Phase1WindowStart, e.clock.Now())
 		nextRun := e.clock.Now().Add(d)
 		simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d/%d — waiting until %s", day, cfg.Phase1DurationDays, nextRun.Format("2006-01-02 15:04")))
 		e.mu.Lock()
 		e.status.PoCDay = globalDay
 		e.status.PoCPhase = "phase1"
 		e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
-		e.status.CurrentStep = fmt.Sprintf("PoC Phase 1 — Day %d of %d — Waiting until %02d:00", globalDay, totalDays, cfg.Phase1DailyHour)
+		e.status.CurrentStep = fmt.Sprintf("PoC Phase 1 — Day %d of %d — Waiting until %02d:00", globalDay, totalDays, cfg.Phase1WindowStart)
 		e.dayDigests[globalDay-1].Status = DayActive
 		e.dayDigests[globalDay-1].StartTime = e.clock.Now().Format(time.RFC3339)
 		e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
@@ -638,7 +677,7 @@ func (e *Engine) runPoC() {
 				e.abort()
 				return
 			}
-			d := nextOccurrenceOfHour(cfg.Phase2DailyHour, e.clock.Now())
+			d := nextOccurrenceOfHour(cfg.Phase2WindowStart, e.clock.Now())
 			nextRun := e.clock.Now().Add(d)
 			simlog.Info(fmt.Sprintf("[PoC Gap] Day %d/%d — silent day, waiting until %s", day, cfg.GapDays, nextRun.Format("2006-01-02 15:04")))
 			e.mu.Lock()
@@ -672,14 +711,14 @@ func (e *Engine) runPoC() {
 			e.abort()
 			return
 		}
-		d := nextOccurrenceOfHour(cfg.Phase2DailyHour, e.clock.Now())
+		d := nextOccurrenceOfHour(cfg.Phase2WindowStart, e.clock.Now())
 		nextRun := e.clock.Now().Add(d)
 		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d/%d — waiting until %s", day, cfg.Phase2DurationDays, nextRun.Format("2006-01-02 15:04")))
 		e.mu.Lock()
 		e.status.PoCDay = globalDay
 		e.status.PoCPhase = "phase2"
 		e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
-		e.status.CurrentStep = fmt.Sprintf("PoC Phase 2 — Day %d of %d — Waiting until %02d:00", globalDay, totalDays, cfg.Phase2DailyHour)
+		e.status.CurrentStep = fmt.Sprintf("PoC Phase 2 — Day %d of %d — Waiting until %02d:00", globalDay, totalDays, cfg.Phase2WindowStart)
 		e.dayDigests[globalDay-1].Status = DayActive
 		e.dayDigests[globalDay-1].StartTime = e.clock.Now().Format(time.RFC3339)
 		e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)

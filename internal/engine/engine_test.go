@@ -284,10 +284,10 @@ func TestPoCDayCounter(t *testing.T) {
 		PoCMode:            true,
 		Phase1DurationDays: 2,
 		Phase1TechsPerDay:  1,
-		Phase1DailyHour:    8,
+		Phase1WindowStart: 8, Phase1WindowEnd: 17,
 		GapDays:            1,
 		Phase2DurationDays: 2,
-		Phase2DailyHour:    9,
+		Phase2WindowStart: 9, Phase2WindowEnd: 18,
 		CampaignID:         "camp-test",
 	}
 
@@ -355,10 +355,10 @@ func TestPoCCurrentStepStrings(t *testing.T) {
 		PoCMode:            true,
 		Phase1DurationDays: 1,
 		Phase1TechsPerDay:  1,
-		Phase1DailyHour:    8,
+		Phase1WindowStart: 8, Phase1WindowEnd: 17,
 		GapDays:            1,
 		Phase2DurationDays: 1,
-		Phase2DailyHour:    9,
+		Phase2WindowStart: 9, Phase2WindowEnd: 18,
 		CampaignID:         "camp-test",
 	}
 
@@ -408,10 +408,10 @@ func TestPoCPhaseLogSeparators(t *testing.T) {
 		PoCMode:            true,
 		Phase1DurationDays: 1,
 		Phase1TechsPerDay:  1,
-		Phase1DailyHour:    8,
+		Phase1WindowStart: 8, Phase1WindowEnd: 17,
 		GapDays:            1,
 		Phase2DurationDays: 1,
-		Phase2DailyHour:    9,
+		Phase2WindowStart: 9, Phase2WindowEnd: 18,
 		CampaignID:         "camp-test",
 	}
 
@@ -452,10 +452,10 @@ func TestPoCClockInjection(t *testing.T) {
 		PoCMode:            true,
 		Phase1DurationDays: 1,
 		Phase1TechsPerDay:  1,
-		Phase1DailyHour:    8,
+		Phase1WindowStart: 8, Phase1WindowEnd: 17,
 		GapDays:            0,
 		Phase2DurationDays: 1,
-		Phase2DailyHour:    9,
+		Phase2WindowStart: 9, Phase2WindowEnd: 18,
 		CampaignID:         "camp-test",
 	}
 
@@ -524,10 +524,10 @@ func pocConfig(phase1Days, gapDays, phase2Days int, campaignID string) Config {
 		PoCMode:            true,
 		Phase1DurationDays: phase1Days,
 		Phase1TechsPerDay:  1,
-		Phase1DailyHour:    8,
+		Phase1WindowStart: 8, Phase1WindowEnd: 17,
 		GapDays:            gapDays,
 		Phase2DurationDays: phase2Days,
-		Phase2DailyHour:    9,
+		Phase2WindowStart: 9, Phase2WindowEnd: 18,
 		CampaignID:         campaignID,
 	}
 }
@@ -796,10 +796,10 @@ func TestCampaignDelayAfter(t *testing.T) {
 		PoCMode:            true,
 		Phase1DurationDays: 0,
 		Phase1TechsPerDay:  0,
-		Phase1DailyHour:    8,
+		Phase1WindowStart: 8, Phase1WindowEnd: 17,
 		GapDays:            0,
 		Phase2DurationDays: 1,
-		Phase2DailyHour:    9,
+		Phase2WindowStart: 9, Phase2WindowEnd: 18,
 		CampaignID:         "camp-delay",
 	}
 
@@ -878,10 +878,10 @@ func TestCampaignDelayAfter_Interruptible(t *testing.T) {
 		PoCMode:            true,
 		Phase1DurationDays: 0,
 		Phase1TechsPerDay:  0,
-		Phase1DailyHour:    8,
+		Phase1WindowStart: 8, Phase1WindowEnd: 17,
 		GapDays:            0,
 		Phase2DurationDays: 1,
-		Phase2DailyHour:    9,
+		Phase2WindowStart: 9, Phase2WindowEnd: 18,
 		CampaignID:         "camp-long-delay",
 	}
 
