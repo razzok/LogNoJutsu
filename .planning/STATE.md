@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: PoC Mode Fix & Overhaul
-current_phase: 13
-current_plan: Not started
-status: v1.2 milestone complete
-last_updated: "2026-04-09T10:43:08.429Z"
+milestone: v1.3
+milestone_name: Realistic Attack Simulation
+current_phase: 18
+current_plan: 1 (complete)
+status: Executing Phase 18
+last_updated: "2026-04-10T19:22:46Z"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 6
-  completed_plans: 6
+  total_phases: 7
+  completed_phases: 6
+  total_plans: 16
+  completed_plans: 16
 ---
 
 # Project State
@@ -21,13 +21,13 @@ See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** v1.2 shipped — planning next milestone
+**Current focus:** Phase 18 — technique-realism-upgrades
 
 ## Current Status
 
 **Milestone:** v1.2 — PoC Mode Fix & Overhaul — Shipped (2026-04-09)
-**Current phase:** Complete
-**Current plan:** N/A
+**Current phase:** 18
+**Current plan:** 1 (complete)
 
 ## Phase Progress
 
@@ -93,6 +93,39 @@ Key decisions carried forward:
 - stopOnNthClock generalizes blockingClock with configurable block-at-N: fires immediately for calls < N, blocks on call >= N
 - No production code changes — all 6 tests verify existing runPoC() behavior via clock injection only
 
+## Decisions (Phase 16 Plan 01)
+
+- AMSI detection only fires for powershell/psh executor types; returns early before verifier to avoid misleading Fail status
+- checkIsElevated() split into engine_windows.go (real Windows token API) and engine_other.go (permissive stub) — platform build tags avoid cross-compilation issues
+- isAdmin set once at Start() not per-technique — admin status doesn't change mid-run; SetAdmin() test helper mirrors SetRunner() injection pattern
+
+## Decisions (Phase 17 Plan 01)
+
+- localSubnet() duplicated from engine.detectLocalSubnet() to avoid import cycle between internal/engine and internal/native
+- scanWorkers=15 as midpoint of D-08 range (10-20) for bounded goroutine concurrency via semaphore channel
+- dialTimeout=300ms per research recommendation — covers LAN hosts without excessive delay
+- UDP results are best-effort — Windows Firewall suppresses ICMP port-unreachable; noted in output
+
+## Decisions (Phase 17 Plan 02)
+
+- T1018 ICMP fallback: net.ListenPacket("ip4:icmp") error signals non-admin; delegates to tcpAliveCheck() on ports 445/135 — no separate privilege check needed
+- strings.Fields ARP parsing: handles varied whitespace from arp -a; net.ParseIP(fields[0]) == nil skips header lines
+- nltest fallback: distinguish "binary not found" (exec error) from "non-domain exit" (non-zero exit code) for accurate error messages
+- DNS target union: merge ICMP alive hosts and ARP IP entries with seen-map dedup to avoid duplicate lookups
+
+## Decisions (Phase 16 Plan 03)
+
+- AMSI stat boxes shown conditionally (gt 0) — consistent with HasCrowdStrike/HasSentinel pattern
+- Elevation-skipped rows use inline opacity:0.6 via JS rowOpacity variable — simpler than CSS class for single property
+- verifHtml computed before template literal in loadResults() for clean conditional badge rendering
+
+## Decisions (Phase 18 Plan 01)
+
+- T1069/T1082/T1083 reclassified to Tier 1 — all execute real Windows tools generating authentic EID 4688/4104 events; no simulation shortcuts
+- T1135 reclassified to Tier 2 — loopback admin share access (dir \\COMPUTERNAME\C$) is simulation shortcut; EID 5140/5145 require non-default Object Access audit policy
+- TECH-02/03/04 confirmed satisfied by existing Phase 14-16 techniques — no new code needed; only REQUIREMENTS.md traceability sign-off required
+- TECHNIQUE-CLASSIFICATION.md summary statistics updated: Tier 1=29, Tier 2=19, Tier 3=10 (total 58 unchanged)
+
 ## Roadmap Evolution
 
 - Phase 10 completed: PoC Engine Fixes & Clock Injection (2026-04-08)
@@ -116,4 +149,4 @@ Key decisions carried forward:
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
-*Last session: 2026-04-09 — Milestone v1.2 archived*
+*Last session: 2026-04-10 — Completed 18-01-PLAN.md*
