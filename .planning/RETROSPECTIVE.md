@@ -87,6 +87,51 @@
 
 ---
 
+## Milestone: v1.3 — Realistic Attack Simulation
+
+**Shipped:** 2026-04-10
+**Phases:** 7 (08-09, 14-18) | **Plans:** 16
+
+### What Was Built
+- Safety audit: all 58 techniques classified Tier 1/2/3, destructive techniques (T1070.001, T1490) rewritten for client safety, defer-style cleanup guarantees
+- Native Go architecture: type:go executor dispatch, thread-safe technique registry, T1482 LDAP trust discovery, T1057 WMI process discovery
+- Safety infrastructure: AMSI block detection, elevation gating with graceful skip, scan confirmation modal with subnet/IDS warning
+- Network discovery: T1046 TCP/UDP /24 subnet scanner (15-worker goroutine pool), T1018 four-method remote system discovery (ICMP/ARP/nltest/DNS)
+- Technique realism: 4 discovery techniques reclassified (T1069/T1082/T1083 to Tier 1, T1135 to Tier 2), expected_events enriched with Sysmon entries
+
+### What Worked
+- **Safety-first design:** Phases 14 and 16 establishing safety gates before network scanning (Phase 17) meant the dangerous techniques were already safe when real scanning was added
+- **Native Go executor registry pattern:** `Register/Lookup/LookupCleanup` in init() functions gave zero-overhead dispatch and automatic cleanup for all native techniques
+- **Phase 18 re-audit approach:** Using phase to formally verify and close existing requirements (TECH-02/03/04) rather than building new code saved significant effort
+- **Integration checker at milestone audit:** Caught the tier-field-not-propagated gap in elevation-skip results that no individual phase verification would have found
+- **UAT sessions:** Retesting phase 08 blocked tests after Go build was fixed cleared all verification debt in one session
+
+### What Was Inefficient
+- **Phases 08-09 carried from v1.1:** These phases were completed during v1.1 timeframe but never archived — they rode along in v1.3 adding noise to milestone scope
+- **REQUIREMENTS.md merge conflict markers:** Phase 16 execution left unresolved git conflict markers in REQUIREMENTS.md that persisted until milestone audit caught them
+- **SAFE-02 traceability row stale text:** "In progress" text in traceability table while checkbox showed [x] — cosmetic inconsistency that should be caught by plan completion automation
+- **Some SUMMARY.md one-liner fields empty or malformed:** Automated extraction returned "One-liner:" or empty for several summaries — template compliance needs enforcement
+
+### Patterns Established
+- **Tier classification pattern:** `Tier int` on Technique struct, propagated to ExecutionResult, rendered as badges in HTML report and web UI — reusable for any technique quality dimension
+- **Scan confirmation gate:** `RequiresConfirmation` flag + channel-based pause/resume + web UI modal polling — reusable for any technique needing user consent before execution
+- **Elevation gating:** `checkIsElevated()` at engine start with platform build tags (engine_windows.go / engine_other.go) — clean cross-platform admin detection
+- **Native technique init() registration:** Each Go technique file registers itself via init() — no central manifest needed, new techniques are just new files
+
+### Key Lessons
+1. **Archive milestone phases promptly** — phases 08-09 should have been archived with v1.1, not carried into v1.3
+2. **Git merge conflicts in .planning/ files need automated detection** — merge conflicts in REQUIREMENTS.md survived unnoticed through multiple phases
+3. **Milestone audit integration checker is high-value** — it catches cross-phase wiring gaps that individual phase verifications miss (tier field in elevation-skip results)
+4. **SUMMARY.md template compliance matters for automation** — empty one-liner fields break milestone stats extraction
+5. **Human UAT sessions should be batched at milestone boundary** — testing phase 08 and 14 together in one session was efficient
+
+### Cost Observations
+- Model mix: ~85% sonnet (executors/verifiers), ~15% opus (orchestration, planning)
+- Sessions: ~8 (planning + execution across phases, plus UAT and milestone completion)
+- Notable: Phase 18 was a single-plan, single-wave execution that completed in under 10 minutes — lightweight phases for audit/verification work are efficient
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -96,6 +141,7 @@
 | v1.0 | 7 | 17 | First GSD milestone — established SIEMCoverage pattern, Nyquist sign-off, QueryFn injection |
 | v1.1 | 2 | 5 | Bug fixes & UI polish — GUID audit policy, version injection, inline error panels |
 | v1.2 | 4 | 6 | PoC overhaul — Clock injection, DayDigest tracking, timeline calendar UI, scheduling tests |
+| v1.3 | 7 | 16 | Realistic attack simulation — tier classification, native Go executor, safety infrastructure, network scanning |
 
 ### Cumulative Quality
 
@@ -104,6 +150,7 @@
 | v1.0 | 14 | 5/9 | playbooks blocked by Defender; executor/preparation/simlog/userstore have no testable logic |
 | v1.1 | 20 | 5/9 | +6 tests from backend correctness and UI polish phases |
 | v1.2 | 26 | 5/9 | +6 PoC scheduling tests via fake clock injection (poc_test.go) |
+| v1.3 | 40+ | 7/10 | +14 tests: registry, executor dispatch, native techniques (T1046/T1018/T1057/T1482), playbook loader tier/events/cleanup |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -112,3 +159,6 @@
 3. captureClock pattern eliminates race conditions in fake-timer tests (v1.2 — validated across 10+ tests)
 4. Pre-populate schedules at start for immediate visibility (v1.2)
 5. Don't skip milestone retrospectives — process observations get lost (v1.2)
+6. Milestone audit integration checker catches cross-phase wiring gaps (v1.3 — found tier-field propagation gap)
+7. Archive milestone phases promptly — don't carry completed phases into future milestones (v1.3)
+8. Batch human UAT sessions at milestone boundary for efficiency (v1.3)
