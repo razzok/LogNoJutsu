@@ -1,5 +1,24 @@
 # Milestones
 
+## v1.3 Realistic Attack Simulation (Shipped: 2026-04-10)
+
+**Phases completed:** 7 phases, 16 plans, 25 tasks
+
+**Key accomplishments:**
+
+- GUID-based auditpol calls replacing 12 locale-dependent English names with 11 stable Microsoft GUIDs, plus human-readable error messages using description field
+- Build-time version injection via ldflags and public GET /api/info endpoint returning `{"version":"..."}` without authentication
+- 1. [Rule 1 - Bug] TDD RED phase not achievable due to CSS false positives
+- Full English UI with zero German strings and all 7 alert() dialogs replaced by inline styled error/success panels
+- T1070.001 rewritten to use a safe LogNoJutsu-Test custom channel (no real log destruction); T1490 scope-limited by removing vssadmin/wmic/wbadmin; 7 unverified techniques audited and confirmed read-only or self-cleaning
+- One-liner:
+- 1. [Rule 1 - Bug] WMI struct name mismatch with Win32_Process class
+- Channel-based engine pause/resume with API endpoints and web UI modal — consultant must explicitly confirm before network scanning techniques execute
+- One-liner:
+- T1018 four-method discovery chain in native Go: ICMP ping sweep with RFC 1071 checksum, ARP table parsing, nltest DC discovery, and DNS reverse lookups — all with graceful fallbacks.
+
+---
+
 ## v1.2 PoC Mode Fix & Overhaul (Shipped: 2026-04-09)
 
 **Phases completed:** 4 phases, 6 plans, 11 tasks

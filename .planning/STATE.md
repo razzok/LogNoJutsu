@@ -4,8 +4,8 @@ milestone: v1.3
 milestone_name: Realistic Attack Simulation
 current_phase: 18
 current_plan: Not started
-status: Milestone complete
-last_updated: "2026-04-10T19:28:36.354Z"
+status: v1.3 milestone complete
+last_updated: "2026-04-10T19:54:54.213Z"
 progress:
   total_phases: 7
   completed_phases: 7
@@ -17,17 +17,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-09)
+See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 18 — technique-realism-upgrades
+**Current focus:** Planning next milestone
 
 ## Current Status
 
-**Milestone:** v1.2 — PoC Mode Fix & Overhaul — Shipped (2026-04-09)
-**Current phase:** 18
-**Current plan:** Not started
+**Milestone:** v1.3 — Realistic Attack Simulation — Shipped (2026-04-10)
+**Current phase:** —
+**Current plan:** —
 
 ## Phase Progress
 
@@ -149,4 +149,5 @@ Key decisions carried forward:
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
-*Last session: 2026-04-10 — Completed 18-01-PLAN.md*
+*v1.3 complete: 2026-04-10*
+*Last session: 2026-04-10 — v1.3 milestone archived*

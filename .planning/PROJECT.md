@@ -4,7 +4,7 @@
 
 LogNoJutsu is a SIEM validation tool that simulates MITRE ATT&CK techniques on Windows, generating the system artifacts (Windows Event Logs, Sysmon events, PowerShell logs) that SIEMs should detect. It is used by security consultants during SIEM onboarding and validation engagements with clients. When a technique runs and the SIEM does not alert, LogNoJutsu helps pinpoint whether the problem is technique execution, log forwarding, parsing, or rule configuration.
 
-The v1.0 release ships with automatic pass/fail verification against the local Windows Event Log, a 57-technique library covering MITRE ATT&CK + Exabeam UEBA + CrowdStrike Falcon + Microsoft Sentinel, and an HTML report with per-technique verification columns for each SIEM platform.
+The tool ships 59 techniques across MITRE ATT&CK, Exabeam UEBA, CrowdStrike Falcon, and Microsoft Sentinel — with automatic pass/fail verification against the local Windows Event Log, tier-classified realism (29 Tier 1 realistic, 19 Tier 2 partial, 10 Tier 3 stub), native Go execution for network scanning, and safety infrastructure (AMSI detection, elevation gating, scan confirmation).
 
 ## Core Value
 
@@ -43,16 +43,15 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - ✓ 6 deterministic PoC scheduling tests (day counter, stop-signal, DayDigest lifecycle) — v1.2
 - ✓ Safety audit: destructive techniques rewritten, all 58 techniques classified Tier 1/2/3, defer-style cleanup — v1.3
 - ✓ Native Go architecture: type:go executor dispatch, technique registry, T1482 LDAP + T1057 WMI native implementations — v1.3
+- ✓ Safety infrastructure: AMSI detection, elevation gating, scan confirmation modal with IDS warning — v1.3
 - ✓ Network discovery: T1046 TCP/UDP /24 subnet scanner + T1018 ICMP/ARP/nltest/DNS discovery chain — v1.3
+- ✓ Technique realism: 4 discovery techniques reclassified, tier distribution finalized at 29/19/10, all TECH requirements closed — v1.3
 
 ### Active
 
-<!-- Current scope for next milestone. -->
+<!-- Current scope for next milestone — to be defined in /gsd:new-milestone. -->
 
-- [x] Real network discovery (ARP/ICMP + TCP port scan on local /24 subnet)
-- [ ] Realistic technique execution (real LDAP queries, authentic tool usage instead of PowerShell echo stubs)
-- [ ] Expanded technique repertoire with diverse attack patterns
-- [ ] Research-driven implementation based on open-source BAS platforms (Atomic Red Team, Caldera, MITRE tooling)
+(No active requirements — next milestone not yet started)
 
 ### Out of Scope
 
@@ -70,9 +69,10 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - **v1.0 shipped 2026-03-26:** 57 techniques (43 base + 5 ATT&CK + 4 UEBA + 3 Falcon + 3 Azure), 38k LOC Go, 17 plans across 7 phases
 - **v1.1 shipped 2026-03-26:** Locale-independent audit policy (GUID migration), build-time version injection, full English UI, inline error panels, tactic badge colors — 5 plans across 2 phases, 33 commits
 - **v1.2 shipped 2026-04-09:** PoC engine fixes, Clock injection, DayDigest tracking, timeline calendar UI, 6 scheduling tests — 6 plans across 4 phases, 37 commits
-- **Codebase packages:** cmd/lognojutsu, internal/{engine,executor,playbooks,preparation,reporter,server,simlog,userstore,verifier}
-- **Test coverage:** 26 test functions across engine_test, poc_test, server_test, verifier_test, reporter_test, loader_test; playbooks blocked by Windows Defender quarantine
-- **Codebase size:** ~56k LOC Go
+- **v1.3 shipped 2026-04-10:** Safety audit + tier classification, native Go executor + LDAP/WMI, AMSI/elevation/scan safety, network discovery, technique realism upgrades — 16 plans across 7 phases (08-09, 14-18)
+- **Codebase packages:** cmd/lognojutsu, internal/{engine,executor,native,playbooks,preparation,reporter,server,simlog,userstore,verifier}
+- **Test coverage:** 40+ test functions across engine_test, poc_test, server_test, verifier_test, reporter_test, loader_test, registry_test, executor_test, native technique tests
+- **Codebase size:** ~7.9k LOC Go (production code)
 - Codebase map available at `.planning/codebase/`
 
 ## Constraints
@@ -103,38 +103,20 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | Custom LogNoJutsu-Test channel for T1070.001 | Generates authentic EID 104 without clearing real Security/Application/System logs | ✓ Good — safe for client machines |
 | Native Go technique registry | In-process execution via type:go dispatch — no child process for native techniques | ✓ Good — eliminates shell overhead, enables real library calls (LDAP, WMI) |
 
-## Current Milestone: v1.3 Realistic Attack Simulation
-
-**Goal:** Upgrade techniques from obvious test scenarios to realistic attack simulations that generate authentic SIEM artifacts — without causing damage or disruption.
-
-**Target features:**
-- Real network discovery (ARP/ICMP + TCP port scan on local /24 subnet)
-- Realistic technique execution (real LDAP queries, authentic tool usage instead of PowerShell echo stubs)
-- Expanded technique repertoire with diverse attack patterns
-- Research-driven implementation based on open-source BAS platforms (Atomic Red Team, Caldera, MITRE tooling)
-
 ## Current State
 
-**Latest shipped:** v1.2 PoC Mode Fix & Overhaul (2026-04-09)
+**Latest shipped:** v1.3 Realistic Attack Simulation (2026-04-10)
 
-v1.2 delivered reliable PoC/Multiday mode with per-day execution tracking, timeline calendar UI, and deterministic scheduling tests. Consultants can now trust the multi-week engagement tool with clear daily feedback.
-
-**Phase 14 complete:** Safety Audit (2026-04-09) — All 58 techniques classified Tier 1/2/3, destructive techniques (T1070.001, T1490) rewritten for safety, defer-style cleanup guarantees, tier badges in HTML report + web UI.
-
-**Phase 15 complete:** Native Go Architecture (2026-04-09) — Thread-safe technique registry, `type: go` executor dispatch (no child process spawning), T1482 LDAP trust discovery and T1057 WMI process discovery as first native Go techniques. Foundation for realistic technique execution in Phases 17-18.
-
-**Phase 16 complete:** Safety Infrastructure (2026-04-09) — AMSI block detection in PowerShell executor, elevation gating for admin-required techniques, scan confirmation modal with subnet/IDS warning, and color-coded status badges (AMSI Blocked / Elevation Required) in both HTML reports and web UI. INFRA-01, INFRA-02, INFRA-03 all verified.
-
-**Phase 17 complete:** Network Discovery (2026-04-10) — T1046 TCP/UDP /24 subnet scanner (15-worker goroutine pool, 17 TCP + 3 UDP ports) and T1018 four-method remote system discovery (ICMP ping sweep with TCP fallback, ARP table dump, nltest DC discovery, DNS reverse lookups). Both Tier 1 native Go techniques with 15 unit tests. SCAN-01, SCAN-02, SCAN-03 verified.
-
-**Phase 18 complete:** Technique Realism Upgrades (2026-04-10) — Re-audited 4 misclassified discovery techniques: T1069/T1082/T1083 promoted Tier 3→1, T1135 promoted Tier 3→2. Enriched expected_events with Sysmon EID entries and audit policy dependency notes. Verified TECH-02/03/04 already satisfied by existing persistence, evasion, and C2 techniques. Final tier distribution: 29 Tier 1, 19 Tier 2, 10 Tier 3. TECH-01 through TECH-04 verified. **Last phase of v1.3 milestone.**
+v1.3 delivered realistic attack simulation capabilities: all 59 techniques classified by realism tier (29 Tier 1 / 19 Tier 2 / 10 Tier 3), native Go execution for network scanning (T1046 TCP/UDP subnet scan, T1018 ICMP/ARP/nltest/DNS discovery), safety infrastructure (AMSI detection, elevation gating, scan confirmation), and destructive technique rewrites ensuring client machine safety. All 16 v1.3 requirements verified and closed.
 
 **Known tech debt (carried forward):**
 - `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
-- German strings remain in `reporter.go` htmlTemplate (HTML reports)
+- German strings remain in `reporter.go` htmlTemplate (HTML reports) and engine.go WhatIf strings
 - Two audit GUIDs need on-machine validation on non-English Windows
-- engine.go:165 — `time.Now()` in Start() status init not clock-injected (cosmetic, doesn't affect scheduling)
-- engine.go:634 — Pre-existing German WhatIf string (consider full English localization in future milestone)
+- engine.go:165 — `time.Now()` in Start() status init not clock-injected (cosmetic)
+- Tier field not propagated in elevation-skip/WhatIf ExecutionResult (display shows em-dash)
+- go-ldap/v3 and wmi marked // indirect in go.mod (should be direct)
+- T1070.001 absent from TestWriteArtifactsHaveCleanup (test coverage gap, behavior correct)
 
 ## Evolution
 
@@ -154,4 +136,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-10 after Phase 18 (Technique Realism Upgrades) completed — v1.3 milestone final phase*
+*Last updated: 2026-04-10 after v1.3 Realistic Attack Simulation milestone*
