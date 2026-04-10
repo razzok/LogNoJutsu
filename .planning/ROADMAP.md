@@ -55,7 +55,9 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
   Plans:
   - [x] 17-01-PLAN.md — T1046 TCP/UDP connect scanner with goroutine pool
   - [x] 17-02-PLAN.md — T1018 ICMP/ARP/nltest/DNS discovery chain
-- [ ] Phase 18: Technique Realism Upgrades — Discovery stub upgrades, persistence techniques, defense evasion, C2/exfiltration. Reqs: TECH-01, TECH-02, TECH-03, TECH-04
+- [ ] Phase 18: Technique Realism Upgrades (1/1 plans) — Tier re-audit for discovery techniques, expected_events enrichment, TECH-02/03/04 verification. Reqs: TECH-01, TECH-02, TECH-03, TECH-04
+  Plans:
+  - [ ] 18-01-PLAN.md — Discovery tier re-audit + TECH requirement verification
 
 ## Progress
 
@@ -76,4 +78,4 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 | 13 | PoC Scheduling Tests | v1.2 | 1/1 | Complete | 2026-04-09 |
 | 16 | Safety Infrastructure | v1.3 | 3/3 | Complete | 2026-04-09 |
 | 17 | Network Discovery | v1.3 | 0/2 | Not started | — |
-| 18 | Technique Realism Upgrades | v1.3 | 0/0 | Not started | — |
+| 18 | Technique Realism Upgrades | v1.3 | 0/1 | Not started | — |
