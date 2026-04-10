@@ -15,9 +15,9 @@ Requirements for milestone v1.3: Realistic Attack Simulation.
 
 ### Network Discovery
 
-- [ ] **SCAN-01**: T1046 scans the host's auto-detected /24 subnet via TCP connect scan (not just loopback/gateway)
+- [x] **SCAN-01**: T1046 scans the host's auto-detected /24 subnet via TCP connect scan (not just loopback/gateway)
 - [ ] **SCAN-02**: T1018 includes ICMP ping sweep, ARP table enumeration, and nltest DC discovery
-- [ ] **SCAN-03**: Network scanning is implemented as native Go (type: go executor) generating Sysmon EID 3 artifacts
+- [x] **SCAN-03**: Network scanning is implemented as native Go (type: go executor) generating Sysmon EID 3 artifacts
 
 ### Technique Realism Upgrades
 
@@ -71,9 +71,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAFE-01 | Phase 14 | Complete |
 | SAFE-02 | Phase 14 | In progress (14-01: Tier field added; 14-03: YAML annotation + classification doc) |
 | SAFE-03 | Phase 14 | Complete |
-| SCAN-01 | Phase 17 | Pending |
+| SCAN-01 | Phase 17 | Complete |
 | SCAN-02 | Phase 17 | Pending |
-| SCAN-03 | Phase 17 | Pending |
+| SCAN-03 | Phase 17 | Complete |
 | TECH-01 | Phase 18 | Pending |
 | TECH-02 | Phase 18 | Pending |
 | TECH-03 | Phase 18 | Pending |

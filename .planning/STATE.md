@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-current_phase: 16
-current_plan: Not started
-status: Milestone complete
-last_updated: "2026-04-09T17:22:59.520Z"
+milestone: v1.3
+milestone_name: Realistic Attack Simulation
+current_phase: 17
+current_plan: 2
+status: Executing Phase 17
+last_updated: "2026-04-10T17:29:00.000Z"
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 15
+  completed_plans: 14
 ---
 
 # Project State
@@ -21,13 +21,13 @@ See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** v1.2 shipped — planning next milestone
+**Current focus:** Phase 17 — network-discovery
 
 ## Current Status
 
 **Milestone:** v1.2 — PoC Mode Fix & Overhaul — Shipped (2026-04-09)
-**Current phase:** 16
-**Current plan:** Not started
+**Current phase:** 17
+**Current plan:** 1
 
 ## Phase Progress
 
@@ -99,6 +99,13 @@ Key decisions carried forward:
 - checkIsElevated() split into engine_windows.go (real Windows token API) and engine_other.go (permissive stub) — platform build tags avoid cross-compilation issues
 - isAdmin set once at Start() not per-technique — admin status doesn't change mid-run; SetAdmin() test helper mirrors SetRunner() injection pattern
 
+## Decisions (Phase 17 Plan 01)
+
+- localSubnet() duplicated from engine.detectLocalSubnet() to avoid import cycle between internal/engine and internal/native
+- scanWorkers=15 as midpoint of D-08 range (10-20) for bounded goroutine concurrency via semaphore channel
+- dialTimeout=300ms per research recommendation — covers LAN hosts without excessive delay
+- UDP results are best-effort — Windows Firewall suppresses ICMP port-unreachable; noted in output
+
 ## Decisions (Phase 16 Plan 03)
 
 - AMSI stat boxes shown conditionally (gt 0) — consistent with HasCrowdStrike/HasSentinel pattern
@@ -128,4 +135,4 @@ Key decisions carried forward:
 *v1.0 complete: 2026-03-26*
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
-*Last session: 2026-04-09 — Completed 16-03-PLAN.md*
+*Last session: 2026-04-10 — Completed 17-01-PLAN.md*
