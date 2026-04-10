@@ -6,13 +6,20 @@ technique_id: T1069
 platform: windows
 phase: discovery
 elevation_required: false
+tier: 1
 expected_events:
   - event_id: 4688
     channel: "Security"
-    description: "net.exe 'localgroup Administrators' — standalone tier-1 SIEM rule"
+    description: "net.exe with 'localgroup Administrators' argument — standalone SIEM detection rule"
+  - event_id: 4688
+    channel: "Security"
+    description: "whoami.exe and wmic.exe process creation — group enumeration burst"
   - event_id: 4104
     channel: "Microsoft-Windows-PowerShell/Operational"
-    description: "PowerShell ScriptBlock - Get-LocalGroup / Get-LocalGroupMember"
+    description: "ScriptBlock logging for Get-LocalGroup, Get-LocalGroupMember, WindowsIdentity .NET calls"
+  - event_id: 1
+    channel: "Microsoft-Windows-Sysmon/Operational"
+    description: "Process creation for net.exe, whoami.exe, wmic.exe — same signals as EID 4688 via Sysmon"
 tags:
   - discovery
   - no-prereqs

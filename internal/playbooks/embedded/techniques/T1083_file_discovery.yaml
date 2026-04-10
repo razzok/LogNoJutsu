@@ -6,16 +6,20 @@ technique_id: T1083
 platform: windows
 phase: discovery
 elevation_required: false
+tier: 1
 expected_events:
   - event_id: 4688
     channel: "Security"
-    description: "cmd.exe / tree.com — dir /s /b on user profile directories"
+    description: "cmd.exe with 'dir /s /b' arguments on user profile paths — attacker file enumeration pattern"
+  - event_id: 4688
+    channel: "Security"
+    description: "tree.com process creation — directory structure mapping"
   - event_id: 4104
     channel: "Microsoft-Windows-PowerShell/Operational"
-    description: "PowerShell ScriptBlock - Get-ChildItem recursive on sensitive paths"
+    description: "ScriptBlock logging for Get-ChildItem -Recurse on sensitive paths, Get-Item -Stream * ADS check"
   - event_id: 1
     channel: "Microsoft-Windows-Sysmon/Operational"
-    description: "tree.com process creation"
+    description: "Process creation for cmd.exe and tree.com spawned from PowerShell"
 tags:
   - discovery
   - no-prereqs
