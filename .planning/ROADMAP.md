@@ -78,8 +78,9 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
   2. Phase 2 techniques execute in batches of 2-3 at randomly spaced intervals throughout the day, not all at once at Phase2DailyHour
   3. All random intervals fall within a configurable daily time window (start hour to end hour), not beyond the window boundaries
   4. Each day's DayDigest TechniqueCount still reflects the full set of techniques scheduled for that day
-**Plans**: 2 plans
+**Plans**: 3 plans
 Plans:
+- [ ] 19-00-PLAN.md — Wave 0: test stubs for poc_schedule_test.go (Nyquist compliance)
 - [ ] 19-01-PLAN.md — Engine rewrite: PoCConfig window fields, randomSlotsInWindow helper, distributed runPoC() loops
 - [ ] 19-02-PLAN.md — UI update: window start/end form inputs and schedule preview
 
@@ -116,5 +117,5 @@ Plans:
 | 16 | Safety Infrastructure | v1.3 | 3/3 | Complete | 2026-04-09 |
 | 17 | Network Discovery | v1.3 | 2/2 | Complete | 2026-04-10 |
 | 18 | Technique Realism Upgrades | v1.3 | 1/1 | Complete | 2026-04-10 |
-| 19 | Distributed Technique Scheduling | v1.4 | 0/2 | Not started | - |
+| 19 | Distributed Technique Scheduling | v1.4 | 0/3 | Not started | - |
 | 20 | Scheduling Test Coverage | v1.4 | 0/? | Not started | - |
