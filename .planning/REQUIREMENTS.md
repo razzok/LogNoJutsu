@@ -44,16 +44,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| POC-01 | — | Pending |
-| POC-02 | — | Pending |
-| POC-03 | — | Pending |
-| POC-04 | — | Pending |
+| POC-01 | Phase 19 | Pending |
+| POC-02 | Phase 19 | Pending |
+| POC-03 | Phase 19 | Pending |
+| POC-04 | Phase 20 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 4 total
-- Mapped to phases: 0
-- Unmapped: 4
+- Mapped to phases: 4
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-10*
-*Last updated: 2026-04-10 after initial definition*
+*Last updated: 2026-04-10 after roadmap creation — all 4 requirements mapped*
