@@ -93,7 +93,9 @@ Plans:
   2. At least one test verifies that Phase 1 techniques are not all dispatched at a single clock tick
   3. At least one test verifies that Phase 2 techniques are dispatched in groups of 2-3
   4. DayDigest tracking remains accurate under distributed scheduling (TechniqueCount matches dispatched count)
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 20-01-PLAN.md — Audit existing tests + add DayDigest distributed counts test
 
 ## Progress
 
@@ -118,4 +120,4 @@ Plans:
 | 17 | Network Discovery | v1.3 | 2/2 | Complete | 2026-04-10 |
 | 18 | Technique Realism Upgrades | v1.3 | 1/1 | Complete | 2026-04-10 |
 | 19 | Distributed Technique Scheduling | v1.4 | 0/3 | Not started | - |
-| 20 | Scheduling Test Coverage | v1.4 | 0/? | Not started | - |
+| 20 | Scheduling Test Coverage | v1.4 | 0/1 | Not started | - |
