@@ -65,7 +65,7 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 **Milestone Goal:** Spread technique execution across the day with random jitter — Phase 1 one-at-a-time, Phase 2 in small batches — instead of firing all techniques at the scheduled hour.
 
 - [x] **Phase 19: Distributed Technique Scheduling** - Rewrite runPoC() to spread techniques across the day with jitter for both Phase 1 (single) and Phase 2 (batched) execution (completed 2026-04-10)
-- [ ] **Phase 20: Scheduling Test Coverage** - Update existing PoC scheduling tests to validate distributed execution behavior and DayDigest accuracy under the new logic
+- [x] **Phase 20: Scheduling Test Coverage** - Update existing PoC scheduling tests to validate distributed execution behavior and DayDigest accuracy under the new logic (completed 2026-04-11)
 
 ## Phase Details
 
@@ -95,7 +95,7 @@ Plans:
   4. DayDigest tracking remains accurate under distributed scheduling (TechniqueCount matches dispatched count)
 **Plans**: 1 plan
 Plans:
-- [ ] 20-01-PLAN.md — Audit existing tests + add DayDigest distributed counts test
+- [x] 20-01-PLAN.md — Audit existing tests + add DayDigest distributed counts test
 
 ## Progress
 
