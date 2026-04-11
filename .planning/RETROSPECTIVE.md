@@ -132,6 +132,45 @@
 
 ---
 
+## Milestone: v1.4 — PoC Technique Distribution
+
+**Shipped:** 2026-04-11
+**Phases:** 2 | **Plans:** 4 | **Commits:** 14
+
+### What Was Built
+- Distributed technique scheduling: `randomSlotsInWindow()` distributes techniques across configurable time windows with random jitter
+- Phase 1 fires one technique per random slot, Phase 2 fires batches of 2-3 per slot
+- UI window start/end inputs (08:00-17:00 default) replacing single hour inputs
+- DayDigest accuracy tests for multi-technique Phase 1 days and Phase 2 step-count verification
+- All existing scheduling tests documented with distributed scheduling correctness comments
+
+### What Worked
+- **Small milestone scope:** 2 phases, 4 plans — lean scope with clear goal made execution fast (under 12 hours wall clock)
+- **Phase 19→20 dependency chain:** Engine rewrite first, test coverage second — clean separation of concerns
+- **Wave 0 stubs:** Nyquist compliance stubs provided clear verify targets before implementation; stubs were un-skipped when real tests landed
+- **Worktree isolation:** Executor agent merged master into worktree to acquire Phase 19 code — no conflict with orchestrator
+
+### What Was Inefficient
+- **Phase 20 executor needed to merge master:** Worktree was created from a base that didn't have Phase 19's code — required manual merge inside the agent. Worktree creation should be from HEAD, not from a stale base
+- **ROADMAP.md plan counts stale:** Progress table showed "0/3 Not started" for Phase 19 even after completion — gsd-tools `phase complete` didn't update the progress table rows
+- **Test comment D-03 tag instead of POC-04:** Cosmetic traceability inconsistency in test comments — POC-04 should have been referenced directly
+
+### Patterns Established
+- **randomSlotsInWindow helper:** Single function distributes N items across a time window — reusable for any future scheduling needs
+- **afterCountClock test wrapper:** Counts After() calls on top of fakeClock — enables assertions about how many scheduling slots fired without inspecting internal state
+
+### Key Lessons
+1. **Small milestones are efficient** — 2 phases with clear scope executed and verified in a single session
+2. **Worktree agents may need explicit merge of recent work** — when phases are sequential, the worktree base may not include the prior phase's commits
+3. **Progress table rows should be updated by phase completion tooling** — manual table maintenance creates stale data
+
+### Cost Observations
+- Model mix: ~85% sonnet (executor/verifier agents), ~15% opus (orchestration)
+- Sessions: 1 (single session for both phases + audit + completion)
+- Notable: Smallest milestone yet — 2 phases, 14 commits, ~12 hours. Single-session milestone completion is achievable for focused scopes
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -142,6 +181,7 @@
 | v1.1 | 2 | 5 | Bug fixes & UI polish — GUID audit policy, version injection, inline error panels |
 | v1.2 | 4 | 6 | PoC overhaul — Clock injection, DayDigest tracking, timeline calendar UI, scheduling tests |
 | v1.3 | 7 | 16 | Realistic attack simulation — tier classification, native Go executor, safety infrastructure, network scanning |
+| v1.4 | 2 | 4 | Distributed technique scheduling — randomSlotsInWindow, window config UI, DayDigest accuracy tests |
 
 ### Cumulative Quality
 
@@ -151,6 +191,7 @@
 | v1.1 | 20 | 5/9 | +6 tests from backend correctness and UI polish phases |
 | v1.2 | 26 | 5/9 | +6 PoC scheduling tests via fake clock injection (poc_test.go) |
 | v1.3 | 40+ | 7/10 | +14 tests: registry, executor dispatch, native techniques (T1046/T1018/T1057/T1482), playbook loader tier/events/cleanup |
+| v1.4 | 42+ | 7/10 | +2 DayDigest accuracy tests (distributed counts, Phase 2 step count) in poc_schedule_test.go |
 
 ### Top Lessons (Verified Across Milestones)
 
