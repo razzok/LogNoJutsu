@@ -53,6 +53,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 
 - ✓ Technique execution distributed across the day with random jitter (not all at scheduled hour) — Validated in Phase 19
 - ✓ Phase 2 batching: 2-3 techniques per slot with jittered delays between batches — Validated in Phase 19
+- ✓ Scheduling test coverage: distributed scheduling correctness documented and tested — Validated in Phase 20
 
 ### Out of Scope
 
@@ -119,7 +120,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 
 v1.3 delivered realistic attack simulation capabilities: all 59 techniques classified by realism tier (29 Tier 1 / 19 Tier 2 / 10 Tier 3), native Go execution for network scanning (T1046 TCP/UDP subnet scan, T1018 ICMP/ARP/nltest/DNS discovery), safety infrastructure (AMSI detection, elevation gating, scan confirmation), and destructive technique rewrites ensuring client machine safety. All 16 v1.3 requirements verified and closed.
 
-**Phase 19 complete:** Distributed technique scheduling — `randomSlotsInWindow()` distributes techniques across configurable time windows with random jitter. Phase 1 fires one technique per slot, Phase 2 fires batches of 2-3. UI updated with window start/end inputs.
+**Phase 20 complete:** Scheduling test coverage — existing tests documented for distributed scheduling correctness, new DayDigest accuracy tests added for multi-technique Phase 1 days and Phase 2 step-count verification. All 37+ engine tests pass.
 
 **Known tech debt (carried forward):**
 - `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
@@ -148,4 +149,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-10 after Phase 19 (distributed technique scheduling) completed*
+*Last updated: 2026-04-11 after Phase 20 (scheduling test coverage) completed*
