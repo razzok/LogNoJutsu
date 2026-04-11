@@ -6,6 +6,7 @@
 - ✅ **v1.1 Bug Fixes & UI Polish** — Phases 8-9 (shipped 2026-03-26)
 - ✅ **v1.2 PoC Mode Fix & Overhaul** — Phases 10-13 (shipped 2026-04-09)
 - ✅ **v1.3 Realistic Attack Simulation** — Phases 14-18 (shipped 2026-04-10)
+- 🚧 **v1.4 PoC Technique Distribution** — Phases 19-20 (in progress)
 
 ## Phases
 
@@ -59,6 +60,43 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 
 </details>
 
+### v1.4 PoC Technique Distribution (In Progress)
+
+**Milestone Goal:** Spread technique execution across the day with random jitter — Phase 1 one-at-a-time, Phase 2 in small batches — instead of firing all techniques at the scheduled hour.
+
+- [x] **Phase 19: Distributed Technique Scheduling** - Rewrite runPoC() to spread techniques across the day with jitter for both Phase 1 (single) and Phase 2 (batched) execution (completed 2026-04-10)
+- [ ] **Phase 20: Scheduling Test Coverage** - Update existing PoC scheduling tests to validate distributed execution behavior and DayDigest accuracy under the new logic
+
+## Phase Details
+
+### Phase 19: Distributed Technique Scheduling
+**Goal**: runPoC() distributes techniques across each campaign day with random jitter instead of firing all techniques at the scheduled hour
+**Depends on**: Phase 18
+**Requirements**: POC-01, POC-02, POC-03
+**Success Criteria** (what must be TRUE):
+  1. Phase 1 techniques execute one at a time at randomly spaced intervals throughout the day, not all at once at Phase1DailyHour
+  2. Phase 2 techniques execute in batches of 2-3 at randomly spaced intervals throughout the day, not all at once at Phase2DailyHour
+  3. All random intervals fall within a configurable daily time window (start hour to end hour), not beyond the window boundaries
+  4. Each day's DayDigest TechniqueCount still reflects the full set of techniques scheduled for that day
+**Plans**: 3 plans
+Plans:
+- [x] 19-00-PLAN.md — Wave 0: test stubs for poc_schedule_test.go (Nyquist compliance)
+- [x] 19-01-PLAN.md — Engine rewrite: PoCConfig window fields, randomSlotsInWindow helper, distributed runPoC() loops
+- [x] 19-02-PLAN.md — UI update: window start/end form inputs and schedule preview
+
+### Phase 20: Scheduling Test Coverage
+**Goal**: Existing and new PoC scheduling tests validate distributed execution behavior with deterministic fake-clock control
+**Depends on**: Phase 19
+**Requirements**: POC-04
+**Success Criteria** (what must be TRUE):
+  1. All existing poc_test.go scheduling tests pass with the rewritten runPoC() logic (no regressions)
+  2. At least one test verifies that Phase 1 techniques are not all dispatched at a single clock tick
+  3. At least one test verifies that Phase 2 techniques are dispatched in groups of 2-3
+  4. DayDigest tracking remains accurate under distributed scheduling (TechniqueCount matches dispatched count)
+**Plans**: 1 plan
+Plans:
+- [ ] 20-01-PLAN.md — Audit existing tests + add DayDigest distributed counts test
+
 ## Progress
 
 | Phase | Title | Milestone | Plans Complete | Status | Completed |
@@ -81,3 +119,5 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 | 16 | Safety Infrastructure | v1.3 | 3/3 | Complete | 2026-04-09 |
 | 17 | Network Discovery | v1.3 | 2/2 | Complete | 2026-04-10 |
 | 18 | Technique Realism Upgrades | v1.3 | 1/1 | Complete | 2026-04-10 |
+| 19 | Distributed Technique Scheduling | v1.4 | 0/3 | Not started | - |
+| 20 | Scheduling Test Coverage | v1.4 | 0/1 | Not started | - |

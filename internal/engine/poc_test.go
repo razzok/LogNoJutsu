@@ -59,10 +59,10 @@ func TestPoCDayCounter_Monotonic(t *testing.T) {
 		PoCMode:            true,
 		Phase1DurationDays: 3,
 		Phase1TechsPerDay:  1,
-		Phase1DailyHour:    8,
+		Phase1WindowStart: 8, Phase1WindowEnd: 17,
 		GapDays:            2,
 		Phase2DurationDays: 2,
-		Phase2DailyHour:    9,
+		Phase2WindowStart: 9, Phase2WindowEnd: 18,
 		CampaignID:         "camp-test",
 	}
 
@@ -178,10 +178,10 @@ func TestDayDigest_PendingActiveComplete(t *testing.T) {
 		PoCMode:            true,
 		Phase1DurationDays: 1,
 		Phase1TechsPerDay:  1,
-		Phase1DailyHour:    8,
+		Phase1WindowStart: 8, Phase1WindowEnd: 17,
 		GapDays:            1,
 		Phase2DurationDays: 1,
-		Phase2DailyHour:    9,
+		Phase2WindowStart: 9, Phase2WindowEnd: 18,
 		CampaignID:         "camp-test",
 	}
 

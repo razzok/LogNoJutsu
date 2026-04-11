@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -60,10 +61,12 @@ type Config struct {
 	PoCMode            bool `json:"poc_mode"`
 	Phase1DurationDays int  `json:"phase1_duration_days"` // days to run discovery phase
 	Phase1TechsPerDay  int  `json:"phase1_techs_per_day"` // discovery techniques per day
-	Phase1DailyHour    int  `json:"phase1_daily_hour"`    // 0-23: hour at which to run each day
+	Phase1WindowStart  int  `json:"phase1_window_start"`  // 0-23: window start hour (default 8)
+	Phase1WindowEnd    int  `json:"phase1_window_end"`    // 0-23: window end hour (default 17)
 	GapDays            int  `json:"gap_days"`             // silent days between phases
 	Phase2DurationDays int  `json:"phase2_duration_days"` // days to run attack phase
-	Phase2DailyHour    int  `json:"phase2_daily_hour"`    // 0-23: hour at which to run each day
+	Phase2WindowStart  int  `json:"phase2_window_start"`  // 0-23: window start hour (default 8)
+	Phase2WindowEnd    int  `json:"phase2_window_end"`    // 0-23: window end hour (default 17)
 }
 
 // Status is the current engine state.
@@ -505,16 +508,56 @@ func nextOccurrenceOfHour(hour int, now time.Time) time.Duration {
 	return next.Sub(now)
 }
 
+// randomSlotsInWindow returns sorted inter-slot wait durations for n technique slots
+// distributed randomly within the daily window [windowStart:00, windowEnd:00).
+// dayStart is the current time used as anchor. All returned durations are relative
+// to the previous slot (or dayStart for the first).
+func randomSlotsInWindow(n, windowStart, windowEnd int, dayStart time.Time, src rand.Source) []time.Duration {
+	if windowEnd <= windowStart {
+		windowEnd = windowStart + 1 // guard: minimum 1-hour window
+	}
+	windowSecs := (windowEnd - windowStart) * 3600
+	rng := rand.New(src)
+
+	// Generate n random second-offsets within the window
+	offsets := make([]int, n)
+	for i := range offsets {
+		offsets[i] = rng.Intn(windowSecs)
+	}
+	sort.Ints(offsets)
+
+	// Compute the window base time for the next occurrence of windowStart
+	base := time.Date(dayStart.Year(), dayStart.Month(), dayStart.Day(),
+		windowStart, 0, 0, 0, dayStart.Location())
+	if !base.After(dayStart) {
+		base = base.Add(24 * time.Hour) // window already passed today; use tomorrow
+	}
+
+	// Convert absolute slot times to inter-slot durations
+	cursor := dayStart
+	durations := make([]time.Duration, n)
+	for i, off := range offsets {
+		slotTime := base.Add(time.Duration(off) * time.Second)
+		durations[i] = slotTime.Sub(cursor)
+		cursor = slotTime
+	}
+	return durations
+}
+
 func (e *Engine) runPoC() {
 	cfg := e.cfg
 	totalDays := cfg.Phase1DurationDays + cfg.GapDays + cfg.Phase2DurationDays
 	globalDay := 0
 
-	simlog.Info(fmt.Sprintf("[PoC] Multi-day simulation: Phase1=%dd (%d techs/day @ %02d:00)  Gap=%dd  Phase2=%dd (campaign=%q @ %02d:00)  Total=%dd",
-		cfg.Phase1DurationDays, cfg.Phase1TechsPerDay, cfg.Phase1DailyHour,
+	simlog.Info(fmt.Sprintf("[PoC] Multi-day simulation: Phase1=%dd (%d techs/day @ %02d:00-%02d:00)  Gap=%dd  Phase2=%dd (campaign=%q @ %02d:00-%02d:00)  Total=%dd",
+		cfg.Phase1DurationDays, cfg.Phase1TechsPerDay, cfg.Phase1WindowStart, cfg.Phase1WindowEnd,
 		cfg.GapDays,
-		cfg.Phase2DurationDays, cfg.CampaignID, cfg.Phase2DailyHour,
+		cfg.Phase2DurationDays, cfg.CampaignID, cfg.Phase2WindowStart, cfg.Phase2WindowEnd,
 		totalDays))
+
+	// Seed the random source once for all distributed slot calculations
+	randSrc := rand.NewSource(e.clock.Now().UnixNano())
+	rng := rand.New(randSrc)
 
 	e.mu.Lock()
 	e.status.PoCTotalDays = totalDays
@@ -577,31 +620,37 @@ func (e *Engine) runPoC() {
 			e.abort()
 			return
 		}
-		d := nextOccurrenceOfHour(cfg.Phase1DailyHour, e.clock.Now())
-		nextRun := e.clock.Now().Add(d)
-		simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d/%d — waiting until %s", day, cfg.Phase1DurationDays, nextRun.Format("2006-01-02 15:04")))
+
+		// Mark day as active
 		e.mu.Lock()
 		e.status.PoCDay = globalDay
 		e.status.PoCPhase = "phase1"
-		e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
-		e.status.CurrentStep = fmt.Sprintf("PoC Phase 1 — Day %d of %d — Waiting until %02d:00", globalDay, totalDays, cfg.Phase1DailyHour)
+		e.status.CurrentStep = fmt.Sprintf("PoC Phase 1 - Day %d of %d - Starting", globalDay, totalDays)
 		e.dayDigests[globalDay-1].Status = DayActive
 		e.dayDigests[globalDay-1].StartTime = e.clock.Now().Format(time.RFC3339)
 		e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
 		e.mu.Unlock()
 
-		if !e.waitOrStop(d) {
-			e.abort()
-			return
-		}
-
 		if len(discoveryTechs) > 0 {
 			start := ((day - 1) * techsPerDay) % len(discoveryTechs)
+			// Generate one random slot per technique — distributed across the window
+			slots := randomSlotsInWindow(techsPerDay, cfg.Phase1WindowStart, cfg.Phase1WindowEnd, e.clock.Now(), rand.NewSource(rng.Int63()))
 			for i := 0; i < techsPerDay; i++ {
 				if e.isStopped() {
 					e.abort()
 					return
 				}
+				// Update next scheduled run to show time of this slot
+				e.mu.Lock()
+				e.status.NextScheduledRun = e.clock.Now().Add(slots[i]).Format(time.RFC3339)
+				e.status.CurrentStep = fmt.Sprintf("PoC Phase 1 - Day %d of %d - Slot %d/%d", globalDay, totalDays, i+1, techsPerDay)
+				e.mu.Unlock()
+
+				if !e.waitOrStop(slots[i]) {
+					e.abort()
+					return
+				}
+
 				t := discoveryTechs[(start+i)%len(discoveryTechs)]
 				simlog.Info(fmt.Sprintf("[PoC Phase1] Day %d — technique %d/%d: %s%s", day, i+1, techsPerDay, t.ID, e.whatIfLabel()))
 				e.runTechnique(t)
@@ -617,7 +666,7 @@ func (e *Engine) runPoC() {
 				}
 				e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
 				e.mu.Unlock()
-				e.delayBetween()
+				// No delayBetween() here — random jitter IS the inter-technique delay for Phase 1 (D-09)
 			}
 		}
 		e.mu.Lock()
@@ -638,9 +687,10 @@ func (e *Engine) runPoC() {
 				e.abort()
 				return
 			}
-			d := nextOccurrenceOfHour(cfg.Phase2DailyHour, e.clock.Now())
+			// Gap days wait a fixed 24 hours instead of targeting a specific hour
+			d := 24 * time.Hour
 			nextRun := e.clock.Now().Add(d)
-			simlog.Info(fmt.Sprintf("[PoC Gap] Day %d/%d — silent day, waiting until %s", day, cfg.GapDays, nextRun.Format("2006-01-02 15:04")))
+			simlog.Info(fmt.Sprintf("[PoC Gap] Day %d/%d — silent day, waiting 24h until %s", day, cfg.GapDays, nextRun.Format("2006-01-02 15:04")))
 			e.mu.Lock()
 			e.status.PoCDay = globalDay
 			e.status.PoCPhase = "gap"
@@ -672,36 +722,120 @@ func (e *Engine) runPoC() {
 			e.abort()
 			return
 		}
-		d := nextOccurrenceOfHour(cfg.Phase2DailyHour, e.clock.Now())
-		nextRun := e.clock.Now().Add(d)
-		simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d/%d — waiting until %s", day, cfg.Phase2DurationDays, nextRun.Format("2006-01-02 15:04")))
+
+		// Mark day as active
 		e.mu.Lock()
 		e.status.PoCDay = globalDay
 		e.status.PoCPhase = "phase2"
-		e.status.NextScheduledRun = nextRun.Format(time.RFC3339)
-		e.status.CurrentStep = fmt.Sprintf("PoC Phase 2 — Day %d of %d — Waiting until %02d:00", globalDay, totalDays, cfg.Phase2DailyHour)
+		e.status.CurrentStep = fmt.Sprintf("PoC Phase 2 - Day %d of %d - Starting", globalDay, totalDays)
 		e.dayDigests[globalDay-1].Status = DayActive
 		e.dayDigests[globalDay-1].StartTime = e.clock.Now().Format(time.RFC3339)
 		e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
 		e.mu.Unlock()
 
-		if !e.waitOrStop(d) {
-			e.abort()
-			return
-		}
+		// Determine batch size: 2 or 3 techniques per slot (D-06)
+		batchSize := 2 + rng.Intn(2)
 
 		if cfg.CampaignID != "" {
 			campaign, ok := e.registry.Campaigns[cfg.CampaignID]
 			if ok {
-				simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d — running %d campaign steps%s", day, len(campaign.Steps), e.whatIfLabel()))
-				for _, step := range campaign.Steps {
+				steps := campaign.Steps
+				numBatches := (len(steps) + batchSize - 1) / batchSize
+				simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d — running %d campaign steps in %d batches of ~%d%s", day, len(steps), numBatches, batchSize, e.whatIfLabel()))
+
+				// Generate one random slot per batch — distributed across the window
+				slots := randomSlotsInWindow(numBatches, cfg.Phase2WindowStart, cfg.Phase2WindowEnd, e.clock.Now(), rand.NewSource(rng.Int63()))
+
+				for batchIdx := 0; batchIdx < numBatches; batchIdx++ {
 					if e.isStopped() {
 						e.abort()
 						return
 					}
-					t, exists := e.registry.Techniques[step.TechniqueID]
-					if !exists {
-						continue
+					// Update next scheduled run for this batch slot
+					e.mu.Lock()
+					e.status.NextScheduledRun = e.clock.Now().Add(slots[batchIdx]).Format(time.RFC3339)
+					e.status.CurrentStep = fmt.Sprintf("PoC Phase 2 - Day %d of %d - Batch %d/%d", globalDay, totalDays, batchIdx+1, numBatches)
+					e.mu.Unlock()
+
+					if !e.waitOrStop(slots[batchIdx]) {
+						e.abort()
+						return
+					}
+
+					// Execute techniques in this batch
+					batchStart := batchIdx * batchSize
+					batchEnd := batchStart + batchSize
+					if batchEnd > len(steps) {
+						batchEnd = len(steps)
+					}
+					for _, step := range steps[batchStart:batchEnd] {
+						if e.isStopped() {
+							e.abort()
+							return
+						}
+						t, exists := e.registry.Techniques[step.TechniqueID]
+						if !exists {
+							continue
+						}
+						e.runTechnique(t)
+						// Update pass/fail count and heartbeat (D-10)
+						e.mu.RLock()
+						lastResult := e.status.Results[len(e.status.Results)-1]
+						e.mu.RUnlock()
+						e.mu.Lock()
+						if lastResult.Success {
+							e.dayDigests[globalDay-1].PassCount++
+						} else {
+							e.dayDigests[globalDay-1].FailCount++
+						}
+						e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
+						e.mu.Unlock()
+						// Apply campaign delay_after within batch
+						if step.DelayAfter > 0 {
+							if !e.waitOrStop(time.Duration(step.DelayAfter) * time.Second) {
+								e.abort()
+								return
+							}
+						}
+						e.delayBetween()
+					}
+				}
+			}
+		} else {
+			attackTechs := e.getTechniquesForPhase()
+			numBatches := (len(attackTechs) + batchSize - 1) / batchSize
+			if numBatches < 1 {
+				numBatches = 1
+			}
+			simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d — running %d attack techniques in %d batches of ~%d%s", day, len(attackTechs), numBatches, batchSize, e.whatIfLabel()))
+
+			// Generate one random slot per batch
+			slots := randomSlotsInWindow(numBatches, cfg.Phase2WindowStart, cfg.Phase2WindowEnd, e.clock.Now(), rand.NewSource(rng.Int63()))
+
+			for batchIdx := 0; batchIdx < numBatches; batchIdx++ {
+				if e.isStopped() {
+					e.abort()
+					return
+				}
+				e.mu.Lock()
+				e.status.NextScheduledRun = e.clock.Now().Add(slots[batchIdx]).Format(time.RFC3339)
+				e.status.CurrentStep = fmt.Sprintf("PoC Phase 2 - Day %d of %d - Batch %d/%d", globalDay, totalDays, batchIdx+1, numBatches)
+				e.mu.Unlock()
+
+				if !e.waitOrStop(slots[batchIdx]) {
+					e.abort()
+					return
+				}
+
+				batchStart := batchIdx * batchSize
+				batchEnd := batchStart + batchSize
+				if batchEnd > len(attackTechs) {
+					batchEnd = len(attackTechs)
+				}
+				for _, t := range attackTechs[batchStart:batchEnd] {
+					if e.isStopped() {
+						e.abort()
+						return
 					}
 					e.runTechnique(t)
 					// Update pass/fail count and heartbeat (D-10)
@@ -716,38 +850,8 @@ func (e *Engine) runPoC() {
 					}
 					e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
 					e.mu.Unlock()
-					// Apply campaign delay_after (D-07, D-08, D-09)
-					if step.DelayAfter > 0 {
-						if !e.waitOrStop(time.Duration(step.DelayAfter) * time.Second) {
-							e.abort()
-							return
-						}
-					}
 					e.delayBetween()
 				}
-			}
-		} else {
-			attackTechs := e.getTechniquesForPhase()
-			simlog.Info(fmt.Sprintf("[PoC Phase2] Day %d — running %d attack techniques%s", day, len(attackTechs), e.whatIfLabel()))
-			for _, t := range attackTechs {
-				if e.isStopped() {
-					e.abort()
-					return
-				}
-				e.runTechnique(t)
-				// Update pass/fail count and heartbeat (D-10)
-				e.mu.RLock()
-				lastResult := e.status.Results[len(e.status.Results)-1]
-				e.mu.RUnlock()
-				e.mu.Lock()
-				if lastResult.Success {
-					e.dayDigests[globalDay-1].PassCount++
-				} else {
-					e.dayDigests[globalDay-1].FailCount++
-				}
-				e.dayDigests[globalDay-1].LastHeartbeat = e.clock.Now().Format(time.RFC3339)
-				e.mu.Unlock()
-				e.delayBetween()
 			}
 		}
 		e.mu.Lock()
