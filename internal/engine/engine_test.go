@@ -547,6 +547,9 @@ func TestGetDayDigests_Empty(t *testing.T) {
 }
 
 // TestDayDigest_PrePopulated verifies all days are pre-populated as pending before any day runs (TRACK-02).
+// Uses Phase1TechsPerDay=1 via pocConfig(). TechniqueCount=1 for Phase 1 days is correct
+// under distributed scheduling — pre-population uses Phase1TechsPerDay regardless of
+// scheduling algorithm.
 func TestDayDigest_PrePopulated(t *testing.T) {
 	eng, fc := newPoCEngineWithCampaign(2, 1, 2)
 	_ = fc
@@ -626,6 +629,9 @@ func TestDayDigest_Lifecycle(t *testing.T) {
 }
 
 // TestDayDigest_Counts verifies PassCount and FailCount match alternating runner results (TRACK-01).
+// Uses Phase1TechsPerDay=1 via pocConfig(), so each Phase 1 day has 1 distributed slot.
+// For multi-technique distributed accuracy testing, see TestDayDigest_DistributedCounts
+// in poc_schedule_test.go.
 func TestDayDigest_Counts(t *testing.T) {
 	eng, _ := newPoCEngineWithCampaign(2, 1, 2)
 	cfg := pocConfig(2, 1, 2, "camp-delay")

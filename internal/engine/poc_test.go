@@ -289,6 +289,9 @@ func (c *stopOnNthClock) After(d time.Duration) <-chan time.Time {
 }
 
 // newStopOnNthEngine creates an engine with stopOnNthClock injected for stop-signal tests.
+// Uses pocConfig() which sets Phase1TechsPerDay=1, so each Phase 1 day produces exactly
+// 1 After() call under distributed scheduling (1 slot = 1 After()). blockAt values in
+// callers are calibrated for this 1-tech/day setup.
 func newStopOnNthEngine(phase1Days, gapDays, phase2Days, blockAt int) (*Engine, *stopOnNthClock) {
 	reg := testRegistry(
 		testTechnique("T1087", "discovery", "discovery"),
@@ -313,7 +316,11 @@ func newStopOnNthEngine(phase1Days, gapDays, phase2Days, blockAt int) (*Engine, 
 	return eng, sc
 }
 
-// TestPoCStop_DuringDayWait verifies stop signal during scheduling wait aborts the engine (D-03).
+// TestPoCStop_DuringDayWait verifies stop signal during scheduling wait aborts the engine.
+// Under distributed scheduling, Phase 1 with 1 tech/day produces exactly 1 After() per day
+// (1 slot = 1 After() call). blockAt=2 therefore means: day 1 slot fires (call 1), day 2
+// slot blocks (call 2). This is structurally correct — single-technique days have a 1:1
+// slot-to-After() correspondence regardless of scheduling algorithm.
 func TestPoCStop_DuringDayWait(t *testing.T) {
 	// 2+1+1 = 4 days; blockAt=2 means day 1 wait fires, day 2 scheduling wait blocks
 	eng, _ := newStopOnNthEngine(2, 1, 1, 2)
@@ -344,7 +351,10 @@ func TestPoCStop_DuringDayWait(t *testing.T) {
 	}
 }
 
-// TestPoCStop_BetweenPhaseTransitions verifies stop at Phase1->Gap boundary aborts engine (D-04).
+// TestPoCStop_BetweenPhaseTransitions verifies stop at Phase1->Gap boundary aborts engine.
+// Under distributed scheduling, Phase 1 with 1 tech/day = 1 After() per day. blockAt=2:
+// Phase1 day 1 slot fires (call 1), gap day 1 wait blocks (call 2). Gap days use a fixed
+// 24h After() call regardless of scheduling mode, so blockAt=2 is correct.
 func TestPoCStop_BetweenPhaseTransitions(t *testing.T) {
 	// 1+1+1 = 3 days; blockAt=2: Phase1 day 1 fires (call 1), gap day 1 blocks (call 2)
 	eng, _ := newStopOnNthEngine(1, 1, 1, 2)
@@ -376,7 +386,9 @@ func TestPoCStop_BetweenPhaseTransitions(t *testing.T) {
 }
 
 // TestPoCStop_DuringGapDays verifies stop during gap day wait aborts engine,
-// and gap day 1 is DayActive (not complete) while phase1 day is DayComplete (D-05).
+// and gap day 1 is DayActive (not complete) while phase1 day is DayComplete.
+// Under distributed scheduling, Phase 1 with 1 tech/day = 1 After() per day. blockAt=2:
+// Phase1 day 1 slot fires (call 1), gap day 1 wait blocks (call 2).
 func TestPoCStop_DuringGapDays(t *testing.T) {
 	// 1+2+1 = 4 days; blockAt=2: Phase1 fires (call 1), gap day 1 blocks (call 2)
 	eng, _ := newStopOnNthEngine(1, 2, 1, 2)
@@ -415,8 +427,10 @@ func TestPoCStop_DuringGapDays(t *testing.T) {
 	}
 }
 
-// TestPoCStop_ImmediateAfterStart verifies stop before first day executes aborts engine (D-06).
-// blockAt=1 means the very first After() call blocks.
+// TestPoCStop_ImmediateAfterStart verifies stop before first day executes aborts engine.
+// blockAt=1 means the very first After() call blocks. Under distributed scheduling,
+// the first After() is the first technique slot of day 1 — blocking here prevents any
+// technique from executing, regardless of scheduling algorithm.
 func TestPoCStop_ImmediateAfterStart(t *testing.T) {
 	// 2+1+1 = 4 days; blockAt=1: first scheduling wait blocks immediately
 	eng, _ := newStopOnNthEngine(2, 1, 1, 1)
