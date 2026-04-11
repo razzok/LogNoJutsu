@@ -1,5 +1,17 @@
 # Milestones
 
+## v1.4 PoC Technique Distribution (Shipped: 2026-04-11)
+
+**Phases completed:** 2 phases, 4 plans, 6 tasks
+
+**Key accomplishments:**
+
+- Three t.Skip stub test functions in poc_schedule_test.go provide automated verify targets for distributed technique scheduling (POC-01/02/03)
+- runPoC() rewritten: Phase 1 distributes one technique per random slot, Phase 2 batches 2-3 techniques across window-bounded random slots using randomSlotsInWindow helper
+- PoC form updated: Phase 1 and Phase 2 now show window start/end hour inputs (08:00-17:00 default) instead of single hour inputs; config payload and schedule preview updated to match
+
+---
+
 ## v1.3 Realistic Attack Simulation (Shipped: 2026-04-10)
 
 **Phases completed:** 7 phases, 16 plans, 25 tasks

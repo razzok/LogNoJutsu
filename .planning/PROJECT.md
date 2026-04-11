@@ -46,14 +46,13 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - ✓ Safety infrastructure: AMSI detection, elevation gating, scan confirmation modal with IDS warning — v1.3
 - ✓ Network discovery: T1046 TCP/UDP /24 subnet scanner + T1018 ICMP/ARP/nltest/DNS discovery chain — v1.3
 - ✓ Technique realism: 4 discovery techniques reclassified, tier distribution finalized at 29/19/10, all TECH requirements closed — v1.3
+- ✓ Technique execution distributed across the day with random jitter (not all at scheduled hour) — v1.4
+- ✓ Phase 2 batching: 2-3 techniques per slot with jittered delays between batches — v1.4
+- ✓ Scheduling test coverage: distributed scheduling correctness documented and tested — v1.4
 
 ### Active
 
-<!-- Current scope for v1.4. -->
-
-- ✓ Technique execution distributed across the day with random jitter (not all at scheduled hour) — Validated in Phase 19
-- ✓ Phase 2 batching: 2-3 techniques per slot with jittered delays between batches — Validated in Phase 19
-- ✓ Scheduling test coverage: distributed scheduling correctness documented and tested — Validated in Phase 20
+<!-- Current scope — to be defined in next milestone. -->
 
 ### Out of Scope
 
@@ -72,6 +71,7 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - **v1.1 shipped 2026-03-26:** Locale-independent audit policy (GUID migration), build-time version injection, full English UI, inline error panels, tactic badge colors — 5 plans across 2 phases, 33 commits
 - **v1.2 shipped 2026-04-09:** PoC engine fixes, Clock injection, DayDigest tracking, timeline calendar UI, 6 scheduling tests — 6 plans across 4 phases, 37 commits
 - **v1.3 shipped 2026-04-10:** Safety audit + tier classification, native Go executor + LDAP/WMI, AMSI/elevation/scan safety, network discovery, technique realism upgrades — 16 plans across 7 phases (08-09, 14-18)
+- **v1.4 shipped 2026-04-11:** Distributed technique scheduling — randomSlotsInWindow() distributes techniques across configurable time windows, Phase 1 one-at-a-time, Phase 2 in batches of 2-3, DayDigest accuracy tests — 4 plans across 2 phases, 14 commits
 - **Codebase packages:** cmd/lognojutsu, internal/{engine,executor,native,playbooks,preparation,reporter,server,simlog,userstore,verifier}
 - **Test coverage:** 40+ test functions across engine_test, poc_test, server_test, verifier_test, reporter_test, loader_test, registry_test, executor_test, native technique tests
 - **Codebase size:** ~7.9k LOC Go (production code)
@@ -104,23 +104,14 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | Defer-style RunWithCleanup | Named return + defer ensures cleanup fires even on panic | ✓ Good — prevents orphaned artifacts on client machines |
 | Custom LogNoJutsu-Test channel for T1070.001 | Generates authentic EID 104 without clearing real Security/Application/System logs | ✓ Good — safe for client machines |
 | Native Go technique registry | In-process execution via type:go dispatch — no child process for native techniques | ✓ Good — eliminates shell overhead, enables real library calls (LDAP, WMI) |
-
-## Current Milestone: v1.4 PoC Technique Distribution
-
-**Goal:** Spread technique execution across the day with random jitter instead of firing all techniques at once at the scheduled hour.
-
-**Target features:**
-- Phase 1 (Discovery): Techniques distributed throughout the day with random jitter, one at a time
-- Phase 2 (Campaign/Attack): Techniques distributed in small batches (2-3), with jittered delays between batches
-- Configurable time window within which techniques are spread
+| randomSlotsInWindow helper | Central function for distributing slots across a time window with jitter | ✓ Good — reused for Phase 1 (single) and Phase 2 (batched) scheduling |
+| Window config over single hour | Four PoCConfig fields (Phase1/2 WindowStart/End) replace Phase1/2DailyHour | ✓ Good — consultants can constrain scheduling to business hours |
 
 ## Current State
 
-**Latest shipped:** v1.3 Realistic Attack Simulation (2026-04-10)
+**Latest shipped:** v1.4 PoC Technique Distribution (2026-04-11)
 
-v1.3 delivered realistic attack simulation capabilities: all 59 techniques classified by realism tier (29 Tier 1 / 19 Tier 2 / 10 Tier 3), native Go execution for network scanning (T1046 TCP/UDP subnet scan, T1018 ICMP/ARP/nltest/DNS discovery), safety infrastructure (AMSI detection, elevation gating, scan confirmation), and destructive technique rewrites ensuring client machine safety. All 16 v1.3 requirements verified and closed.
-
-**Phase 20 complete:** Scheduling test coverage — existing tests documented for distributed scheduling correctness, new DayDigest accuracy tests added for multi-technique Phase 1 days and Phase 2 step-count verification. All 37+ engine tests pass.
+v1.4 delivered distributed technique scheduling: `randomSlotsInWindow()` spreads technique execution across configurable time windows with random jitter. Phase 1 fires one technique per slot, Phase 2 fires batches of 2-3. UI updated with window start/end inputs. DayDigest accuracy tests verify correctness under distributed scheduling. All 4 v1.4 requirements verified and closed.
 
 **Known tech debt (carried forward):**
 - `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
@@ -149,4 +140,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-11 after Phase 20 (scheduling test coverage) completed*
+*Last updated: 2026-04-11 after v1.4 milestone*

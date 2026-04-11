@@ -2,44 +2,44 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: PoC Technique Distribution
-status: executing
-stopped_at: Phase 20 context gathered
-last_updated: "2026-04-11T08:03:27.507Z"
+status: complete
+stopped_at: Milestone v1.4 complete
+last_updated: "2026-04-11T10:30:00.000Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 4
   completed_plans: 4
-  percent: 0
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-10)
+See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Phase 20 — scheduling-test-coverage
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 20
-Plan: Not started
-Status: Executing Phase 20
+Phase: Complete
+Plan: Complete
+Status: Milestone v1.4 complete — all 4 requirements satisfied, all 2 phases verified
 Last activity: 2026-04-11
 
-Progress: [░░░░░░░░░░] 0% (v1.4 milestone)
+Progress: [██████████] 100% (v1.4 milestone)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed (v1.4): 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed (v1.4): 4
+- Timeline: 2026-04-10 → 2026-04-11 (2 days)
+- Commits: 14
 
 *Updated after each plan completion*
 
@@ -49,13 +49,10 @@ Progress: [░░░░░░░░░░] 0% (v1.4 milestone)
 
 Recent decisions affecting current work:
 
-- Phase 10: Clock interface injected into Engine via unexported `clock` field; captureClock pattern for reliable state capture in fast fake-clock tests
-- Phase 11: DayDigest stored as separate Engine field; TechniqueCount pre-populated from campaign.Steps length at runPoC() start
-- Phase 13: dayCaptureClock/digestCaptureClock snapshot patterns for race-free test assertions; stopOnNthClock generalizes blockingClock
-- [Phase 19-distributed-technique-scheduling]: Wave 0 stub pattern: t.Skip stubs in poc_schedule_test.go provide named verify targets before implementation; stub message references implementing plan (19-01/19-02)
-- [Phase 19-distributed-technique-scheduling]: Phase 1 uses no delayBetween() between slots — random window jitter IS the inter-technique delay (D-09)
-- [Phase 19-distributed-technique-scheduling]: randomSlotsInWindow: per-day rand.Source derived from top-level rng.Int63() to avoid shared mutable state
-- [Phase 19-distributed-technique-scheduling]: UI window inputs default to 08:00-17:00 per D-02 business hours; config payload sends four window fields matching PoCConfig JSON tags
+- Phase 19: randomSlotsInWindow helper distributes N items across configurable time window with random jitter
+- Phase 19: Four PoCConfig window fields replace Phase1DailyHour/Phase2DailyHour
+- Phase 19: Phase 1 uses no delayBetween() — random window jitter IS the inter-technique delay
+- Phase 20: afterCountClock wrapper counts After() calls for scheduling slot assertions
 
 ### Pending Todos
 
@@ -63,14 +60,12 @@ None.
 
 ### Blockers/Concerns
 
-- runPoC() currently waits until Phase1DailyHour then fires all techniques back-to-back — the entire function logic changes in Phase 19
-- Existing poc_test.go tests are written against the current sequential-at-hour behavior; Phase 20 must update them without breaking the captureClock/fakeClock infrastructure
+None — milestone complete.
 
 ## Session Continuity
 
-Last session: 2026-04-11T07:40:10.759Z
-Stopped at: Phase 20 context gathered
-Resume file: .planning/phases/20-scheduling-test-coverage/20-CONTEXT.md
+Last session: 2026-04-11
+Stopped at: Milestone v1.4 complete
 
 ---
 *Initialized: 2026-03-24*
@@ -78,4 +73,4 @@ Resume file: .planning/phases/20-scheduling-test-coverage/20-CONTEXT.md
 *v1.1 complete: 2026-03-26*
 *v1.2 complete: 2026-04-09*
 *v1.3 complete: 2026-04-10*
-*v1.4 started: 2026-04-10*
+*v1.4 complete: 2026-04-11*
