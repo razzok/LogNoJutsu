@@ -49,6 +49,11 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - ✓ Technique execution distributed across the day with random jitter (not all at scheduled hour) — v1.4
 - ✓ Phase 2 batching: 2-3 techniques per slot with jittered delays between batches — v1.4
 - ✓ Scheduling test coverage: distributed scheduling correctness documented and tested — v1.4
+- ✓ Credentials never exposed on the PowerShell command line — passed via `$env:` + stdin — v1.5
+- ✓ EventSpec.Contains enforced by verifier — precise per-technique message-content verification — v1.5
+- ✓ Password-protected UI fully functional — static UI Basic-auth challenge propagates creds to all API calls — v1.5
+- ✓ Deterministic technique/report ordering — sorted by ID, no map-iteration randomness — v1.5
+- ✓ HTML report fully English (DE→EN) — consistent with English-UI decision — v1.5
 
 ### Active
 
@@ -72,9 +77,10 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 - **v1.2 shipped 2026-04-09:** PoC engine fixes, Clock injection, DayDigest tracking, timeline calendar UI, 6 scheduling tests — 6 plans across 4 phases, 37 commits
 - **v1.3 shipped 2026-04-10:** Safety audit + tier classification, native Go executor + LDAP/WMI, AMSI/elevation/scan safety, network discovery, technique realism upgrades — 16 plans across 7 phases (08-09, 14-18)
 - **v1.4 shipped 2026-04-11:** Distributed technique scheduling — randomSlotsInWindow() distributes techniques across configurable time windows, Phase 1 one-at-a-time, Phase 2 in batches of 2-3, DayDigest accuracy tests — 4 plans across 2 phases, 14 commits
+- **v1.5 in review 2026-09-20 (PR #1, branch `v1.5-polish-hardening`):** Security & polish pass after full-codebase read — credentials via `$env:`+stdin (no command-line leak into Event 4688 / ScriptBlock logs), EventSpec.Contains enforcement, password-protected UI fix (static Basic-auth challenge), deterministic ordering, DE→EN report, tech-debt cleanup (Tier propagation, clock consistency, dead-code removal, go mod tidy, go vet clean). Research in `.planning/v1.5-IMPROVEMENTS-RESEARCH.md`. Single commit; build+vet+tests green.
 - **Codebase packages:** cmd/lognojutsu, internal/{engine,executor,native,playbooks,preparation,reporter,server,simlog,userstore,verifier}
 - **Test coverage:** 40+ test functions across engine_test, poc_test, server_test, verifier_test, reporter_test, loader_test, registry_test, executor_test, native technique tests
-- **Codebase size:** ~7.9k LOC Go (production code)
+- **Codebase size:** ~8.3k LOC Go (production code)
 - Codebase map available at `.planning/codebase/`
 
 ## Constraints
@@ -106,21 +112,30 @@ Automated pass/fail verification that SIEM detection rules fire when attack tech
 | Native Go technique registry | In-process execution via type:go dispatch — no child process for native techniques | ✓ Good — eliminates shell overhead, enables real library calls (LDAP, WMI) |
 | randomSlotsInWindow helper | Central function for distributing slots across a time window with jitter | ✓ Good — reused for Phase 1 (single) and Phase 2 (batched) scheduling |
 | Window config over single hour | Four PoCConfig fields (Phase1/2 WindowStart/End) replace Phase1/2DailyHour | ✓ Good — consultants can constrain scheduling to business hours |
+| Secrets via `$env:` + stdin, not `-Command` argv | Passwords/DPAPI blobs on the command line are captured by Event 4688 + ScriptBlock logs and readable by other processes | ✓ Good — removes credential leak and fragile escaping (v1.5) |
+| Static UI Basic-auth challenge | SPA sends no auth header; challenging the static page makes the browser cache creds for all same-origin /api/* fetches | ✓ Good — fixes totally-broken password mode with no UI password field (v1.5) |
+| QueryFn gains `contains` param | Thread EventSpec.Contains through to Get-WinEvent message filter | ✓ Good — precise per-technique verification, backward compatible (v1.5) |
+| Sort GetTechniquesByPhase by ID | Map iteration made run/report order nondeterministic | ✓ Good — reproducible runs (v1.5) |
 
 ## Current State
 
 **Latest shipped:** v1.4 PoC Technique Distribution (2026-04-11)
+**In review:** v1.5 Polish & Hardening (2026-09-20, PR #1)
 
-v1.4 delivered distributed technique scheduling: `randomSlotsInWindow()` spreads technique execution across configurable time windows with random jitter. Phase 1 fires one technique per slot, Phase 2 fires batches of 2-3. UI updated with window start/end inputs. DayDigest accuracy tests verify correctness under distributed scheduling. All 4 v1.4 requirements verified and closed.
+v1.5 is a security/polish pass done after a full-codebase read (research in `.planning/v1.5-IMPROVEMENTS-RESEARCH.md`). It removes the plaintext-credential leak onto the PowerShell command line (secrets now via `$env:` + stdin), enforces `EventSpec.Contains` in the verifier, fixes the previously-broken password-protected UI (static Basic-auth challenge), makes technique/report ordering deterministic, translates the HTML report to English, and clears most carried-forward tech debt. Build, `go vet`, and all tests green; verified end-to-end against the built binary. Pending merge of PR #1.
 
 **Known tech debt (carried forward):**
-- `/api/techniques` behind authMiddleware — stat box silent in password-protected deployments
-- German strings remain in `reporter.go` htmlTemplate (HTML reports) and engine.go WhatIf strings
 - Two audit GUIDs need on-machine validation on non-English Windows
-- engine.go:165 — `time.Now()` in Start() status init not clock-injected (cosmetic)
-- Tier field not propagated in elevation-skip/WhatIf ExecutionResult (display shows em-dash)
-- go-ldap/v3 and wmi marked // indirect in go.mod (should be direct)
 - T1070.001 absent from TestWriteArtifactsHaveCleanup (test coverage gap, behavior correct)
+- `userstore` and `simlog` packages have no test files (DPAPI round-trip, store CRUD untested)
+- `DefaultQueryFn` reports query errors as "0 events" (no distinct verify-error status) — see v1.5 research Tier 3
+
+**Resolved in v1.5 (was carried-forward debt):**
+- ~~`/api/techniques` silent in password mode~~ — fixed by static Basic-auth challenge (whole UI was broken, not just the count)
+- ~~German strings in reporter.go / engine.go WhatIf~~ — translated to English
+- ~~`time.Now()` in Start() not clock-injected~~ — now `e.clock.Now()`
+- ~~Tier not propagated in elevation-skip/WhatIf results~~ — now propagated
+- ~~go-ldap/v3, wmi marked // indirect~~ — `go mod tidy`
 
 ## Evolution
 
@@ -140,4 +155,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-11 after v1.4 milestone*
+*Last updated: 2026-09-20 for v1.5 (in review, PR #1)*
