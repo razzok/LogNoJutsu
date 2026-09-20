@@ -10,7 +10,7 @@ import (
 
 // mockQueryFn returns a QueryFn that maps (channel, eventID) to a predetermined count.
 func mockQueryFn(counts map[int]int) QueryFn {
-	return func(channel string, eventID int, since time.Time) (int, error) {
+	return func(channel string, eventID int, contains string, since time.Time) (int, error) {
 		if c, ok := counts[eventID]; ok {
 			return c, nil
 		}
@@ -111,7 +111,7 @@ func TestQueryCountMock(t *testing.T) {
 	var calledEventID int
 	var calledSince time.Time
 
-	trackingFn := func(channel string, eventID int, s time.Time) (int, error) {
+	trackingFn := func(channel string, eventID int, contains string, s time.Time) (int, error) {
 		calledChannel = channel
 		calledEventID = eventID
 		calledSince = s
@@ -190,7 +190,26 @@ func TestVerifier_notRun_WhatIf(t *testing.T) {
 	}
 }
 
+// TestVerifyPassesContainsToQuery verifies that the spec's Contains substring is
+// forwarded to the QueryFn, so message-content filtering reaches the event query.
+func TestVerifyPassesContainsToQuery(t *testing.T) {
+	since := time.Now().Add(-1 * time.Minute)
+	var gotContains string
+	fn := func(channel string, eventID int, contains string, s time.Time) (int, error) {
+		gotContains = contains
+		return 1, nil
+	}
+	sp := []playbooks.EventSpec{{EventID: 4688, Channel: "Security", Contains: "wevtutil"}}
+	status, _ := Verify(sp, since, true, fn)
+	if status != playbooks.VerifPass {
+		t.Errorf("expected VerifPass, got %q", status)
+	}
+	if gotContains != "wevtutil" {
+		t.Errorf("expected Contains %q forwarded to query, got %q", "wevtutil", gotContains)
+	}
+}
+
 // Ensure QueryFn type is usable (compile-time check).
-var _ QueryFn = func(channel string, eventID int, since time.Time) (int, error) {
+var _ QueryFn = func(channel string, eventID int, contains string, since time.Time) (int, error) {
 	return 0, errors.New("unused")
 }

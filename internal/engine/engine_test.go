@@ -845,7 +845,7 @@ type afterTrackClock struct {
 
 func (a *afterTrackClock) After(d time.Duration) <-chan time.Time {
 	// Only record sub-hour durations that look like campaign delays (< 3600s)
-	// Scheduling waits are nextOccurrenceOfHour which is always > 0 up to 24h.
+	// Scheduling waits are randomSlotsInWindow durations spread across the daily window.
 	// Campaign delays are step.DelayAfter seconds, typically much smaller.
 	// Record all durations so the test can inspect them.
 	a.mu.Lock()
@@ -913,7 +913,7 @@ func TestCampaignDelayAfter_Interruptible(t *testing.T) {
 }
 
 // blockingClock implements Clock where After() blocks until the channel is closed or a stop signal fires.
-// The scheduling wait (nextOccurrenceOfHour) fires immediately (via fakeClock),
+// The scheduling wait (randomSlotsInWindow) fires immediately (via fakeClock),
 // but campaign delays block until Stop() is called.
 type blockingClock struct {
 	fakeClock

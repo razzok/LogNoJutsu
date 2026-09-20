@@ -67,7 +67,7 @@ func TestHTMLVerificationColumn(t *testing.T) {
 	checks := []string{
 		"verif-pass",
 		"Pass",
-		"Verifikation",
+		"Verification",
 		"EID 4688",
 		"Security",
 	}
@@ -95,14 +95,14 @@ func TestHTMLVerificationFail(t *testing.T) {
 	}
 }
 
-// TestHTMLVerificationNotExecuted checks that not_executed status shows "Nicht ausgeführt".
+// TestHTMLVerificationNotExecuted checks that not_executed status shows "Not executed".
 func TestHTMLVerificationNotExecuted(t *testing.T) {
 	results := []playbooks.ExecutionResult{
 		makeResult(playbooks.VerifNotExecuted, nil),
 	}
 	html := saveHTMLToDir(t, results)
 
-	want := "Nicht ausgeführt"
+	want := "Not executed"
 	if !strings.Contains(html, want) {
 		t.Errorf("expected HTML to contain %q", want)
 	}

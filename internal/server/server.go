@@ -70,9 +70,11 @@ func Start(c Config) error {
 }
 
 func (s *Server) registerRoutes(mux *http.ServeMux) {
-	// Static UI
+	// Static UI — behind a Basic-auth challenge when a password is set, so the
+	// browser prompts once and then auto-attaches credentials to every same-origin
+	// /api/* fetch (the SPA sends no Authorization header of its own).
 	staticFS, _ := fs.Sub(staticFiles, "static")
-	mux.Handle("/", http.FileServer(http.FS(staticFS)))
+	mux.Handle("/", s.staticAuth(http.FileServer(http.FS(staticFS))))
 
 	// Version info — public, no auth required (per D-10)
 	mux.HandleFunc("/api/info", s.handleInfo)
@@ -102,6 +104,24 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/users/discover", s.authMiddleware(s.handleUsersDiscover))
 	mux.HandleFunc("/api/users/test", s.authMiddleware(s.handleUsersTest))
 	mux.HandleFunc("/api/users/delete", s.authMiddleware(s.handleUsersDelete))
+}
+
+// staticAuth challenges the static UI with Basic auth when a password is set.
+// This makes the browser cache the credentials and send them on subsequent
+// same-origin API requests, so the authMiddleware-protected endpoints work
+// without the SPA managing an Authorization header itself.
+func (s *Server) staticAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.cfg.Password != "" {
+			_, pass, ok := r.BasicAuth()
+			if !ok || pass != s.cfg.Password {
+				w.Header().Set("WWW-Authenticate", `Basic realm="LogNoJutsu"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // authMiddleware optionally enforces basic password protection.

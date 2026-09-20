@@ -12,15 +12,26 @@ import (
 )
 
 // QueryFn abstracts event log querying for testability.
-// Takes channel, eventID, since time; returns count of matching events.
-type QueryFn func(channel string, eventID int, since time.Time) (int, error)
+// Takes channel, eventID, contains (optional message substring), since time;
+// returns count of matching events. An empty contains matches any event of that ID.
+type QueryFn func(channel string, eventID int, contains string, since time.Time) (int, error)
 
 // DefaultQueryFn queries the Windows Event Log via PowerShell Get-WinEvent.
-func DefaultQueryFn(channel string, eventID int, since time.Time) (int, error) {
+// When contains is non-empty, only events whose rendered message includes that
+// substring (case-insensitive) are counted — enabling precise per-technique
+// verification (e.g. a 4688 whose command line contains "wevtutil").
+func DefaultQueryFn(channel string, eventID int, contains string, since time.Time) (int, error) {
 	sinceStr := since.Format(time.RFC3339)
+	filter := ""
+	if strings.TrimSpace(contains) != "" {
+		// Escape single quotes for the PowerShell literal, then match on the
+		// rendered message. -like is case-insensitive by default.
+		esc := strings.ReplaceAll(contains, "'", "''")
+		filter = fmt.Sprintf(` | Where-Object { $_.Message -like '*%s*' }`, esc)
+	}
 	script := fmt.Sprintf(
-		`(Get-WinEvent -FilterHashtable @{LogName='%s'; Id=%d; StartTime='%s'} -ErrorAction SilentlyContinue | Measure-Object).Count`,
-		channel, eventID, sinceStr,
+		`(Get-WinEvent -FilterHashtable @{LogName='%s'; Id=%d; StartTime='%s'} -ErrorAction SilentlyContinue%s | Measure-Object).Count`,
+		channel, eventID, sinceStr, filter,
 	)
 	cmd := exec.Command("powershell.exe",
 		"-NonInteractive", "-NoProfile",
@@ -52,7 +63,7 @@ func Verify(specs []playbooks.EventSpec, since time.Time, executionSuccess bool,
 	verified := make([]playbooks.VerifiedEvent, 0, len(specs))
 	allFound := true
 	for _, spec := range specs {
-		count, _ := queryFn(spec.Channel, spec.EventID, since)
+		count, _ := queryFn(spec.Channel, spec.EventID, spec.Contains, since)
 		found := count > 0
 		if !found {
 			allFound = false

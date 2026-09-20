@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: PoC Technique Distribution
-status: complete
-stopped_at: Milestone v1.4 complete
-last_updated: "2026-04-11T10:30:00.000Z"
-last_activity: 2026-04-11
+milestone: v1.5
+milestone_name: Polish & Hardening
+status: in_review
+stopped_at: v1.5 pushed as PR #1, awaiting merge
+last_updated: "2026-09-20T08:00:00.000Z"
+last_activity: 2026-09-20
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
   percent: 100
 ---
 
@@ -18,28 +18,28 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-11)
+See: .planning/PROJECT.md (updated 2026-09-20)
 
 **Core value:** Automated pass/fail verification that SIEM detection rules fire when attack techniques execute — eliminating manual log correlation during client SIEM validation engagements.
 
-**Current focus:** Planning next milestone
+**Current focus:** v1.5 Polish & Hardening — in review (PR #1), awaiting merge
 
 ## Current Position
 
-Phase: Complete
+Phase: Complete (improvement pass)
 Plan: Complete
-Status: Milestone v1.4 complete — all 4 requirements satisfied, all 2 phases verified
-Last activity: 2026-04-11
+Status: v1.5 implemented and pushed — branch `v1.5-polish-hardening`, PR #1 open against `master`
+Last activity: 2026-09-20
 
-Progress: [██████████] 100% (v1.4 milestone)
+Progress: [██████████] 100% (v1.5 implemented, pending merge)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed (v1.4): 4
-- Timeline: 2026-04-10 → 2026-04-11 (2 days)
-- Commits: 14
+- v1.5: full-codebase read → research → implementation in one session
+- Timeline: 2026-09-20 (1 day)
+- Commits: 1 (feat(v1.5): security, verification, and polish improvements)
 
 *Updated after each plan completion*
 
@@ -49,23 +49,24 @@ Progress: [██████████] 100% (v1.4 milestone)
 
 Recent decisions affecting current work:
 
-- Phase 19: randomSlotsInWindow helper distributes N items across configurable time window with random jitter
-- Phase 19: Four PoCConfig window fields replace Phase1DailyHour/Phase2DailyHour
-- Phase 19: Phase 1 uses no delayBetween() — random window jitter IS the inter-technique delay
-- Phase 20: afterCountClock wrapper counts After() calls for scheduling slot assertions
+- v1.5: Secrets to PowerShell via `$env:` + stdin, never `-Command` argv (no leak into Event 4688 / ScriptBlock logs)
+- v1.5: Static UI behind a Basic-auth challenge so the browser propagates creds to all /api/* fetches
+- v1.5: QueryFn gains a `contains` param — EventSpec.Contains now enforced via Get-WinEvent message filter
+- v1.5: GetTechniquesByPhase sorted by ID for deterministic run/report order
 
 ### Pending Todos
 
-None.
+- Merge PR #1 (https://github.com/razzok/LogNoJutsu/pull/1); then run `/gsd:complete-milestone` for v1.5 and update ROADMAP/MILESTONES.
+- Consider Tier-3 items from `.planning/v1.5-IMPROVEMENTS-RESEARCH.md` for a future milestone (verify-error status, poll-with-backoff verification, offline Sysmon, verification-matrix export, userstore/simlog tests).
 
 ### Blockers/Concerns
 
-None — milestone complete.
+None — v1.5 build + vet + tests green; awaiting PR review/merge.
 
 ## Session Continuity
 
-Last session: 2026-04-11
-Stopped at: Milestone v1.4 complete
+Last session: 2026-09-20
+Stopped at: v1.5 pushed as PR #1, awaiting merge
 
 ---
 *Initialized: 2026-03-24*
@@ -74,3 +75,4 @@ Stopped at: Milestone v1.4 complete
 *v1.2 complete: 2026-04-09*
 *v1.3 complete: 2026-04-10*
 *v1.4 complete: 2026-04-11*
+*v1.5 in review: 2026-09-20 (PR #1)*

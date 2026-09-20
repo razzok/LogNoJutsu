@@ -305,28 +305,29 @@ type DiscoveredUser struct {
 }
 
 // TestCredentials verifies that credentials for a profile are valid.
+// The username and password are passed via environment variables (not the
+// command line) so they are never exposed in process-creation events.
 func TestCredentials(profile *UserProfile, password string) (bool, string) {
-	qualName := profile.QualifiedName()
-	script := fmt.Sprintf(`
+	script := `
 Add-Type -AssemblyName System.DirectoryServices.AccountManagement
 try {
-    $ctxType = if ("%s" -match "^\\." ) {
+    $ctxType = if ($env:LNJ_QUAL -match '^\.') {
         [System.DirectoryServices.AccountManagement.ContextType]::Machine
     } else {
         [System.DirectoryServices.AccountManagement.ContextType]::Domain
     }
     $ctx = New-Object System.DirectoryServices.AccountManagement.PrincipalContext($ctxType)
-    $result = $ctx.ValidateCredentials("%s", "%s")
+    $result = $ctx.ValidateCredentials($env:LNJ_USER, $env:LNJ_PW)
     if ($result) { "OK" } else { "INVALID_CREDENTIALS" }
 } catch {
     "ERROR: $_"
 }
-`,
-		qualName,
-		strings.ReplaceAll(profile.Username, `"`, `\"`),
-		strings.ReplaceAll(password, `"`, `\"`),
-	)
-	out, err := runPS(script)
+`
+	out, err := runPSWithEnv(script, map[string]string{
+		"LNJ_QUAL": profile.QualifiedName(),
+		"LNJ_USER": profile.Username,
+		"LNJ_PW":   password,
+	})
 	out = strings.TrimSpace(out)
 	if err != nil || strings.HasPrefix(out, "ERROR:") {
 		msg := out
@@ -342,12 +343,10 @@ try {
 }
 
 // encryptDPAPI encrypts a string using Windows DPAPI via PowerShell.
+// The plaintext is passed via an environment variable, never on the command line.
 func encryptDPAPI(plaintext string) (string, error) {
-	script := fmt.Sprintf(
-		`$s = ConvertTo-SecureString "%s" -AsPlainText -Force; ConvertFrom-SecureString $s`,
-		strings.ReplaceAll(plaintext, `"`, "`\""),
-	)
-	out, err := runPS(script)
+	script := `$s = ConvertTo-SecureString $env:LNJ_SECRET -AsPlainText -Force; ConvertFrom-SecureString $s`
+	out, err := runPSWithEnv(script, map[string]string{"LNJ_SECRET": plaintext})
 	if err != nil {
 		return "", fmt.Errorf("DPAPI encrypt: %w", err)
 	}
@@ -355,24 +354,40 @@ func encryptDPAPI(plaintext string) (string, error) {
 }
 
 // decryptDPAPI decrypts a DPAPI-encrypted string via PowerShell.
+// The encrypted blob is passed via an environment variable, never on the command line.
 func decryptDPAPI(encrypted string) (string, error) {
-	script := fmt.Sprintf(`
-$s = ConvertTo-SecureString "%s"
+	script := `$s = ConvertTo-SecureString $env:LNJ_ENC
 [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
     [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)
-)`, strings.TrimSpace(encrypted))
-	out, err := runPS(script)
+)`
+	out, err := runPSWithEnv(script, map[string]string{"LNJ_ENC": strings.TrimSpace(encrypted)})
 	if err != nil {
 		return "", fmt.Errorf("DPAPI decrypt: %w", err)
 	}
 	return strings.TrimSpace(out), nil
 }
 
+// runPS runs a PowerShell script (no secrets) as the current user.
 func runPS(script string) (string, error) {
+	return runPSWithEnv(script, nil)
+}
+
+// runPSWithEnv runs a PowerShell script read from stdin, with extra environment
+// variables set for the child process. Passing secrets via the environment (and
+// the script via stdin) keeps them off the process command line, so they never
+// appear in Event 4688 / ScriptBlock logs or to other processes on the host.
+func runPSWithEnv(script string, extraEnv map[string]string) (string, error) {
 	cmd := exec.Command("powershell.exe",
 		"-NonInteractive", "-NoProfile",
 		"-ExecutionPolicy", "Bypass",
-		"-Command", script)
+		"-Command", "-")
+	cmd.Stdin = strings.NewReader(script)
+	if len(extraEnv) > 0 {
+		cmd.Env = os.Environ()
+		for k, v := range extraEnv {
+			cmd.Env = append(cmd.Env, k+"="+v)
+		}
+	}
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
