@@ -5,6 +5,7 @@ package native
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -133,7 +134,7 @@ func scanTCP(hosts []string, ports []int) []scanResult {
 				sem <- struct{}{}        // acquire slot
 				defer func() { <-sem }() // release slot
 
-				addr := fmt.Sprintf("%s:%d", h, p)
+				addr := net.JoinHostPort(h, strconv.Itoa(p))
 				conn, err := net.DialTimeout("tcp4", addr, dialTimeout)
 				if err == nil {
 					conn.Close()
@@ -161,7 +162,7 @@ func scanUDP(hosts []string, ports []int) []scanResult {
 	var out []scanResult
 	for _, host := range hosts {
 		for _, port := range ports {
-			addr := fmt.Sprintf("%s:%d", host, port)
+			addr := net.JoinHostPort(host, strconv.Itoa(port))
 			conn, err := net.Dial("udp4", addr)
 			if err != nil {
 				continue

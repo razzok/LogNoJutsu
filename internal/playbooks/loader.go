@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"sort"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -68,7 +69,9 @@ func LoadEmbedded() (*Registry, error) {
 	return r, nil
 }
 
-// GetTechniquesByPhase returns all techniques for a given phase.
+// GetTechniquesByPhase returns all techniques for a given phase, sorted by ID.
+// Sorting makes execution order (and thus report order) reproducible across runs,
+// since the underlying map iterates in random order.
 func (r *Registry) GetTechniquesByPhase(phase string) []*Technique {
 	var result []*Technique
 	for _, t := range r.Techniques {
@@ -76,6 +79,7 @@ func (r *Registry) GetTechniquesByPhase(phase string) []*Technique {
 			result = append(result, t)
 		}
 	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result
 }
 
@@ -91,13 +95,6 @@ func (r *Registry) GetAllTactics() []string {
 	for tactic := range seen {
 		result = append(result, tactic)
 	}
-	// simple sort
-	for i := 0; i < len(result); i++ {
-		for j := i + 1; j < len(result); j++ {
-			if result[i] > result[j] {
-				result[i], result[j] = result[j], result[i]
-			}
-		}
-	}
+	sort.Strings(result)
 	return result
 }

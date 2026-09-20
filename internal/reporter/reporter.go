@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -132,14 +133,7 @@ func saveHTML(r Report, filename string) error {
 		}
 		tactics = append(tactics, *ts)
 	}
-	// sort by tactic name
-	for i := 0; i < len(tactics); i++ {
-		for j := i + 1; j < len(tactics); j++ {
-			if tactics[i].Tactic > tactics[j].Tactic {
-				tactics[i], tactics[j] = tactics[j], tactics[i]
-			}
-		}
-	}
+	sort.Slice(tactics, func(i, j int) bool { return tactics[i].Tactic < tactics[j].Tactic })
 
 	successRate := 0
 	if r.TotalRun > 0 {
@@ -258,7 +252,7 @@ func saveHTML(r Report, filename string) error {
 }
 
 const htmlTemplate = `<!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>LogNoJutsu — Simulation Report</title>
@@ -315,49 +309,49 @@ tr:hover td{background:#161b22}
 <body>
 <div class="hdr">
   <div>
-    <h1>⚔️ LogNoJutsu — Simulation Report{{if .WhatIf}} <span class="whatif-badge">⚠ WhatIf-Modus — Keine echte Ausführung</span>{{end}}</h1>
-    <div class="meta">Generiert: {{.GeneratedAt}}{{if .LogFile}} · Log: {{.LogFile}}{{end}}</div>
+    <h1>⚔️ LogNoJutsu — Simulation Report{{if .WhatIf}} <span class="whatif-badge">⚠ WhatIf mode — no real execution</span>{{end}}</h1>
+    <div class="meta">Generated: {{.GeneratedAt}}{{if .LogFile}} · Log: {{.LogFile}}{{end}}</div>
   </div>
 </div>
 <div class="wrap">
 
   <div class="stat-grid">
-    <div class="stat-box"><div class="val c-total">{{.TotalRun}}</div><div class="lbl">Gesamt</div></div>
-    <div class="stat-box"><div class="val c-ok">{{.Succeeded}}</div><div class="lbl">Erfolgreich</div></div>
-    <div class="stat-box"><div class="val c-fail">{{.Failed}}</div><div class="lbl">Fehlgeschlagen</div></div>
-    <div class="stat-box"><div class="val c-pct">{{.SuccessRate}}%</div><div class="lbl">Erfolgsquote</div></div>
+    <div class="stat-box"><div class="val c-total">{{.TotalRun}}</div><div class="lbl">Total</div></div>
+    <div class="stat-box"><div class="val c-ok">{{.Succeeded}}</div><div class="lbl">Succeeded</div></div>
+    <div class="stat-box"><div class="val c-fail">{{.Failed}}</div><div class="lbl">Failed</div></div>
+    <div class="stat-box"><div class="val c-pct">{{.SuccessRate}}%</div><div class="lbl">Success rate</div></div>
     {{if gt .VerifPassed 0}}<div class="stat-box"><div class="val" style="color:#3fb950">{{.VerifPassed}}</div><div class="lbl">Verified Pass</div></div>{{end}}
     {{if gt .VerifFailed 0}}<div class="stat-box"><div class="val" style="color:#f85149">{{.VerifFailed}}</div><div class="lbl">Verified Fail</div></div>{{end}}
     {{if gt .VerifAMSIBlocked 0}}<div class="stat-box"><div class="val" style="color:#d29922">{{.VerifAMSIBlocked}}</div><div class="lbl">AMSI Blocked</div></div>{{end}}
     {{if gt .VerifElevRequired 0}}<div class="stat-box"><div class="val" style="color:#8b949e">{{.VerifElevRequired}}</div><div class="lbl">Elevation Skipped</div></div>{{end}}
   </div>
 
-  <h2>📊 MITRE ATT&amp;CK Taktiken</h2>
+  <h2>📊 MITRE ATT&amp;CK Tactics</h2>
   <div class="tactic-grid">
     {{range .TacticStats}}
     <div class="tactic-cell">
       <div class="t-name">{{.Tactic}}</div>
-      <div class="t-nums" style="color:{{tacticColor .Tactic}}">{{.Total}} <span style="font-size:12px;font-weight:400;color:#8b949e;">Techniken</span></div>
+      <div class="t-nums" style="color:{{tacticColor .Tactic}}">{{.Total}} <span style="font-size:12px;font-weight:400;color:#8b949e;">techniques</span></div>
       <div style="font-size:11px;color:#8b949e;margin-top:2px;">✓ {{.Succeeded}} / ✗ {{.Failed}}</div>
       <div class="t-bar"><div class="t-bar-fill{{if gt .Failed 0}} t-bar-fail{{end}}" style="width:{{.PctSuccess}}%"></div></div>
     </div>
     {{end}}
   </div>
 
-  <h2>📋 Ausgeführte Techniken</h2>
+  <h2>📋 Executed Techniques</h2>
   <table>
     <thead>
       <tr>
-        <th>Zeit</th>
-        <th>Technik-ID</th>
+        <th>Time</th>
+        <th>Technique ID</th>
         <th>Name</th>
-        <th>Taktik</th>
+        <th>Tactic</th>
         <th>Status</th>
-        <th>Verifikation</th>
+        <th>Verification</th>
         {{if .HasCrowdStrike}}<th>CrowdStrike</th>{{end}}
         {{if .HasSentinel}}<th>Microsoft Sentinel</th>{{end}}
         {{if .HasTier}}<th>Tier</th>{{end}}
-        <th>Benutzer</th>
+        <th>User</th>
       </tr>
     </thead>
     <tbody>
@@ -371,14 +365,14 @@ tr:hover td{background:#161b22}
         {{if .ErrorOutput}}<div class="output" style="border-color:#f85149;">{{truncate .ErrorOutput 300}}</div>{{end}}
       </td>
       <td><span class="tag">{{.TacticID}}</span></td>
-      <td class="{{if .Success}}ok{{else}}fail{{end}}">{{if .Success}}✓ OK{{else}}✗ Fehler{{end}}</td>
+      <td class="{{if .Success}}ok{{else}}fail{{end}}">{{if .Success}}✓ OK{{else}}✗ Error{{end}}</td>
       <td>
         {{if eq (verifStr .VerificationStatus) "pass"}}
           <span class="verif-pass">&#10003; Pass</span>
         {{else if eq (verifStr .VerificationStatus) "fail"}}
           <span class="verif-fail">&#10007; Fail</span>
         {{else if eq (verifStr .VerificationStatus) "not_executed"}}
-          <span class="verif-skip">&mdash; Nicht ausgeführt</span>
+          <span class="verif-skip">&mdash; Not executed</span>
         {{else if eq (verifStr .VerificationStatus) "amsi_blocked"}}
           <span class="verif-amsi">&#9888; AMSI Blocked</span>
         {{else if eq (verifStr .VerificationStatus) "elevation_required"}}
@@ -428,6 +422,6 @@ tr:hover td{background:#161b22}
   </table>
 
 </div>
-<div class="footer">LogNoJutsu SIEM Validation Tool · Nur für autorisierte Tests in kontrollierten Umgebungen</div>
+<div class="footer">LogNoJutsu SIEM Validation Tool · For authorized testing in controlled environments only</div>
 </body>
 </html>`

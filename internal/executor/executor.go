@@ -216,19 +216,19 @@ func runCommandAs(execType, command string, profile *userstore.UserProfile, pass
 	encodedScriptPath := base64.StdEncoding.EncodeToString([]byte(scriptFile))
 
 	qualifiedUser := profile.QualifiedName()
-	escapedPassword := strings.ReplaceAll(password, "`", "``")
-	escapedPassword = strings.ReplaceAll(escapedPassword, `"`, "`\"")
-	escapedPassword = strings.ReplaceAll(escapedPassword, "$", "`$")
 
-	// Outer launcher script: creates PSCredential and starts process as target user
-	// Event 4648 is generated here — "A logon was attempted using explicit credentials"
+	// Outer launcher script: creates PSCredential and starts process as target user.
+	// Event 4648 is generated here — "A logon was attempted using explicit credentials".
+	// The target username and password are passed via environment variables
+	// ($env:LNJ_RUNAS_USER / $env:LNJ_RUNAS_PW), never interpolated into the script,
+	// so the credentials never appear on any process command line or in ScriptBlock logs.
 	// Note: backtick is PowerShell's escape char; we build the string via concatenation
 	// because Go raw string literals cannot contain backtick characters.
 	bq := "`"
 	launcher := fmt.Sprintf(
 		"$scriptPath = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(\"%s\"))\n"+
-			"$secPass = ConvertTo-SecureString \"%s\" -AsPlainText -Force\n"+
-			"$cred = New-Object System.Management.Automation.PSCredential(\"%s\", $secPass)\n"+
+			"$secPass = ConvertTo-SecureString $env:LNJ_RUNAS_PW -AsPlainText -Force\n"+
+			"$cred = New-Object System.Management.Automation.PSCredential($env:LNJ_RUNAS_USER, $secPass)\n"+
 			"$psi = New-Object System.Diagnostics.ProcessStartInfo\n"+
 			"$psi.FileName = \"powershell.exe\"\n"+
 			"$psi.Arguments = \"-NonInteractive -NoProfile -ExecutionPolicy Bypass -File %s\"+$scriptPath+\"%s\"\n"+
@@ -245,8 +245,6 @@ func runCommandAs(execType, command string, profile *userstore.UserProfile, pass
 			"[System.IO.File]::WriteAllText(\"%s\", $outText)\n"+
 			"[System.IO.File]::WriteAllText(\"%s\", $errText)\n",
 		encodedScriptPath,
-		escapedPassword,
-		qualifiedUser,
 		bq+"\"", bq+"\"",
 		strings.ReplaceAll(outFile, `\`, `\\`),
 		strings.ReplaceAll(errFile, `\`, `\\`),
@@ -256,6 +254,10 @@ func runCommandAs(execType, command string, profile *userstore.UserProfile, pass
 		"-NonInteractive", "-NoProfile",
 		"-ExecutionPolicy", "Bypass",
 		"-Command", launcher,
+	)
+	cmd.Env = append(os.Environ(),
+		"LNJ_RUNAS_USER="+qualifiedUser,
+		"LNJ_RUNAS_PW="+password,
 	)
 	var launchOut bytes.Buffer
 	cmd.Stdout = &launchOut

@@ -215,7 +215,7 @@ func (e *Engine) Start(cfg Config) error {
 	}
 	e.status = Status{
 		Phase:           initialPhase,
-		StartTime:       time.Now().Format(time.RFC3339),
+		StartTime:       e.clock.Now().Format(time.RFC3339),
 		PhaseStartTimes: make(map[Phase]string),
 		Results:         []playbooks.ExecutionResult{},
 		Errors:          []string{},
@@ -496,16 +496,6 @@ func (e *Engine) run() {
 	}
 
 	e.finish()
-}
-
-// nextOccurrenceOfHour returns the duration until the next occurrence of hour:00:00
-// on the local clock. If that time has already passed today, returns duration to tomorrow.
-func nextOccurrenceOfHour(hour int, now time.Time) time.Duration {
-	next := time.Date(now.Year(), now.Month(), now.Day(), hour, 0, 0, 0, now.Location())
-	if !next.After(now) {
-		next = next.Add(24 * time.Hour)
-	}
-	return next.Sub(now)
 }
 
 // randomSlotsInWindow returns sorted inter-slot wait durations for n technique slots
@@ -895,6 +885,7 @@ func (e *Engine) runTechnique(t *playbooks.Technique) {
 			RunAsUser:          userLabel,
 			VerificationStatus: playbooks.VerifElevationRequired,
 			SIEMCoverage:       t.SIEMCoverage,
+			Tier:               t.Tier,
 		}
 		e.mu.Lock()
 		e.status.Results = append(e.status.Results, result)
@@ -904,7 +895,7 @@ func (e *Engine) runTechnique(t *playbooks.Technique) {
 
 	if e.cfg.WhatIf {
 		// WhatIf: record what would run without executing anything
-		now := time.Now().Format(time.RFC3339)
+		now := e.clock.Now().Format(time.RFC3339)
 		result = playbooks.ExecutionResult{
 			TechniqueID:        t.ID,
 			TechniqueName:      t.Name,
@@ -912,9 +903,11 @@ func (e *Engine) runTechnique(t *playbooks.Technique) {
 			StartTime:          now,
 			EndTime:            now,
 			Success:            true,
-			Output:             "[WhatIf] Nicht ausgeführt — Vorschau-Modus aktiv",
+			Output:             "[WhatIf] Not executed — preview mode active",
 			RunAsUser:          userLabel,
 			VerificationStatus: playbooks.VerifNotRun,
+			Tier:               t.Tier,
+			SIEMCoverage:       t.SIEMCoverage,
 		}
 		simlog.Info(fmt.Sprintf("[WhatIf] Would run: %s — %s (as %s)", t.ID, t.Name, userLabel))
 	} else if e.runner != nil {
@@ -1008,7 +1001,7 @@ func (e *Engine) delayBetween() {
 
 func (e *Engine) whatIfLabel() string {
 	if e.cfg.WhatIf {
-		return " [WhatIf — Vorschau-Modus, keine echte Ausführung]"
+		return " [WhatIf — preview mode, no real execution]"
 	}
 	return ""
 }

@@ -245,6 +245,46 @@ func TestHandlePoCDays_auth(t *testing.T) {
 	}
 }
 
+// TestStaticAuth_challengesWhenPasswordSet verifies the static UI is behind a Basic-auth
+// challenge when a password is configured (so the browser prompts and caches credentials),
+// and is served publicly when no password is set.
+func TestStaticAuth_challengesWhenPasswordSet(t *testing.T) {
+	// With password: unauthenticated request to "/" must get 401 + WWW-Authenticate.
+	s := testServer(t, "secret123")
+	mux := http.NewServeMux()
+	s.registerRoutes(mux)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for static UI without auth, got %d", rec.Code)
+	}
+	if rec.Header().Get("WWW-Authenticate") == "" {
+		t.Error("expected WWW-Authenticate header to trigger browser prompt")
+	}
+
+	// With correct auth — should serve the page.
+	rec2 := httptest.NewRecorder()
+	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
+	req2.SetBasicAuth("", "secret123")
+	mux.ServeHTTP(rec2, req2)
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("expected 200 for static UI with auth, got %d", rec2.Code)
+	}
+
+	// Without a password configured — static UI is public.
+	sOpen := testServer(t, "")
+	muxOpen := http.NewServeMux()
+	sOpen.registerRoutes(muxOpen)
+	rec3 := httptest.NewRecorder()
+	req3 := httptest.NewRequest(http.MethodGet, "/", nil)
+	muxOpen.ServeHTTP(rec3, req3)
+	if rec3.Code != http.StatusOK {
+		t.Fatalf("expected 200 for public static UI, got %d", rec3.Code)
+	}
+}
+
 // TestAuthMiddleware_rejectsWrongPassword verifies auth middleware returns 401 for wrong password
 // and 200 for correct password.
 func TestAuthMiddleware_rejectsWrongPassword(t *testing.T) {
